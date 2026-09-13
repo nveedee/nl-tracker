@@ -118,13 +118,16 @@ export function MarketValueTrend({ trend }) {
   return null
 }
 
-// Delta-Anzeige in Prozentpunkten ggü. der letzten Baseline (src/baselineStore.js).
+// Delta-Anzeige ggü. der letzten Baseline (src/baselineStore.js) oder einer
+// anderen Vergleichsprojektion (z.B. What-if ggü. unbedingter Projektion).
 // Bewusst neutral eingefärbt (kein grün/rot) - siehe Kommentar in styles.css.
-export function Delta({ pp, digits = 1 }) {
+// `unit`: "pp" für Prozentpunkte (Standard, Wahrscheinlichkeiten), "" für
+// andere Grössen (z.B. Rang-Differenz).
+export function Delta({ pp, digits = 1, unit = 'pp' }) {
   if (pp == null) return null
-  if (Math.abs(pp) < 0.05) return <span className="delta">±0.0</span>
+  if (Math.abs(pp) < 0.05) return <span className="delta">±0.0{unit}</span>
   const dir = pp > 0 ? 'up' : 'down'
-  return <span className={'delta ' + dir}>{Math.abs(pp).toFixed(digits)}pp</span>
+  return <span className={'delta ' + dir}>{Math.abs(pp).toFixed(digits)}{unit}</span>
 }
 
 export function Empty({ title, hint, action }) {

@@ -18,6 +18,8 @@ import { getLastBaseline, recordBaselineIfNeeded, computeMovers } from '../basel
 import PositionMatrix from '../components/PositionMatrix.jsx'
 import BracketCards from '../components/BracketCards.jsx'
 import MatchForecast from '../components/MatchForecast.jsx'
+import WhatIfSimulator from '../components/WhatIfSimulator.jsx'
+import SwingAnalysis from '../components/SwingAnalysis.jsx'
 
 function fmtPct(v) { return v == null ? '–' : (v * 100).toFixed(1) + '%' }
 
@@ -198,10 +200,26 @@ export default function PlayoffOdds() {
 
           {/* Bracket-Karten: % je Ausgang, absteigend, mit Delta zur letzten Baseline */}
           <div className="section-label">Bracket-Wahrscheinlichkeiten</div>
-          <BracketCards rows={results.rows} baseline={baseline} />
+          <BracketCards rows={results.rows} compare={baseline} />
 
           {/* Positions-Matrix: P(Rang k) je Team, Heatmap oder Bars */}
           <PositionMatrix rows={results.rows} runs={results.runs} />
+
+          {/* What-if-Simulator: einzelne offene Spiele fix vorgeben */}
+          <div className="section-label">What-if-Simulator</div>
+          <WhatIfSimulator
+            teams={data.teams} games={data.games} settings={data.settings}
+            players={data.players || []} initialRatings={initialRatings}
+            baseResults={results} forecasts={forecasts} runs={runsChoice}
+          />
+
+          {/* Swing-Analyse: Einfluss der kommenden Spiele pro Spieltag */}
+          <div className="section-label">Swing-Analyse</div>
+          <SwingAnalysis
+            teams={data.teams} games={data.games} settings={data.settings}
+            players={data.players || []} initialRatings={initialRatings}
+            baseResults={results} forecasts={forecasts}
+          />
 
           {/* National League Projektion */}
           <div className="section-label">National League Projektion</div>

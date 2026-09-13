@@ -13,8 +13,10 @@ const METRICS = [
 ]
 
 // Eine Karte je Bracket-Ausgang, Teams je Karte absteigend nach %, mit
-// ▲▼-Delta (Prozentpunkte) zur letzten gespeicherten Baseline (src/baselineStore.js).
-export default function BracketCards({ rows, baseline }) {
+// ▲▼-Delta (Prozentpunkte). `compare` (optional): { rows: [...] } - entweder
+// die letzte gespeicherte Tages-Baseline (src/baselineStore.js) oder, im
+// WHAT-IF-SIMULATOR, die aktuelle unbedingte Projektion (toComparisonSnapshot()).
+export default function BracketCards({ rows, compare }) {
   return (
     <div className="grid grid-3 mb" style={{ gap: 14 }}>
       {METRICS.map((m) => {
@@ -24,8 +26,8 @@ export default function BracketCards({ rows, baseline }) {
             <div className="section-label">{m.label}</div>
             <div className="bracket-card-list">
               {sorted.slice(0, 8).map((row) => {
-                const baselineRow = getBaselineRow(baseline, row.team.id)
-                const pp = deltaPp(row[m.key], baselineRow, m.key)
+                const compareRow = getBaselineRow(compare, row.team.id)
+                const pp = deltaPp(row[m.key], compareRow, m.key)
                 return (
                   <div key={row.team.id} className="row spread">
                     <TeamBadge team={row.team} short />

@@ -213,9 +213,35 @@ function buildFixture(homeId, awayId, eloRatings, sogAdjustments, eloStart, home
 // `initialRatings` (optional): Pre-Season-ELO-Startwerte pro Team (siehe
 // src/preseasonElo.js) - wird 1:1 an computeElo() durchgereicht, sonst
 // unverändertes Verhalten (alle Teams starten bei eloStart).
-export function computeFixtures(teams, games, settings, players = [], initialRatings) {
+// WHAT-IF-SIMULATOR: vorgegebene Resultate für noch offene Spiele. Nur der
+// Spielausgang (kein Score) wird vorgegeben - "n.V." fasst OT+SO zusammen
+// (identisch zur Anzeige im Per-Match-Forecast/Bracket-Picker). Punkte/Sieg-
+// Zuordnung exakt nach dem NL-Punktesystem (3-2-1-0).
+export const OVERRIDE_RESULTS = ['HOME_REG', 'HOME_OT', 'AWAY_OT', 'AWAY_REG']
+const OVERRIDE_POINTS = {
+  HOME_REG: { home: 3, away: 0, homeWins: true },
+  HOME_OT: { home: 2, away: 1, homeWins: true },
+  AWAY_OT: { home: 1, away: 2, homeWins: false },
+  AWAY_REG: { home: 0, away: 3, homeWins: false },
+}
+
+// `overrides` (optional): Map ODER Objekt `gameId -> 'HOME_REG'|'HOME_OT'|'AWAY_OT'|'AWAY_REG'`
+// (siehe OVERRIDE_RESULTS/OVERRIDE_POINTS oben) - der WHAT-IF-SIMULATOR gibt
+// hierüber einzelne offene Spiele als FIX vor: Sie fliessen in Punkte/Siege/
+// direkten-Vergleich genauso ein wie bereits gespielte Spiele, werden aber
+// NICHT mehr Monte-Carlo-simuliert (aus den `fixtures` entfernt). Da nur der
+// Ausgang (kein Score) vorgegeben ist, tragen sie 0:0 zur Tor-Statistik
+// (gf/ga, damit auch zur Tordifferenz) und NICHT zum ELO bei - ELO bleibt
+// ausschliesslich aus echten Ergebnissen abgeleitet (keine erfundenen
+// Tordifferenzen/Kräfteverschiebungen). Ohne `overrides` (Default) exaktes
+// bisheriges Verhalten.
+export function computeFixtures(teams, games, settings, players = [], initialRatings, overrides) {
   const finalGames = games.filter(isFinalGame)
-  const scheduled = games.filter((g) => g.status === 'scheduled')
+  const scheduledAll = games.filter((g) => g.status === 'scheduled')
+
+  const overrideMap = overrides instanceof Map ? overrides : new Map(Object.entries(overrides || {}))
+  const overriddenGames = scheduledAll.filter((g) => overrideMap.has(g.id))
+  const scheduled = scheduledAll.filter((g) => !overrideMap.has(g.id))
 
   // Tiebreaker-Basis aus der bereits gespielten Saison: Punkte, Anzahl Siege
   // (regulär + OT/SO) und direkter Vergleich (siehe compareTiebreak in
@@ -230,6 +256,22 @@ export function computeFixtures(teams, games, settings, players = [], initialRat
     startWins[r.team.id] = r.w + r.otw
   })
   const startH2H = buildHeadToHeadPointsMap(finalGames)
+
+  // What-if-Vorgaben wie bereits gespielte Spiele einrechnen (siehe Kommentar oben).
+  for (const g of overriddenGames) {
+    const spec = OVERRIDE_POINTS[overrideMap.get(g.id)]
+    if (!spec) continue
+    startPts[g.homeTeamId] = (startPts[g.homeTeamId] || 0) + spec.home
+    startPts[g.awayTeamId] = (startPts[g.awayTeamId] || 0) + spec.away
+    const winnerId = spec.homeWins ? g.homeTeamId : g.awayTeamId
+    startWins[winnerId] = (startWins[winnerId] || 0) + 1
+
+    const key = g.homeTeamId < g.awayTeamId ? `${g.homeTeamId}|${g.awayTeamId}` : `${g.awayTeamId}|${g.homeTeamId}`
+    let entry = startH2H.get(key)
+    if (!entry) { entry = {}; startH2H.set(key, entry) }
+    entry[g.homeTeamId] = (entry[g.homeTeamId] || 0) + spec.home
+    entry[g.awayTeamId] = (entry[g.awayTeamId] || 0) + spec.away
+  }
 
   const eloStart = settings?.eloStart ?? ELO_CONFIG.eloStart
   const homeAdvElo = settings?.eloHomeAdvantage ?? ELO_CONFIG.homeAdvantage
@@ -246,7 +288,7 @@ export function computeFixtures(teams, games, settings, players = [], initialRat
     date: g.date,
   }))
 
-  return { fixtures, startPts, startWins, startH2H, eloRatings, eloStart, homeAdvElo, sogAdjustments }
+  return { fixtures, startPts, startWins, startH2H, eloRatings, eloStart, homeAdvElo, sogAdjustments, overriddenCount: overriddenGames.length }
 }
 
 const FORECAST_GOAL_TRUNCATION = 30 // Poisson(k>30; λ<=6) numerisch vernachlässigbar (<1e-12)
@@ -463,12 +505,19 @@ export function simulateSeasonProjections(
   teams,
   games,
   settings,
-  { runs = SIMULATION_RUNS, seed = 12345, players = [], initialRatings } = {}
+  { runs = SIMULATION_RUNS, seed = 12345, players = [], initialRatings, overrides } = {}
 ) {
-  const { fixtures, startPts, startWins, startH2H, eloRatings, eloStart, homeAdvElo, sogAdjustments } =
-    computeFixtures(teams, games, settings, players, initialRatings)
+  const { fixtures, startPts, startWins, startH2H, eloRatings, eloStart, homeAdvElo, sogAdjustments, overriddenCount } =
+    computeFixtures(teams, games, settings, players, initialRatings, overrides)
 
-  if (fixtures.length === 0) {
+  // Ohne offene, noch zu simulierende Spiele UND ohne What-if-Vorgaben gibt
+  // es nichts zu projizieren (bisheriges Verhalten, unverändert). Mit
+  // What-if-Vorgaben, die ALLE offenen Spiele abdecken (fixtures leer, aber
+  // overriddenCount > 0), ist die Regular-Season-Tabelle vollständig
+  // deterministisch (jedes Team P=100% auf seinem exakten Rang) - nur die
+  // Playoff-/Play-in-/Play-out-Serien bleiben zufällig und werden weiterhin
+  // über `runs` Läufe simuliert.
+  if (fixtures.length === 0 && !overriddenCount) {
     return null
   }
 
@@ -751,3 +800,111 @@ export function simulatePlayoffOdds(teams, games, settings, options = {}) {
 }
 
 export { SeededRandom }
+
+// ============================================================================
+// SWING-ANALYSE ("Was steht auf dem Spiel?")
+//
+// Für ein einzelnes offenes Spiel: zwei separate What-if-Simulationen unter
+// den Szenarien "Heimsieg" (HOME_REG) und "Auswärtssieg" (AWAY_REG) - die
+// n.V.-Variante wird bewusst nicht separat simuliert (identisches Punkte-
+// Vorzeichen, der Unterschied 3-0 vs. 2-1 ändert an der Kategorie-
+// Wahrscheinlichkeit praktisch nichts, aber verdoppelt die Rechenzeit;
+// s. Auftrag: "n.V.-Varianten dürfen zusammengefasst werden").
+//
+//   Max Swing      = |P(Szenario Heimsieg) - P(Szenario Auswärtssieg)|
+//   Expected Swing = mit der ECHTEN Ausgangswahrscheinlichkeit dieses Spiels
+//                    (pHomeWin/pAwayWin aus computeMatchForecasts()) gewichtete
+//                    erwartete Abweichung von der aktuellen unbedingten
+//                    Projektion (P0):
+//                      pHomeWin * |P(Heimsieg) - P0| + pAwayWin * |P(Auswärtssieg) - P0|
+//                    (nicht einfach pHomeWin*P(Heimsieg)+pAwayWin*P(Auswärtssieg)-P0,
+//                    das wäre per Konstruktion der Monte-Carlo-Simulation ~0 -
+//                    P0 IST bereits der über beide Szenarien gemittelte Wert).
+// ============================================================================
+
+export const SWING_CATEGORIES = [
+  { key: 'pChampion', label: 'Meister' },
+  { key: 'pTop6', label: 'Top 6' },
+  { key: 'pPlayoffs', label: 'Playoffs' },
+  { key: 'pPlayout1314', label: 'Play-out' },
+  { key: 'pLigaQualifikation', label: 'Ligaqualifikation' },
+]
+
+export const SWING_RUNS = 2000 // bewusst kleiner als SIMULATION_RUNS: 2 Sims/Spiel, mehrere Spiele/Spieltag
+
+// Swing-Analyse für EIN Spiel, alle Teams/Kategorien. `baseRows` = rows der
+// aktuellen unbedingten Projektion (P0-Referenz) - ohne baseRows wird P0
+// ersatzweise als Mittel der beiden Szenarien angenähert (nur relevant, wenn
+// keine unbedingte Projektion vorliegt). `seed` wird bewusst fix zwischen
+// beiden Szenarien geteilt (und sollte auch dem Seed der unbedingten
+// Projektion entsprechen) - "common random numbers": dieselbe Zufallsfolge
+// für alle NICHT von diesem Spiel betroffenen Zufallsentscheidungen in
+// beiden Szenarien, damit die Differenz ausschliesslich den Effekt dieses
+// einen Spiels misst statt zusätzliches Simulationsrauschen.
+export function computeSwingForGame(teams, games, settings, gameId, pHomeWin, { runs = SWING_RUNS, seed = 4242, players = [], initialRatings, baseRows } = {}) {
+  const homeSim = simulateSeasonProjections(teams, games, settings, { runs, seed, players, initialRatings, overrides: { [gameId]: 'HOME_REG' } })
+  const awaySim = simulateSeasonProjections(teams, games, settings, { runs, seed, players, initialRatings, overrides: { [gameId]: 'AWAY_REG' } })
+  if (!homeSim || !awaySim) return null
+
+  const baseByTeam = new Map((baseRows || []).map((r) => [r.team.id, r]))
+  const homeByTeam = new Map(homeSim.rows.map((r) => [r.team.id, r]))
+  const awayByTeam = new Map(awaySim.rows.map((r) => [r.team.id, r]))
+
+  const teamsOut = teams.map((t) => {
+    const home = homeByTeam.get(t.id)
+    const away = awayByTeam.get(t.id)
+    const base = baseByTeam.get(t.id)
+    const categories = {}
+    for (const cat of SWING_CATEGORIES) {
+      const pHomeScenario = home ? home[cat.key] : 0
+      const pAwayScenario = away ? away[cat.key] : 0
+      const p0 = base ? base[cat.key] : (pHomeScenario + pAwayScenario) / 2
+      categories[cat.key] = {
+        pHomeScenario,
+        pAwayScenario,
+        p0,
+        maxSwing: Math.abs(pHomeScenario - pAwayScenario),
+        expectedSwing: pHomeWin * Math.abs(pHomeScenario - p0) + (1 - pHomeWin) * Math.abs(pAwayScenario - p0),
+      }
+    }
+    return { team: t, categories }
+  })
+
+  return { teams: teamsOut }
+}
+
+// Swing-Analyse für alle Spiele EINES Spieltags (gameIds), absteigend nach
+// Einfluss sortiert - Einfluss = grösster Expected Swing über alle Team/
+// Kategorie-Kombinationen dieses Spiels. `forecasts` = Ergebnis von
+// computeMatchForecasts() (liefert Teams/Datum/pHomeWin je Spiel),
+// `baseResults` = aktuelle unbedingte Projektion (simulateSeasonProjections()
+// ohne overrides) für die P0-Referenz.
+export function computeSwingAnalysisForMatchday(teams, games, settings, gameIds, { runs = SWING_RUNS, seed = 4242, players = [], initialRatings, baseResults, forecasts = [] } = {}) {
+  const forecastByGameId = new Map(forecasts.map((f) => [f.gameId, f]))
+  const baseRows = baseResults ? baseResults.rows : null
+
+  const perGame = gameIds.map((gameId) => {
+    const forecast = forecastByGameId.get(gameId)
+    if (!forecast) return null
+    const result = computeSwingForGame(teams, games, settings, gameId, forecast.pHomeWin, { runs, seed, players, initialRatings, baseRows })
+    if (!result) return null
+
+    let influence = 0
+    for (const t of result.teams) {
+      for (const cat of SWING_CATEGORIES) influence = Math.max(influence, t.categories[cat.key].expectedSwing)
+    }
+
+    return {
+      gameId,
+      date: forecast.date,
+      homeTeam: forecast.homeTeam,
+      awayTeam: forecast.awayTeam,
+      pHomeWin: forecast.pHomeWin,
+      influence,
+      teams: result.teams,
+    }
+  }).filter(Boolean)
+
+  perGame.sort((a, b) => b.influence - a.influence)
+  return perGame
+}

@@ -58,6 +58,17 @@ function toBaselineRow(row) {
   return out
 }
 
+// Baut aus einem beliebigen simulateSeasonProjections()-Ergebnis ein Objekt
+// in genau der Form, die getBaselineRow()/deltaPp() erwarten (`{ rows }`).
+// Ermöglicht, BracketCards/PositionMatrix nicht nur gegen die persistierte
+// Tages-Baseline, sondern auch gegen z.B. die aktuelle unbedingte Projektion
+// zu vergleichen (WHAT-IF-SIMULATOR: Delta ggü. der Projektion OHNE
+// Overrides, nicht ggü. der Tages-Baseline) - ohne eigene Persistierung.
+export function toComparisonSnapshot(simResult, label) {
+  if (!simResult) return null
+  return { date: label, rows: simResult.rows.map(toBaselineRow) }
+}
+
 // Gibt den zuletzt gespeicherten Snapshot zurück (siehe Kommentar oben) -
 // oder null, wenn es noch nie eine Baseline gab.
 export function getLastBaseline() {

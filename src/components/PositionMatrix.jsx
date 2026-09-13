@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { TeamBadge } from './ui.jsx'
+import { TeamBadge, Delta } from './ui.jsx'
 
 // Sequentielle Heatmap-Rampe (eine Farbe, hell -> dunkel; siehe dataviz-Skill
 // "Sequential = one hue, light->dark"), aus der bestehenden App-Akzentfarbe
@@ -35,13 +35,18 @@ function heatColor(pct) {
 // Ansichten: "Tabelle" (Heatmap-Zahlen) und "Bars" (vertikale Mini-Balken je
 // Zelle, eine feste Farbe - die Höhe trägt hier die Grösse, nicht zusätzlich
 // die Farbintensität, um die Grösse nicht doppelt zu codieren).
-export default function PositionMatrix({ rows, runs }) {
+// `compare` (optional): { rows: [{ teamId, avgRank }] } - z.B. via
+// src/baselineStore.js::toComparisonSnapshot() aus der aktuellen unbedingten
+// Projektion (WHAT-IF-SIMULATOR) oder der Tages-Baseline. Zeigt eine
+// zusätzliche Δ-Spalte für Ø-Rang.
+export default function PositionMatrix({ rows, runs, compare }) {
   const [mode, setMode] = useState('table')
   if (!rows.length) return null
 
   const rankCount = Object.keys(rows[0].rankDistribution).length
   const ranks = Array.from({ length: rankCount }, (_, i) => i + 1)
   const sorted = [...rows].sort((a, b) => a.avgRank - b.avgRank)
+  const compareById = compare ? new Map(compare.rows.map((r) => [r.teamId, r])) : null
 
   return (
     <div className="card mb">
@@ -59,12 +64,16 @@ export default function PositionMatrix({ rows, runs }) {
               <th className="left">Team</th>
               {ranks.map((r) => <th key={r} className="num">{r}</th>)}
               <th className="num">Ø-Rang</th>
+              {compare && <th className="num">Δ</th>}
               <th className="num">Median</th>
               <th className="num">σ</th>
             </tr>
           </thead>
           <tbody>
-            {sorted.map((row) => (
+            {sorted.map((row) => {
+              const c = compareById?.get(row.team.id)
+              const rankDelta = c ? row.avgRank - c.avgRank : null
+              return (
               <tr key={row.team.id}>
                 <td className="left"><TeamBadge team={row.team} short /></td>
                 {ranks.map((r) => {
@@ -86,10 +95,12 @@ export default function PositionMatrix({ rows, runs }) {
                   )
                 })}
                 <td className="num">{row.avgRank.toFixed(1)}</td>
+                {compare && <td className="num"><Delta pp={rankDelta} unit="" digits={2} /></td>}
                 <td className="num">{row.medianRank}</td>
                 <td className="num muted">{row.stdDevRank.toFixed(1)}</td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
       </div>
