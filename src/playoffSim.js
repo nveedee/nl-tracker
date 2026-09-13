@@ -31,16 +31,21 @@
 //      aus der (jetzt realistisch kalibrierten) Poisson-Torverteilung selbst.
 // ---------------------------------------------------------------------------
 
-import { isFinalGame, computeStandings } from './stats.js'
+import { isFinalGame, computeStandings, buildHeadToHeadPointsMap, compareTiebreak } from './stats.js'
 import { computeElo, homeWinProbability, ELO_CONFIG } from './elo.js'
 
 export const SIMULATION_RUNS = 10000
 
+// Aktueller NL-Modus (14 Teams, Saison 2026/27):
+//   Rang 1-6:   direkt Viertelfinal
+//   Rang 7-10:  Play-in um die letzten 2 VF-Plätze (siehe simulateSeasonProjections)
+//   Rang 11-12: Saisonende
+//   Rang 13-14: Play-out-Final -> Verlierer in die Ligaqualifikation
 export const PLAYOFF_FORMAT = {
   directQuarterfinal: [1, 6],
-  prePlayoffs: [7, 10],
-  seasonEnd: [11, 13],
-  qualification: [14, 14],
+  playIn: [7, 10],
+  seasonEnd: [11, 12],
+  playout: [13, 14],
 }
 
 // ============================================================================
@@ -212,9 +217,19 @@ export function computeFixtures(teams, games, settings, players = [], initialRat
   const finalGames = games.filter(isFinalGame)
   const scheduled = games.filter((g) => g.status === 'scheduled')
 
+  // Tiebreaker-Basis aus der bereits gespielten Saison: Punkte, Anzahl Siege
+  // (regulär + OT/SO) und direkter Vergleich (siehe compareTiebreak in
+  // src/stats.js) - dieselbe Reihenfolge wie in der echten Tabelle
+  // (computeStandings), damit die Monte-Carlo-Ranglisten unten (inkl.
+  // Playoff-/Play-in-/Play-out-Seeding) konsistent zur echten Tabelle sind.
   const startStandings = computeStandings(teams, finalGames)
   const startPts = {}
-  startStandings.forEach((r) => { startPts[r.team.id] = r.pts })
+  const startWins = {}
+  startStandings.forEach((r) => {
+    startPts[r.team.id] = r.pts
+    startWins[r.team.id] = r.w + r.otw
+  })
+  const startH2H = buildHeadToHeadPointsMap(finalGames)
 
   const eloStart = settings?.eloStart ?? ELO_CONFIG.eloStart
   const homeAdvElo = settings?.eloHomeAdvantage ?? ELO_CONFIG.homeAdvantage
@@ -224,7 +239,7 @@ export function computeFixtures(teams, games, settings, players = [], initialRat
 
   const fixtures = scheduled.map((g) => buildFixture(g.homeTeamId, g.awayTeamId, eloRatings, sogAdjustments, eloStart, homeAdvElo))
 
-  return { fixtures, startPts, eloRatings, eloStart, homeAdvElo, sogAdjustments }
+  return { fixtures, startPts, startWins, startH2H, eloRatings, eloStart, homeAdvElo, sogAdjustments }
 }
 
 // Simuliert genau EIN Spiel (Poisson-Regulationstore + kalibrierte OT/SO-
@@ -249,38 +264,50 @@ export function simulateGameResult(rng, fixture) {
 }
 
 // ============================================================================
-// PLAYOFF-BRACKET (NEU: echte Turnier-Simulation statt reiner Rang-Ableitung
-// für Meister/Final/Halbfinal)
+// PLAYOFF-BRACKET (echte Turnier-Simulation statt reiner Rang-Ableitung für
+// Meister/Final/Halbfinal)
 //
 // Verwendet das bestehende, UNVERÄNDERTE PLAYOFF_FORMAT (siehe oben) - kein
-// NHL-Format, sondern exakt die im Projekt definierten Rang-Bänder:
-//   Rang 1-6:  direkt Viertelfinal ("directQuarterfinal")
-//   Rang 7-10: Pre-Playoffs, 2 Plätze im Viertelfinal ("prePlayoffs")
-//   Rang 11-13/14: Saisonende/Ligaqualifikation (nicht Teil des Brackets)
-// Das ergibt ein 8-Team-Viertelfinal - das reale Schweizer NL-Playoff-Format.
-// Die Bracket-PAARUNGSLOGIK selbst (wer gegen wen, Serienlänge, Heimrecht-
-// Muster) ist im bestehenden Code nirgends definiert und wird hier bewusst
-// wie folgt festgelegt (Standard-Turnier-Reseeding, keine erfundene
-// Prognoseformel - nur Turnierstruktur):
-//   - Pre-Playoffs: Best-of-3 (7 vs. 10, 8 vs. 9). Die Gewinner übernehmen
-//     die Bracket-Plätze 7 und 8 (Sieger 7v10 -> Platz 7, Sieger 8v9 -> Platz 8),
-//     unabhängig vom ursprünglichen Rang - Standard-Konvention.
-//   - Viertelfinal: Best-of-7, klassische 1v8/2v7/3v6/4v5-Paarung nach Rang.
+// NHL-Format, sondern exakt der aktuelle Schweizer NL-Modus (14 Teams):
+//   Rang 1-6:   direkt Viertelfinal ("directQuarterfinal")
+//   Rang 7-10:  Play-in, 2 Plätze im Viertelfinal ("playIn")
+//   Rang 11-12: Saisonende
+//   Rang 13-14: Play-out-Final -> Verlierer Ligaqualifikation ("playout")
+//
+// PLAY-IN (Rang 7-10, NICHT Best-of-3):
+//   - Spiel A: 7 vs. 8 -> Sieger direkt VF, als Bracket-Seed 7.
+//   - Spiel B: 9 vs. 10 -> Sieger weiter in die Entscheidung.
+//   - Entscheidung: Verlierer(7v8) vs. Sieger(9v10) -> Sieger VF, als
+//     Bracket-Seed 8.
+//   Jede der drei Paarungen ist Hin-/Rückspiel: der laut Regular-Season-Rang
+//   schlechter platzierte Teilnehmer der Paarung ist im Hinspiel zu Hause,
+//   der besser platzierte im Rückspiel. Entscheidend ist die Gesamttordifferenz
+//   über beide Spiele (120 Minuten); bei Gleichstand fällt die Entscheidung
+//   per Sudden-Death-Overtime im Rückspiel (siehe simulateTwoLegSeries()).
+//
+// PLAYOFFS (8 Teams, Rang 1-6 + die 2 Play-in-Sieger):
+//   - Viertelfinal: Best-of-7, Paarung 1-8/2-7/3-6/4-5 nach Rang (Seed 7/8 =
+//     Play-in-Sieger, s.o.).
 //   - Halbfinal: Best-of-7, die 4 Viertelfinal-Sieger werden nach ihrem
-//     ursprünglichen Rang neu gepaart (bester vs. schlechtester Rest usw.).
+//     ursprünglichen Regular-Season-Rang neu gepaart (bester vs. schlechtester
+//     Rest usw. - "Reseeding").
 //   - Final: Best-of-7, die beiden Halbfinal-Sieger.
-// In jeder Serie erhält das ranghöhere Team das Heimrecht-Muster (mehr
-// Heimspiele, Standard-Playoff-Konvention: 2-2-1-1-1 bei Best-of-7,
-// 2-1 bei Best-of-3) - unabhängig davon, wer die Serie gewinnt.
-// Jede einzelne Serienpartie nutzt EXAKT dieselbe, unveränderte
-// simulateGameResult()-Logik (Poisson-Tore, OT/SO-Kalibrierung,
+//   In jeder Best-of-7-Serie erhält das ranghöhere Team das Heimrecht-Muster
+//   2-2-1-1-1 (mehr Heimspiele) - unabhängig davon, wer die Serie gewinnt.
+//
+// PLAY-OUT (Rang 13-14): Best-of-7, ranghöheres Team (13) mit Heimrecht-Muster
+// 2-2-1-1-1 wie die übrigen Best-of-7-Serien. Verlierer -> Ligaqualifikation
+// gegen den Swiss-League-Meister (dieser Gegner ist nicht Teil des
+// Datenmodells - hier wird nur die Wahrscheinlichkeit erfasst, in die
+// Ligaqualifikation zu müssen, nicht deren Ausgang).
+//
+// Jede einzelne Partie nutzt EXAKT dieselbe, unveränderte
+// simulateGameResult()- bzw. simulateRegulationGoals()-Logik (Poisson-Tore,
 // ELO-basierter Heimvorteil über buildFixture()) wie die Regular Season -
 // keine neue Tor- oder Wahrscheinlichkeitsformel.
 // ============================================================================
 
-const BO3_HOME_PATTERN = [true, false, true]
 const BO7_HOME_PATTERN = [true, true, false, false, true, false, true]
-const BO3_WINS_NEEDED = 2
 const BO7_WINS_NEEDED = 4
 
 // Simuliert eine Playoff-Serie zwischen zwei Teams, Partie für Partie, mit
@@ -305,14 +332,60 @@ function simulateSeries(rng, betterSeedId, worseSeedId, winsNeeded, homePattern,
   return betterWins > worseWins ? betterSeedId : worseSeedId
 }
 
+// Nur die Poisson-Regulationstore eines Fixtures (kein OT/SO) - Baustein für
+// die Play-in-/Play-out-Zweikämpfe, deren 120-Minuten-Gesamttordifferenz sich
+// NUR aus den beiden Regulationsergebnissen ergibt (siehe simulateTwoLegSeries).
+function simulateRegulationGoals(rng, fixture) {
+  return {
+    homeGoals: poissonSample(rng, fixture.expHome),
+    awayGoals: poissonSample(rng, fixture.expAway),
+  }
+}
+
+// Play-in-Zweikampf (Hin-/Rückspiel): der schlechter platzierte Teilnehmer
+// (`worseId`) ist im Hinspiel zu Hause, der besser platzierte (`betterId`) im
+// Rückspiel. Entscheidend ist die Gesamttordifferenz über beide Regulations-
+// ergebnisse (120 Minuten); bei Gleichstand Sudden-Death-Overtime im
+// Rückspiel (Gewinn-Wahrscheinlichkeit wie gehabt aus der ELO-Heimsieg-
+// Wahrscheinlichkeit des Rückspiel-Fixtures). Gibt die Team-ID des Siegers
+// zurück.
+function simulateTwoLegSeries(rng, betterId, worseId, eloRatings, sogAdjustments, eloStart, homeAdvElo) {
+  const leg1 = buildFixture(worseId, betterId, eloRatings, sogAdjustments, eloStart, homeAdvElo)
+  const leg1Goals = simulateRegulationGoals(rng, leg1) // home=worseId, away=betterId
+
+  const leg2 = buildFixture(betterId, worseId, eloRatings, sogAdjustments, eloStart, homeAdvElo)
+  const leg2Goals = simulateRegulationGoals(rng, leg2) // home=betterId, away=worseId
+
+  const betterAgg = leg1Goals.awayGoals + leg2Goals.homeGoals
+  const worseAgg = leg1Goals.homeGoals + leg2Goals.awayGoals
+
+  if (betterAgg !== worseAgg) {
+    return betterAgg > worseAgg ? betterId : worseId
+  }
+  const homeWinsExtra = rng.next() < leg2.pHome
+  return homeWinsExtra ? betterId : worseId
+}
+
+// Wrapper um simulateTwoLegSeries(): bestimmt "besser"/"schlechter platziert"
+// aus dem Regular-Season-Rang (rankOf), unabhängig davon, welche der beiden
+// Team-IDs als erstes übergeben wird - so lässt sich derselbe Helper für
+// beliebige Play-in-Paarungen (auch mit bereits ermittelten Vorrunden-
+// Siegern) verwenden.
+function twoLegWinner(rng, idA, idB, rankOf, eloRatings, sogAdjustments, eloStart, homeAdvElo) {
+  const better = rankOf[idA] <= rankOf[idB] ? idA : idB
+  const worse = better === idA ? idB : idA
+  return simulateTwoLegSeries(rng, better, worse, eloRatings, sogAdjustments, eloStart, homeAdvElo)
+}
+
 // ============================================================================
 // HAUPTFUNKTION
 //
-// Simuliert `runs` komplette Saisons (Regular Season -> Rangliste ->
-// Playoff-Bracket -> Meister) in EINEM Durchlauf und sammelt dabei pro Team
-// alle benötigten Statistiken (Playoffs/Top6/Top4/Halbfinal/Final/Meister,
-// Rangverteilung, Punkte inkl. Median/Best-/Worst-Case). Kein separater
-// Simulationslauf pro Tabellenzeile/Team.
+// Simuliert `runs` komplette Saisons (Regular Season -> Rangliste -> Play-in
+// -> Playoff-Bracket -> Meister, plus Play-out/Ligaqualifikation am
+// Tabellenende) in EINEM Durchlauf und sammelt dabei pro Team alle
+// benötigten Statistiken (Playoffs/Top6/Play-in/Halbfinal/Final/Meister/
+// Play-out/Ligaqualifikation, Rangverteilung, Punkte inkl. Median/Best-/
+// Worst-Case). Kein separater Simulationslauf pro Tabellenzeile/Team.
 // ============================================================================
 
 export function simulateSeasonProjections(
@@ -321,7 +394,7 @@ export function simulateSeasonProjections(
   settings,
   { runs = SIMULATION_RUNS, seed = 12345, players = [], initialRatings } = {}
 ) {
-  const { fixtures, startPts, eloRatings, eloStart, homeAdvElo, sogAdjustments } =
+  const { fixtures, startPts, startWins, startH2H, eloRatings, eloStart, homeAdvElo, sogAdjustments } =
     computeFixtures(teams, games, settings, players, initialRatings)
 
   if (fixtures.length === 0) {
@@ -330,15 +403,16 @@ export function simulateSeasonProjections(
 
   const teamIds = teams.map((t) => t.id)
   const n = teamIds.length
-  // Bracket-Simulation setzt exakt das bestehende 6+4-Format voraus (siehe
-  // Kommentar oben). Bei einer abweichenden Teamanzahl (z.B. in Tests mit
-  // wenigen Teams) wird nur die Regular-Season-Ableitung (Playoffs/Top6/Top4)
-  // berechnet, Halbfinal/Final/Meister bleiben dann 0 - kein Absturz.
+  // Bracket-/Play-in-/Play-out-Simulation setzt exakt das aktuelle 14-Team-
+  // Format voraus (siehe Kommentar oben). Bei einer abweichenden Teamanzahl
+  // (z.B. in Tests mit wenigen Teams) wird nur die Regular-Season-Ableitung
+  // (Playoffs/Top6) berechnet, alles Weitere bleibt dann 0 - kein Absturz.
   const canRunBracket =
-    n >= PLAYOFF_FORMAT.prePlayoffs[1] &&
+    n >= PLAYOFF_FORMAT.playout[1] &&
     PLAYOFF_FORMAT.directQuarterfinal[0] === 1 &&
     PLAYOFF_FORMAT.directQuarterfinal[1] - PLAYOFF_FORMAT.directQuarterfinal[0] + 1 === 6 &&
-    PLAYOFF_FORMAT.prePlayoffs[1] - PLAYOFF_FORMAT.prePlayoffs[0] + 1 === 4
+    PLAYOFF_FORMAT.playIn[1] - PLAYOFF_FORMAT.playIn[0] + 1 === 4 &&
+    PLAYOFF_FORMAT.playout[1] - PLAYOFF_FORMAT.playout[0] + 1 === 2
 
   // === SIMULATIONEN ===
 
@@ -348,6 +422,9 @@ export function simulateSeasonProjections(
       playoffs: 0,
       top6: 0,
       top4: 0,
+      playIn: 0,
+      playout1314: 0,
+      ligaqualifikation: 0,
       semifinal: 0,
       final: 0,
       champion: 0,
@@ -371,15 +448,25 @@ export function simulateSeasonProjections(
 
   for (let sim = 0; sim < runs; sim++) {
     const pts = {}
+    const wins = {}
     const gf = {}
     const ga = {}
     teamIds.forEach((id) => {
       pts[id] = startPts[id]
+      wins[id] = startWins[id] || 0
       gf[id] = 0
       ga[id] = 0
     })
+    // Direkter Vergleich (Tiebreaker Stufe 3, siehe compareTiebreak in
+    // src/stats.js): startet bei den PUNKTEN aus den bereits gespielten
+    // Duellen (startH2H) und wird unten pro simuliertem Fixture fortgeschrieben.
+    // Pro Simulationslauf eine frische Kopie (inkl. der inneren Objekte, die
+    // gleich mutiert werden) - startH2H selbst bleibt unverändert.
+    const h2h = new Map()
+    startH2H.forEach((entry, key) => h2h.set(key, { ...entry }))
 
-    // --- Regular Season (unverändert ggü. bisherigem simulatePlayoffOdds) ---
+    // --- Regular Season (unverändert ggü. bisherigem simulatePlayoffOdds,
+    //     zusätzlich: Siege + direkter Vergleich für den Tiebreaker) ---
     for (const f of fixtures) {
       const { homeGoals, awayGoals, decision } = simulateGameResult(rng, f)
       const homeWon = homeGoals > awayGoals
@@ -395,20 +482,33 @@ export function simulateSeasonProjections(
       gf[f.away] += rawAway
       ga[f.away] += rawHome
 
+      let homePts, awayPts
       if (decision === 'REG') {
-        pts[f.home] += homeWon ? 3 : 0
-        pts[f.away] += homeWon ? 0 : 3
+        homePts = homeWon ? 3 : 0
+        awayPts = homeWon ? 0 : 3
+        wins[homeWon ? f.home : f.away]++
       } else {
         // Unentschieden nach 60 Min., per OT/SO entschieden: 2 Punkte für den Sieger, 1 für den Verlierer
-        pts[f.home] += homeWon ? 2 : 1
-        pts[f.away] += homeWon ? 1 : 2
+        homePts = homeWon ? 2 : 1
+        awayPts = homeWon ? 1 : 2
+        wins[homeWon ? f.home : f.away]++
       }
+      pts[f.home] += homePts
+      pts[f.away] += awayPts
+
+      const key = f.home < f.away ? `${f.home}|${f.away}` : `${f.away}|${f.home}`
+      let entry = h2h.get(key)
+      if (!entry) { entry = {}; h2h.set(key, entry) }
+      entry[f.home] = (entry[f.home] || 0) + homePts
+      entry[f.away] = (entry[f.away] || 0) + awayPts
     }
 
-    // Erstelle Tabelle dieser Simulation
+    // Erstelle Tabelle dieser Simulation - Tiebreaker exakt wie die echte
+    // Tabelle (Punkte -> Siege -> direkter Vergleich -> Tordifferenz -> Tore),
+    // siehe compareTiebreak() in src/stats.js.
     const order = teamIds
-      .map((id, idx) => ({ id, pts: pts[id], tie: idx, gf: gf[id], ga: ga[id] }))
-      .sort((a, b) => b.pts - a.pts || a.tie - b.tie)
+      .map((id) => ({ id, pts: pts[id], wins: wins[id], gf: gf[id], ga: ga[id] }))
+      .sort((a, b) => compareTiebreak(a, b, h2h))
 
     // Zähle Regular-Season-Statistiken
     order.forEach((row, rankIdx) => {
@@ -429,31 +529,46 @@ export function simulateSeasonProjections(
         r.top6++
       }
       // "Top 4" = die 4 besten Teams innerhalb der direkten Quarterfinal-Gruppe (Rang 1-6),
-      // NICHT identisch mit der Playoff-Grenze (Rang 1-10, s.u.).
+      // NICHT identisch mit der Playoff-Grenze.
       if (rank >= PLAYOFF_FORMAT.directQuarterfinal[0] && rank <= PLAYOFF_FORMAT.directQuarterfinal[0] + 3) {
         r.top4++
       }
-      if (rank <= PLAYOFF_FORMAT.prePlayoffs[1]) {
+      if (rank >= PLAYOFF_FORMAT.playIn[0] && rank <= PLAYOFF_FORMAT.playIn[1]) {
+        r.playIn++
+      }
+      if (rank >= PLAYOFF_FORMAT.playout[0] && rank <= PLAYOFF_FORMAT.playout[1]) {
+        r.playout1314++
+      }
+      if (!canRunBracket && rank <= PLAYOFF_FORMAT.playIn[1]) {
+        // Fallback ohne Bracket-Simulation (siehe canRunBracket oben):
+        // Rang 1-10 als Näherung für "Playoffs" ausgeben statt 0.
         r.playoffs++
       }
     })
 
-    // --- Playoff-Bracket (NEU) ---
+    // --- Play-in, Playoff-Bracket, Play-out ---
     if (canRunBracket) {
       const seedOrder = order.map((o) => o.id) // seedOrder[0] = Rang 1, ... (Index 0-basiert)
       const rankOf = {}
       seedOrder.forEach((id, i) => { rankOf[id] = i + 1 })
       const bracketArgs = [eloRatings, sogAdjustments, eloStart, homeAdvElo]
 
-      // Pre-Playoffs (Bo3): Rang 7 vs. 10, Rang 8 vs. 9
+      // Play-in (Hin-/Rückspiel + Sudden-Death, KEIN Best-of-3):
+      //   Spiel A: 7 vs. 8 -> Sieger direkt VF (Bracket-Seed 7)
+      //   Spiel B: 9 vs. 10 -> Sieger weiter in die Entscheidung
+      //   Entscheidung: Verlierer(7v8) vs. Sieger(9v10) -> Sieger VF (Bracket-Seed 8)
       const s7 = seedOrder[6], s8 = seedOrder[7], s9 = seedOrder[8], s10 = seedOrder[9]
-      const ppWinnerA = simulateSeries(rng, s7, s10, BO3_WINS_NEEDED, BO3_HOME_PATTERN, ...bracketArgs)
-      const ppWinnerB = simulateSeries(rng, s8, s9, BO3_WINS_NEEDED, BO3_HOME_PATTERN, ...bracketArgs)
+      const winnerA = twoLegWinner(rng, s7, s8, rankOf, ...bracketArgs)
+      const loserA = winnerA === s7 ? s8 : s7
+      const winnerB = twoLegWinner(rng, s9, s10, rankOf, ...bracketArgs)
+      const decisionWinner = twoLegWinner(rng, loserA, winnerB, rankOf, ...bracketArgs)
 
-      // Viertelfinal (Bo7): 1v8, 2v7, 3v6, 4v5 - Bracket-Plätze 7/8 = Pre-Playoff-Sieger
+      // Viertelfinal (Bo7): 1v8, 2v7, 3v6, 4v5 - Bracket-Plätze 7/8 = Play-in-Sieger
       const b1 = seedOrder[0], b2 = seedOrder[1], b3 = seedOrder[2]
       const b4 = seedOrder[3], b5 = seedOrder[4], b6 = seedOrder[5]
-      const b7 = ppWinnerA, b8 = ppWinnerB
+      const b7 = winnerA, b8 = decisionWinner
+
+      ;[b1, b2, b3, b4, b5, b6, b7, b8].forEach((id) => { results[id].playoffs++ })
 
       const qfPairs = [[b1, b8], [b2, b7], [b3, b6], [b4, b5]]
       const qfWinners = qfPairs.map(([idA, idB]) => {
@@ -478,6 +593,14 @@ export function simulateSeasonProjections(
       const finalWorse = sf1Rank <= sf2Rank ? sf2Winner : sf1Winner
       const champion = simulateSeries(rng, finalBetter, finalWorse, BO7_WINS_NEEDED, BO7_HOME_PATTERN, ...bracketArgs)
       results[champion].champion++
+
+      // Play-out (Rang 13/14, Bo7): Verlierer -> Ligaqualifikation gegen den
+      // Swiss-League-Meister (nicht Teil des Datenmodells - hier zählt nur
+      // die Wahrscheinlichkeit, dort antreten zu müssen, nicht deren Ausgang).
+      const s13 = seedOrder[12], s14 = seedOrder[13]
+      const playoutWinner = simulateSeries(rng, s13, s14, BO7_WINS_NEEDED, BO7_HOME_PATTERN, ...bracketArgs)
+      const playoutLoser = playoutWinner === s13 ? s14 : s13
+      results[playoutLoser].ligaqualifikation++
     }
   }
 
@@ -498,9 +621,12 @@ export function simulateSeasonProjections(
       pPlayoffs: r.playoffs / runs,
       pTop6: r.top6 / runs,
       pTop4: r.top4 / runs,
+      pPlayIn: r.playIn / runs,
       pSemifinal: r.semifinal / runs,
       pFinal: r.final / runs,
       pChampion: r.champion / runs,
+      pPlayout1314: r.playout1314 / runs,
+      pLigaQualifikation: r.ligaqualifikation / runs,
       avgPts: r.sumPts / runs,
       medianPts,
       minPts: r.minPts === Infinity ? 0 : r.minPts,
@@ -529,7 +655,12 @@ export function simulateSeasonProjections(
     rows,
     metadata: {
       simulation: 'calibrated_10k',
-      factors: ['ELO', 'SOG-zugelassen', 'Heimvorteil (in Torerzeugung)', 'Poisson-Toresimulation', 'kalibrierte OT/SO-Quote', 'Playoff-Bracket (Bo3 Pre-Playoffs, Bo7 QF/SF/Final)'],
+      factors: [
+        'ELO', 'SOG-zugelassen', 'Heimvorteil (in Torerzeugung)', 'Poisson-Toresimulation',
+        'kalibrierte OT/SO-Quote', 'Tabellen-Tiebreaker (Punkte/Siege/direkter Vergleich/Tordifferenz/Tore)',
+        'Play-in Rang 7-10 (Hin-/Rückspiel + Sudden-Death, kein Best-of-3)',
+        'Playoff-Bracket (Bo7 QF/SF/Final, Reseeding)', 'Play-out Rang 13/14 (Bo7) + Ligaqualifikation',
+      ],
     },
   }
 }

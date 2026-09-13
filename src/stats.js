@@ -45,9 +45,62 @@ export function computeStandings(teams, games) {
     }
   }
 
+  const h2h = buildHeadToHeadPointsMap(games)
+
   return Object.values(rows)
     .map((r) => ({ ...r, gd: r.gf - r.ga }))
-    .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf)
+    .sort((a, b) => compareTiebreak(
+      { id: a.team.id, pts: a.pts, wins: a.w + a.otw, gf: a.gf, ga: a.ga },
+      { id: b.team.id, pts: b.pts, wins: b.w + b.otw, gf: b.gf, ga: b.ga },
+      h2h,
+    ))
+}
+
+// Punkte je Team aus den direkten Duellen gegen genau einen anderen Team,
+// über alle übergebenen Spiele. Schlüssel: die beiden Team-IDs alphabetisch
+// sortiert und mit "|" verbunden -> { [teamIdA]: pts, [teamIdB]: pts }.
+// Wird sowohl von computeStandings() (reale Saison) als auch von
+// simulateSeasonProjections() (src/playoffSim.js, reale + simulierte Spiele
+// kombiniert) für den Tiebreaker "direkter Vergleich" verwendet.
+export function buildHeadToHeadPointsMap(games) {
+  const map = new Map()
+  for (const g of games) {
+    if (!isFinalGame(g)) continue
+    const { homeTeamId: home, awayTeamId: away } = g
+    const key = home < away ? `${home}|${away}` : `${away}|${home}`
+    let entry = map.get(key)
+    if (!entry) { entry = {}; map.set(key, entry) }
+    const homeWon = g.homeGoals > g.awayGoals
+    const overtime = g.decision === 'OT' || g.decision === 'SO'
+    const homePts = homeWon ? (overtime ? 2 : 3) : (overtime ? 1 : 0)
+    const awayPts = homeWon ? (overtime ? 1 : 0) : (overtime ? 2 : 3)
+    entry[home] = (entry[home] || 0) + homePts
+    entry[away] = (entry[away] || 0) + awayPts
+  }
+  return map
+}
+
+// Offizieller NL-Tabellen-Tiebreaker, in dieser Reihenfolge: Punkte -> Anzahl
+// Siege (regulär + OT/SO) -> direkter Vergleich (Punkte aus den Spielen
+// zwischen genau diesen beiden Teams) -> Tordifferenz -> erzielte Tore.
+// `a`/`b`: { id, pts, wins, gf, ga }. `h2hMap` optional (siehe
+// buildHeadToHeadPointsMap) - ohne Map wird der direkte Vergleich übersprungen.
+export function compareTiebreak(a, b, h2hMap) {
+  if (b.pts !== a.pts) return b.pts - a.pts
+  if (b.wins !== a.wins) return b.wins - a.wins
+  if (h2hMap) {
+    const key = a.id < b.id ? `${a.id}|${b.id}` : `${b.id}|${a.id}`
+    const h2h = h2hMap.get(key)
+    if (h2h) {
+      const hA = h2h[a.id] || 0
+      const hB = h2h[b.id] || 0
+      if (hB !== hA) return hB - hA
+    }
+  }
+  const gdA = a.gf - a.ga
+  const gdB = b.gf - b.ga
+  if (gdB !== gdA) return gdB - gdA
+  return b.gf - a.gf
 }
 
 // Aggregierte Spieler-Statistik. Zwei unabhängige Quellen sind im Datenmodell

@@ -151,11 +151,13 @@ export default function PlayoffOdds() {
                   <tr>
                     <th className="left">Team</th>
                     <th className="num">Playoffs</th>
-                    <th className="num">Top 6</th>
-                    <th className="num">Top 4</th>
+                    <th className="num">Direkt Top 6</th>
+                    <th className="num">Play-in</th>
                     <th className="num">Halbfinale</th>
                     <th className="num">Finale</th>
                     <th className="num">Meister</th>
+                    <th className="num">Play-out 13/14</th>
+                    <th className="num">Ligaqualifikation</th>
                     <th className="num">Ø Punkte</th>
                     <th className="num">Ø Rang</th>
                     <th className="num">Best Case</th>
@@ -169,10 +171,12 @@ export default function PlayoffOdds() {
                       <td className="left"><TeamBadge team={r.team} /></td>
                       <td className="num">{fmtPct(r.pPlayoffs)}</td>
                       <td className="num">{fmtPct(r.pTop6)}</td>
-                      <td className="num">{fmtPct(r.pTop4)}</td>
+                      <td className="num">{fmtPct(r.pPlayIn)}</td>
                       <td className="num">{fmtPct(r.pSemifinal)}</td>
                       <td className="num">{fmtPct(r.pFinal)}</td>
                       <td className="num"><strong style={{ color: 'var(--accent)' }}>{fmtPct(r.pChampion)}</strong></td>
+                      <td className="num">{fmtPct(r.pPlayout1314)}</td>
+                      <td className="num">{fmtPct(r.pLigaQualifikation)}</td>
                       <td className="num">{r.avgPts.toFixed(1)}</td>
                       <td className="num">{r.avgRank.toFixed(1)}</td>
                       <td className="num muted" style={{ fontSize: 11.5 }}>{Math.round(r.maxPts)}</td>
