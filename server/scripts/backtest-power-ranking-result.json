@@ -1,0 +1,269 @@
+{
+  "baseline": {
+    "weights": {
+      "strength": 0.4,
+      "offense": 0.25,
+      "defense": 0.25,
+      "form": 0.1
+    },
+    "cal": {
+      "a": 0.01,
+      "homeBonus": 30
+    },
+    "metrics": {
+      "core": {
+        "n": 2620,
+        "accuracy": 0.6053435114503817,
+        "brier": 0.23557623967897548,
+        "logloss": 0.6637882536004831
+      },
+      "corona": {
+        "n": 604,
+        "accuracy": 0.5695364238410596,
+        "brier": 0.23978137809988387,
+        "logloss": 0.672383638885422
+      },
+      "total": {
+        "n": 3224,
+        "accuracy": 0.5986352357320099,
+        "brier": 0.23636405097122937,
+        "logloss": 0.6653985553101927
+      }
+    }
+  },
+  "strengthOnly": {
+    "weights": {
+      "strength": 1,
+      "offense": 0,
+      "defense": 0,
+      "form": 0
+    },
+    "cal": {
+      "a": 0.01,
+      "homeBonus": 30
+    },
+    "metrics": {
+      "core": {
+        "n": 2620,
+        "accuracy": 0.601526717557252,
+        "brier": 0.2348415211367106,
+        "logloss": 0.6622229344038376
+      }
+    }
+  },
+  "best": {
+    "weights": {
+      "strength": 1,
+      "offense": 0,
+      "defense": 0,
+      "form": 0
+    },
+    "cal": {
+      "a": 0.01,
+      "homeBonus": 30
+    },
+    "metrics": {
+      "core": {
+        "n": 2620,
+        "accuracy": 0.601526717557252,
+        "brier": 0.2348415211367106,
+        "logloss": 0.6622229344038376
+      },
+      "corona": {
+        "n": 604,
+        "accuracy": 0.5612582781456954,
+        "brier": 0.23841774410329072,
+        "logloss": 0.6694281694068671
+      },
+      "total": {
+        "n": 3224,
+        "accuracy": 0.5939826302729528,
+        "brier": 0.23551150831779466,
+        "logloss": 0.6635727985297154
+      }
+    }
+  },
+  "top10": [
+    {
+      "weights": {
+        "strength": 1,
+        "offense": 0,
+        "defense": 0,
+        "form": 0
+      },
+      "cal": {
+        "a": 0.01,
+        "homeBonus": 30
+      },
+      "metrics": {
+        "n": 2620,
+        "accuracy": 0.601526717557252,
+        "brier": 0.2348415211367106,
+        "logloss": 0.6622229344038376
+      }
+    },
+    {
+      "weights": {
+        "strength": 0.9,
+        "offense": 0,
+        "defense": 0.1,
+        "form": 0
+      },
+      "cal": {
+        "a": 0.01,
+        "homeBonus": 30
+      },
+      "metrics": {
+        "n": 2620,
+        "accuracy": 0.6068702290076335,
+        "brier": 0.23488314517202447,
+        "logloss": 0.6623224820704934
+      }
+    },
+    {
+      "weights": {
+        "strength": 0.9,
+        "offense": 0.1,
+        "defense": 0,
+        "form": 0
+      },
+      "cal": {
+        "a": 0.01,
+        "homeBonus": 30
+      },
+      "metrics": {
+        "n": 2620,
+        "accuracy": 0.6019083969465648,
+        "brier": 0.23488945120883092,
+        "logloss": 0.6623210492756337
+      }
+    },
+    {
+      "weights": {
+        "strength": 0.8,
+        "offense": 0.1,
+        "defense": 0.1,
+        "form": 0
+      },
+      "cal": {
+        "a": 0.01,
+        "homeBonus": 30
+      },
+      "metrics": {
+        "n": 2620,
+        "accuracy": 0.601526717557252,
+        "brier": 0.23491333647657273,
+        "logloss": 0.6623849688729921
+      }
+    },
+    {
+      "weights": {
+        "strength": 0.8,
+        "offense": 0,
+        "defense": 0.2,
+        "form": 0
+      },
+      "cal": {
+        "a": 0.01,
+        "homeBonus": 30
+      },
+      "metrics": {
+        "n": 2620,
+        "accuracy": 0.6076335877862595,
+        "brier": 0.23498765245085496,
+        "logloss": 0.6625503453369005
+      }
+    },
+    {
+      "weights": {
+        "strength": 0.8,
+        "offense": 0.2,
+        "defense": 0,
+        "form": 0
+      },
+      "cal": {
+        "a": 0.01,
+        "homeBonus": 30
+      },
+      "metrics": {
+        "n": 2620,
+        "accuracy": 0.600381679389313,
+        "brier": 0.2350000970977896,
+        "logloss": 0.6625445871578979
+      }
+    },
+    {
+      "weights": {
+        "strength": 0.7000000000000001,
+        "offense": 0.1,
+        "defense": 0.2,
+        "form": 0
+      },
+      "cal": {
+        "a": 0.01,
+        "homeBonus": 30
+      },
+      "metrics": {
+        "n": 2620,
+        "accuracy": 0.6045801526717557,
+        "brier": 0.23500013818131185,
+        "logloss": 0.6625771915744344
+      }
+    },
+    {
+      "weights": {
+        "strength": 0.7000000000000001,
+        "offense": 0.2,
+        "defense": 0.1,
+        "form": 0
+      },
+      "cal": {
+        "a": 0.01,
+        "homeBonus": 30
+      },
+      "metrics": {
+        "n": 2620,
+        "accuracy": 0.6026717557251908,
+        "brier": 0.23500621395819213,
+        "logloss": 0.6625729050581594
+      }
+    },
+    {
+      "weights": {
+        "strength": 0.6000000000000001,
+        "offense": 0.2,
+        "defense": 0.2,
+        "form": 0
+      },
+      "cal": {
+        "a": 0.01,
+        "homeBonus": 30
+      },
+      "metrics": {
+        "n": 2620,
+        "accuracy": 0.6045801526717557,
+        "brier": 0.23507520589722147,
+        "logloss": 0.6627294743170944
+      }
+    },
+    {
+      "weights": {
+        "strength": 0.9,
+        "offense": 0,
+        "defense": 0,
+        "form": 0.1
+      },
+      "cal": {
+        "a": 0.01,
+        "homeBonus": 30
+      },
+      "metrics": {
+        "n": 2620,
+        "accuracy": 0.6030534351145038,
+        "brier": 0.2351459007920004,
+        "logloss": 0.6628735712010742
+      }
+    }
+  ],
+  "plateauSize": 243
+}

@@ -1,0 +1,189 @@
+{
+  "eloOnly": {
+    "g": 1,
+    "c": 0,
+    "metrics": {
+      "n": 2620,
+      "accuracy": 0.6064885496183207,
+      "brier": 0.23219320132774654,
+      "logloss": 0.6566271213266515
+    }
+  },
+  "perFeature": [
+    {
+      "key": "f1_adjOffenseDiff",
+      "label": "Gegnerbereinigte Offensive (Tore vs. Gegner-GAG, rolling 10)",
+      "std": 0.625634350091181,
+      "fit": {
+        "g": 1,
+        "h": 0,
+        "c": 0
+      },
+      "metrics": {
+        "n": 2620,
+        "accuracy": 0.6064885496183207,
+        "brier": 0.23219320132774654,
+        "logloss": 0.6566271213266515
+      }
+    },
+    {
+      "key": "f2_adjDefenseDiff",
+      "label": "Gegnerbereinigte Defensive (Gegentore vs. Gegner-GPG, rolling 10)",
+      "std": 0.5916895555900108,
+      "fit": {
+        "g": 1,
+        "h": 0,
+        "c": 0
+      },
+      "metrics": {
+        "n": 2620,
+        "accuracy": 0.6064885496183207,
+        "brier": 0.23219320132774654,
+        "logloss": 0.6566271213266515
+      }
+    },
+    {
+      "key": "f3a_sogForDiff",
+      "label": "SOG erzielt/Spiel (Saison)",
+      "std": 4.01841913461388,
+      "fit": {
+        "g": 1,
+        "h": 0,
+        "c": 0
+      },
+      "metrics": {
+        "n": 2620,
+        "accuracy": 0.6064885496183207,
+        "brier": 0.23219320132774654,
+        "logloss": 0.6566271213266515
+      }
+    },
+    {
+      "key": "f3b_sogAgainstDiff",
+      "label": "SOG zugelassen/Spiel (Saison, invertiert)",
+      "std": 4.164435204110492,
+      "fit": {
+        "g": 0.8,
+        "h": 0.15,
+        "c": 0
+      },
+      "metrics": {
+        "n": 2620,
+        "accuracy": 0.6156488549618321,
+        "brier": 0.23159010039682415,
+        "logloss": 0.6552647663790455
+      }
+    },
+    {
+      "key": "f3c_shotDiffDiff",
+      "label": "Schussdifferenz/Spiel (Saison)",
+      "std": 7.082989349184288,
+      "fit": {
+        "g": 0.8,
+        "h": 0.15,
+        "c": 0
+      },
+      "metrics": {
+        "n": 2620,
+        "accuracy": 0.6118320610687022,
+        "brier": 0.23176977496094472,
+        "logloss": 0.6555810118252591
+      }
+    },
+    {
+      "key": "f4_ppDiff",
+      "label": "PP% (min. 10 Gelegenheiten)",
+      "std": 0.0668463083760037,
+      "fit": {
+        "g": 1,
+        "h": 0,
+        "c": 0
+      },
+      "metrics": {
+        "n": 2620,
+        "accuracy": 0.6064885496183207,
+        "brier": 0.23219320132774654,
+        "logloss": 0.6566271213266515
+      }
+    },
+    {
+      "key": "f5_pkDiff",
+      "label": "PK% (min. 10 Gelegenheiten)",
+      "std": 0.07525796491670797,
+      "fit": {
+        "g": 1,
+        "h": 0,
+        "c": 0
+      },
+      "metrics": {
+        "n": 2620,
+        "accuracy": 0.6064885496183207,
+        "brier": 0.23219320132774654,
+        "logloss": 0.6566271213266515
+      }
+    },
+    {
+      "key": "f6_specialTeamsDiff",
+      "label": "Special Teams gesamt (PP%+PK%)",
+      "std": 0.10757128491611755,
+      "fit": {
+        "g": 1,
+        "h": 0,
+        "c": 0
+      },
+      "metrics": {
+        "n": 2620,
+        "accuracy": 0.6064885496183207,
+        "brier": 0.23219320132774654,
+        "logloss": 0.6566271213266515
+      }
+    },
+    {
+      "key": "f7_homeAwaySplitDiff",
+      "label": "Heim/Auswärts-Split-Tordifferenz",
+      "std": 1.6803861097635713,
+      "fit": {
+        "g": 1,
+        "h": 0,
+        "c": 0
+      },
+      "metrics": {
+        "n": 2620,
+        "accuracy": 0.6064885496183207,
+        "brier": 0.23219320132774654,
+        "logloss": 0.6566271213266515
+      }
+    }
+  ],
+  "greedySelected": {
+    "g": 0.8,
+    "c": 0,
+    "terms": [
+      {
+        "key": "f3b_sogAgainstDiff",
+        "h": 0.15,
+        "std": 4.164435204110492
+      }
+    ]
+  },
+  "finalMetrics": {
+    "core": {
+      "n": 2620,
+      "accuracy": 0.6156488549618321,
+      "brier": 0.23159010039682415,
+      "logloss": 0.6552647663790455
+    },
+    "corona": {
+      "n": 604,
+      "accuracy": 0.5827814569536424,
+      "brier": 0.23694850464419265,
+      "logloss": 0.6665247798634999
+    },
+    "total": {
+      "n": 3224,
+      "accuracy": 0.6094913151364765,
+      "brier": 0.2325939701751781,
+      "logloss": 0.6573742726273734
+    }
+  }
+}

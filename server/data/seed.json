@@ -1,0 +1,7742 @@
+{
+  "settings": {
+    "seasonName": "National League 2026/27",
+    "eloStart": 1500,
+    "eloK": 16,
+    "eloHomeAdvantage": 65,
+    "marketValuePriorEnabled": true,
+    "priorSpread": 120,
+    "restDaysEnabled": true,
+    "backToBackPenalty": 0.04
+  },
+  "teams": [
+    {
+      "id": "team_ajo",
+      "name": "HC Ajoie",
+      "short": "AJO",
+      "color": "#d4001a"
+    },
+    {
+      "id": "team_apk",
+      "name": "HC Ambrì-Piotta",
+      "short": "AMB",
+      "color": "#1a4b9c"
+    },
+    {
+      "id": "team_scb",
+      "name": "SC Bern",
+      "short": "SCB",
+      "color": "#e2001a"
+    },
+    {
+      "id": "team_bie",
+      "name": "EHC Biel",
+      "short": "BIE",
+      "color": "#f7b500"
+    },
+    {
+      "id": "team_dav",
+      "name": "HC Davos",
+      "short": "DAV",
+      "color": "#ffd200"
+    },
+    {
+      "id": "team_fri",
+      "name": "Fribourg-Gottéron",
+      "short": "FRI",
+      "color": "#cd1719"
+    },
+    {
+      "id": "team_gse",
+      "name": "Genève-Servette HC",
+      "short": "GSHC",
+      "color": "#8b1a1a"
+    },
+    {
+      "id": "team_klo",
+      "name": "EHC Kloten",
+      "short": "KLO",
+      "color": "#c8102e"
+    },
+    {
+      "id": "team_scl",
+      "name": "SCL Tigers",
+      "short": "SCL",
+      "color": "#f28e00"
+    },
+    {
+      "id": "team_lau",
+      "name": "Lausanne HC",
+      "short": "LHC",
+      "color": "#0a2e6e"
+    },
+    {
+      "id": "team_lug",
+      "name": "HC Lugano",
+      "short": "LUG",
+      "color": "#111827"
+    },
+    {
+      "id": "team_rap",
+      "name": "Rapperswil-Jona Lakers",
+      "short": "SCRJ",
+      "color": "#00843d"
+    },
+    {
+      "id": "team_zug",
+      "name": "EV Zug",
+      "short": "ZUG",
+      "color": "#0069b4"
+    },
+    {
+      "id": "team_zsc",
+      "name": "ZSC Lions",
+      "short": "ZSC",
+      "color": "#004a99"
+    }
+  ],
+  "players": [
+    {
+      "id": "player_klo_prassl",
+      "name": "Raphael Prassl",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "CH",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_huegli",
+      "name": "Michael Hügli",
+      "position": "F",
+      "positionDetail": "RW/LW",
+      "nationality": "CH",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_ruotsalainen",
+      "name": "Arttu Ruotsalainen",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "FI",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_johansson",
+      "name": "Simon Johansson",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "SE",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_delemont",
+      "name": "Noah Delémont",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_derungs",
+      "name": "Keanu Derungs",
+      "position": "F",
+      "positionDetail": "LW",
+      "nationality": "CH",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_gignac",
+      "name": "Brandon Gignac",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "CA",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_hausheer",
+      "name": "Leandro Hausheer",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_keller",
+      "name": "Cyril Keller",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "CH",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_koerbler",
+      "name": "Kimi Körbler",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "CH",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_lindroth",
+      "name": "Max Lindroth",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "SE",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_meier_r",
+      "name": "Rafael Meier",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "CH",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_meier_s",
+      "name": "Simon Meier",
+      "position": "F",
+      "positionDetail": "C/W",
+      "nationality": "CH",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_meyer",
+      "name": "Dario Meyer",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "CH",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_profico",
+      "name": "Leandro Profico",
+      "position": "D",
+      "positionDetail": "D/RW",
+      "nationality": "CH",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_puhakka",
+      "name": "Petteri Puhakka",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "FI",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_ramel",
+      "name": "Mischa Ramel",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_schaeppi",
+      "name": "Reto Schäppi",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "CH",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_sidler",
+      "name": "Dario Sidler",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_steiner",
+      "name": "Nicholas Steiner",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_weibel",
+      "name": "Keijo Weibel",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "CH/FI",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_wolf",
+      "name": "Bernd Wolf",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "AT",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_henry",
+      "name": "Joel Henry",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_aberg",
+      "name": "Pontus Åberg",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "SE",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_schlumpf",
+      "name": "Dominik Schlumpf",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_berra",
+      "name": "Reto Berra",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_klo_fadani",
+      "name": "Davide Fadani",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "IT",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_ajo_cormier",
+      "name": "Cole Cormier",
+      "position": "F",
+      "positionDetail": "C/W",
+      "nationality": "CA",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_tanus",
+      "name": "Kristian Tanus",
+      "position": "F",
+      "positionDetail": "LW/C",
+      "nationality": "FI",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_diem",
+      "name": "Nolan Diem",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_kellenberger",
+      "name": "Matthew Kellenberger",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CA/CH",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_christe",
+      "name": "Gaël Christe",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_froidevaux",
+      "name": "Lorin Froidevaux",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "CH",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_girardin",
+      "name": "Titouan Girardin",
+      "position": "F",
+      "positionDetail": "F",
+      "nationality": "CH",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_tarchini",
+      "name": "Noé Tarchini",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_christen",
+      "name": "Livio Christen",
+      "position": "F",
+      "positionDetail": "C/W",
+      "nationality": "CH",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_honka_j",
+      "name": "Julius Honka",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "FI",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_bottini",
+      "name": "Stefano Bottini",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "CH/CA",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_martin",
+      "name": "Thibault Martin",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_zgraggen",
+      "name": "Jesse Zgraggen",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH/CA",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_berthoud",
+      "name": "Yonas Berthoud",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_cavalleri",
+      "name": "Christophe Cavalleri",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_devos",
+      "name": "Philip-Michaël Devos",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CA/CH",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_fey",
+      "name": "Kevin Fey",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_garessus",
+      "name": "Lilian Garessus",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_honka_a",
+      "name": "Anttoni Honka",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "FI",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_nattinen",
+      "name": "Julius Nättinen",
+      "position": "F",
+      "positionDetail": "C/W",
+      "nationality": "FI",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_pilet",
+      "name": "Valentin Pilet",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_robin",
+      "name": "Louis Robin",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "CH",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_sopa",
+      "name": "Kyen Sopa",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "CH",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_turkulainen",
+      "name": "Jerry Turkulainen",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "FI",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_smirnovs",
+      "name": "Deniss Smirnovs",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "LV",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_gerber",
+      "name": "Jeremi Gerber",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "CH",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_horak",
+      "name": "Tim Horak",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_carr",
+      "name": "Daniel Carr",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "CA",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_wick",
+      "name": "Jeremy Wick",
+      "position": "D",
+      "positionDetail": "RW/D",
+      "nationality": "CA/CH",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_wolf",
+      "name": "Tim Wolf",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_keller",
+      "name": "Antoine Keller",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "FR/CH",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_patenaude",
+      "name": "Noah Patenaude",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH/CA",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_apk_kodytek",
+      "name": "Petr Kodýtek",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CZ",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_borradori",
+      "name": "Nathan Borradori",
+      "position": "F",
+      "positionDetail": "F",
+      "nationality": "CH",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_schnarr",
+      "name": "Nate Schnarr",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "CA",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_jarventie",
+      "name": "Roby Järventie",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "FI",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_joly",
+      "name": "Michael Joly",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "CA",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_haefliger",
+      "name": "Aris Häfliger",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_muggli",
+      "name": "Tim Muggli",
+      "position": "F",
+      "positionDetail": "F",
+      "nationality": "CH",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_dotti_z",
+      "name": "Zaccheo Dotti",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_bosson",
+      "name": "David Bosson",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "CH",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_bachmann",
+      "name": "Luc Bachmann",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_deluca_t",
+      "name": "Tommaso De Luca",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "IT",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_dotti_i",
+      "name": "Isacco Dotti",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_grassi",
+      "name": "Daniele Grassi",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "CH",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_hedlund",
+      "name": "William Hedlund",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "NO/SE",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_heed",
+      "name": "Tim Heed",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "SE",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_heim",
+      "name": "André Heim",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_kostner",
+      "name": "Diego Kostner",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "IT",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_landry_l",
+      "name": "Lukas Landry",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CA",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_mueller",
+      "name": "Miles Müller",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH/CA",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_pestoni",
+      "name": "Inti Pestoni",
+      "position": "F",
+      "positionDetail": "LW",
+      "nationality": "CH",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_pezzullo",
+      "name": "Rocco Pezzullo",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_terraneo",
+      "name": "Simone Terraneo",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_virtanen",
+      "name": "Jesse Virtanen",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "FI",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_wuethrich_d",
+      "name": "Dario Wüthrich",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_deluca_j",
+      "name": "Jacopo De Luca",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "IT",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_scilacci",
+      "name": "Elia Scilacci",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_forget",
+      "name": "Jordan Forget",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "CH/CA",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_landry_m",
+      "name": "Manix Landry",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CA/US",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_jaafrihayani",
+      "name": "Nassim Jaafri-Hayani",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_senn",
+      "name": "Gilles Senn",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_apk_wuethrich_p",
+      "name": "Philip Wüthrich",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_scb_rohrbach",
+      "name": "Dario Rohrbach",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "CH",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_barandun",
+      "name": "Davyd Barandun",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_grossniklaus",
+      "name": "Joel Grossniklaus",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "CH",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_mottard",
+      "name": "Paul Mottard",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_aaltonen",
+      "name": "Miro Aaltonen",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "FI",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_alge",
+      "name": "Mats Alge",
+      "position": "F",
+      "positionDetail": "LW",
+      "nationality": "CH",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_baumgartner",
+      "name": "Benjamin Baumgartner",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "AT",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_fuellemann",
+      "name": "Louis Füllemann",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_graf",
+      "name": "Alain Graf",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_hamanaktell",
+      "name": "Hardy Häman Aktell",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "SE",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_kindschi",
+      "name": "Simon Kindschi",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_lehmann",
+      "name": "Marco Lehmann",
+      "position": "F",
+      "positionDetail": "C/W",
+      "nationality": "CH",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_lindholm",
+      "name": "Anton Lindholm",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "SE",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_marchon",
+      "name": "Marc Marchon",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "CH",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_merela",
+      "name": "Waltteri Merelä",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "FI",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_mueller",
+      "name": "Marco Müller",
+      "position": "F",
+      "positionDetail": "C/W",
+      "nationality": "CH",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_rhyn",
+      "name": "Nils Rhyn",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_ritzmann",
+      "name": "Fabian Ritzmann",
+      "position": "F",
+      "positionDetail": "LW",
+      "nationality": "CH",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_scherwey",
+      "name": "Tristan Scherwey",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "CH",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_schild",
+      "name": "Thierry Schild",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "CH",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_weber",
+      "name": "Gregory Weber",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "CH",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_bemstrom",
+      "name": "Emil Bemström",
+      "position": "F",
+      "positionDetail": "C/W",
+      "nationality": "SE",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_kreis",
+      "name": "Samuel Kreis",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_mitchell",
+      "name": "Ian Mitchell",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CA",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_naglis",
+      "name": "Rolands Naglis",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "LV",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_milano",
+      "name": "Sonny Milano",
+      "position": "F",
+      "positionDetail": "LW",
+      "nationality": "US",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_dionicio",
+      "name": "Rodwin Dionicio",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH/US",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_abols",
+      "name": "Rodrigo Ābols",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "LV",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_vonburg",
+      "name": "Christof von Burg",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH/CZ",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_zurkirchen",
+      "name": "Sandro Zurkirchen",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_hughes",
+      "name": "Connor Hughes",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CA/CH",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_bie_zwerger",
+      "name": "Dominic Zwerger",
+      "position": "F",
+      "positionDetail": "LW",
+      "nationality": "AT",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_aeschbach",
+      "name": "Cédric Aeschbach",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_kaser",
+      "name": "Guillaume Kaser",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "CH",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_andersson",
+      "name": "Lias Andersson",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "SE",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_blessing",
+      "name": "Niklas Blessing",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_braillard",
+      "name": "Leo Braillard",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "CH",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_burren",
+      "name": "Yanik Burren",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_baertschi",
+      "name": "Jérémie Bärtschi",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "CH",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_cajka",
+      "name": "Petr Cajka",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "CZ",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_cattin",
+      "name": "Nolan Cattin",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "CH",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_christen",
+      "name": "Luca Christen",
+      "position": "D",
+      "positionDetail": "RW/D",
+      "nationality": "CH",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_grossmann",
+      "name": "Robin Grossmann",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH/CA",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_haas",
+      "name": "Gaëtan Haas",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_hofer",
+      "name": "Fabio Hofer",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "AT",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_neuenschwander",
+      "name": "Jonah Neuenschwander",
+      "position": "F",
+      "positionDetail": "F",
+      "nationality": "CH",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_rajala",
+      "name": "Toni Rajala",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "FI",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_sablatnig",
+      "name": "Yanick Sablatnig",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "CH",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_sever",
+      "name": "Mark Sever",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "SI",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_stampfli",
+      "name": "Yanick Stampfli",
+      "position": "D",
+      "positionDetail": "D/C",
+      "nationality": "CH",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_sylvegard",
+      "name": "Marcus Sylvegård",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "SE",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_zryd",
+      "name": "Miro Zryd",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_trutmann",
+      "name": "Dario Trutmann",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_soderstrom",
+      "name": "Victor Söderström",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "SE",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_vonrohr",
+      "name": "Manuel von Rohr",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "CH",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_villard",
+      "name": "Jamie Villard",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "CH",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_yakovenko",
+      "name": "Alexander Yakovenko",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "RU/KZ",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_vermin",
+      "name": "Joël Vermin",
+      "position": "D",
+      "positionDetail": "F/D",
+      "nationality": "CH/NL",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_skinner",
+      "name": "Jeff Skinner",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "CA",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_ostlund",
+      "name": "Viktor Östlund",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "SE",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_sateri",
+      "name": "Harri Säteri",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "FI",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_bie_scheu",
+      "name": "Florian Scheu",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH/FR",
+      "teamId": "team_bie"
+    },
+    {
+      "id": "player_dav_jager",
+      "name": "Ken Jäger",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "CH",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_egli",
+      "name": "Dominik Egli",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_vanderkaaij",
+      "name": "Guus Van der Kaaij",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH/NL",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_allard",
+      "name": "Frédéric Allard",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CA",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_andersson",
+      "name": "Calle Andersson",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "SE",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_asplund",
+      "name": "Rasmus Asplund",
+      "position": "F",
+      "positionDetail": "C/W",
+      "nationality": "SE",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_corvi",
+      "name": "Enzo Corvi",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_frehner",
+      "name": "Yannick Frehner",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "CH",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_frick",
+      "name": "Lukas Frick",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_gross",
+      "name": "Nico Gross",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_jung",
+      "name": "Sven Jung",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_kessler",
+      "name": "Tino Kessler",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "CH",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_lemieux",
+      "name": "Brendan Lemieux",
+      "position": "F",
+      "positionDetail": "LW",
+      "nationality": "CA/US",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_minder",
+      "name": "Tim Minder",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_nordstrom",
+      "name": "Joakim Nordström",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "SE",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_nussbaumer",
+      "name": "Valentin Nussbaumer",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "CH",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_parree",
+      "name": "Julian Parrée",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "CH",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_ryfors",
+      "name": "Simon Ryfors",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "SE",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_tambellini",
+      "name": "Adam Tambellini",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "CA",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_waidacher",
+      "name": "Beni Waidacher",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_zadina",
+      "name": "Filip Zadina",
+      "position": "F",
+      "positionDetail": "RW/LW",
+      "nationality": "CZ",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_schreiber",
+      "name": "Harrison Schreiber",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "US/DE",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_steiner",
+      "name": "Lars Steiner",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "CH",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_aeschlimann",
+      "name": "Sandro Aeschlimann",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_hollenstein",
+      "name": "Luca Hollenstein",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_dav_soler",
+      "name": "Laurin Solèr",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_fri_taibel",
+      "name": "Jonas Taibel",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "CH/AT",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_fri_reber",
+      "name": "Jamiro Reber",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "CH",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_fri_bertschy",
+      "name": "Christoph Bertschy",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "CH",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_fri_borgstrom",
+      "name": "Henrik Borgström",
+      "position": "F",
+      "positionDetail": "C/W",
+      "nationality": "FI",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_fri_delarose",
+      "name": "Jacob de la Rose",
+      "position": "F",
+      "positionDetail": "C/W",
+      "nationality": "SE",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_fri_dorthe",
+      "name": "Jan Dorthe",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_fri_glauser",
+      "name": "Andrea Glauser",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_fri_hedlund",
+      "name": "Lucas Hedlund",
+      "position": "F",
+      "positionDetail": "C/W",
+      "nationality": "SE",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_fri_jecker",
+      "name": "Benoit Jecker",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_fri_johnson",
+      "name": "Ludvig Johnson",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH/SE",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_fri_kapla",
+      "name": "Michael Kapla",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "US",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_fri_marchon",
+      "name": "Nathan Marchon",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "CH",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_fri_nemeth",
+      "name": "Patrik Nemeth",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "SE",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_fri_nicolet",
+      "name": "Kevin Nicolet",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "CH",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_fri_rathgeb",
+      "name": "Yannick Rathgeb",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_fri_schmid",
+      "name": "Sandro Schmid",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "CH",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_fri_seiler",
+      "name": "Simon Seiler",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_fri_streule",
+      "name": "Maximilian Streule",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_fri_sorensen",
+      "name": "Marcus Sörensen",
+      "position": "F",
+      "positionDetail": "W",
+      "nationality": "SE",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_fri_walser",
+      "name": "Samuel Walser",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_fri_richard",
+      "name": "Anthony Richard",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "CA",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_fri_waeber",
+      "name": "Ludovic Waeber",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_fri_galley",
+      "name": "Loic Galley",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_gse_henauer",
+      "name": "Mika Henauer",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_mueller",
+      "name": "Nicolas Müller",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "CH",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_untersander",
+      "name": "Ramon Untersander",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_lemyre",
+      "name": "Tristan Lemyre",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CA/CH",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_bucheler",
+      "name": "Jérémie Bucheler",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CA/CH",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_puljujarvi",
+      "name": "Jesse Puljujärvi",
+      "position": "F",
+      "positionDetail": "RW/LW",
+      "nationality": "FI/SE",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_saarijarvi",
+      "name": "Vili Saarijärvi",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "FI",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_manninen",
+      "name": "Sakari Manninen",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "FI",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_akeson",
+      "name": "Jason Akeson",
+      "position": "F",
+      "positionDetail": "RW/LW",
+      "nationality": "CA/CH",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_bozon",
+      "name": "Tim Bozon",
+      "position": "F",
+      "positionDetail": "LW",
+      "nationality": "FR/US",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_chanton",
+      "name": "Giancarlo Chanton",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_granlund",
+      "name": "Markus Granlund",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "FI",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_hischier",
+      "name": "Luca Hischier",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "CH",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_ignatavicius",
+      "name": "Simas Ignatavicius",
+      "position": "F",
+      "positionDetail": "C/W",
+      "nationality": "LT/US",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_jooris",
+      "name": "Josh Jooris",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "CA",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_karrer",
+      "name": "Roger Karrer",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_lecoultre",
+      "name": "Simon Le Coultre",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_miranda",
+      "name": "Marco Miranda",
+      "position": "F",
+      "positionDetail": "LW",
+      "nationality": "CH",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_praplan",
+      "name": "Vincent Praplan",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "CH",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_richard",
+      "name": "Tanner Richard",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH/CA",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_rod",
+      "name": "Noah Rod",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "CH",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_rutta",
+      "name": "Jan Rutta",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CZ",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_sutter",
+      "name": "Dave Sutter",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH/CM",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_verboon",
+      "name": "Matthew Verboon",
+      "position": "F",
+      "positionDetail": "RW/C",
+      "nationality": "CH/CA",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_vesey",
+      "name": "Jimmy Vesey",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "US",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_kneubuehler",
+      "name": "Johnny Kneubuehler",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "CH",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_charlin",
+      "name": "Stéphane Charlin",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_gse_mayer",
+      "name": "Robert Mayer",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH/CZ",
+      "teamId": "team_gse"
+    },
+    {
+      "id": "player_lau_fora",
+      "name": "Michael Fora",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_simic",
+      "name": "Axel Simic",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "CH",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_rueegsegger",
+      "name": "Stefan Rüegsegger",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "CH",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_baragano",
+      "name": "Inaki Baragano",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_bougro",
+      "name": "Benjamin Bougro",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH/FR",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_brannstrom",
+      "name": "Erik Brännström",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "SE",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_czarnik",
+      "name": "Austin Czarnik",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "US",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_fiedler",
+      "name": "Cédric Fiedler",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH/US",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_fuchs",
+      "name": "Jason Fuchs",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_haas",
+      "name": "Gaël Haas",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_heldner",
+      "name": "Fabian Heldner",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_holdener",
+      "name": "Makai Holdener",
+      "position": "F",
+      "positionDetail": "W/C",
+      "nationality": "CH",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_marti",
+      "name": "Aurélien Marti",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_niku",
+      "name": "Sami Niku",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "FI",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_riat",
+      "name": "Damien Riat",
+      "position": "F",
+      "positionDetail": "W/C",
+      "nationality": "CH",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_sansonnens",
+      "name": "Basile Sansonnens",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_suomela",
+      "name": "Antti Suomela",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "FI",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_vouardoux",
+      "name": "Nathan Vouardoux",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_zehnder",
+      "name": "Yannick Zehnder",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "CH",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_caggiula",
+      "name": "Drake Caggiula",
+      "position": "F",
+      "positionDetail": "LW/C",
+      "nationality": "CA",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_oksanen",
+      "name": "Ahti Oksanen",
+      "position": "F",
+      "positionDetail": "LW/C",
+      "nationality": "FI",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_fust",
+      "name": "Ray Fust",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "CH/CA",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_vidal",
+      "name": "Tom Vidal",
+      "position": "F",
+      "positionDetail": "F",
+      "nationality": "FR",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_loeffel",
+      "name": "Romain Loeffel",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_miller",
+      "name": "Colin Miller",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CA",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_pasche_k",
+      "name": "Kevin Pasche",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_huet",
+      "name": "Ewan Huet",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH/FR",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lau_pasche_n",
+      "name": "Nils Pasche",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH",
+      "teamId": "team_lau"
+    },
+    {
+      "id": "player_lug_olsson",
+      "name": "Daniel Olsson",
+      "position": "F",
+      "positionDetail": "F",
+      "nationality": "DK",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_henry",
+      "name": "Cyrill Henry",
+      "position": "F",
+      "positionDetail": "C/W",
+      "nationality": "CH",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_guebey",
+      "name": "Enzo Guebey",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "FR/CH",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_innala",
+      "name": "Jere Innala",
+      "position": "F",
+      "positionDetail": "LW",
+      "nationality": "FI",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_peltonen_a",
+      "name": "Aleksi Peltonen",
+      "position": "F",
+      "positionDetail": "F",
+      "nationality": "FI",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_dahlstrom",
+      "name": "Carl Dahlström",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "SE",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_cjunskis",
+      "name": "Harijs Cjunskis",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "LV",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_aebischer",
+      "name": "David Aebischer",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_alatalo",
+      "name": "Santeri Alatalo",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH/FI",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_mueller",
+      "name": "Mirco Müller",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_peltonen_j",
+      "name": "Jesper Peltonen",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "FI",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_zanetti_b",
+      "name": "Brian Zanetti",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_bertaggia",
+      "name": "Alessio Bertaggia",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "CH",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_canonica",
+      "name": "Lorenzo Canonica",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_fazzini",
+      "name": "Luca Fazzini",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "CH",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_kupari",
+      "name": "Rasmus Kupari",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "FI",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_morini",
+      "name": "Giovanni Morini",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "IT",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_sanford",
+      "name": "Zach Sanford",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "US",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_simion",
+      "name": "Dario Simion",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "CH",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_tanner",
+      "name": "Ramon Tanner",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_thurkauf",
+      "name": "Calvin Thürkauf",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "CH/CA",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_zanetti_m",
+      "name": "Marco Zanetti",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "IT",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_lycksell",
+      "name": "Olle Lycksell",
+      "position": "F",
+      "positionDetail": "W/C",
+      "nationality": "SE",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_thomson",
+      "name": "Lassi Thomson",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "FI",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_shore",
+      "name": "Nick Shore",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "US",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_schlegel",
+      "name": "Niklas Schlegel",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH/CA",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_lug_vanpottelberghe",
+      "name": "Joren van Pottelberghe",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH/BE",
+      "teamId": "team_lug"
+    },
+    {
+      "id": "player_rap_ustinkov",
+      "name": "Daniil Ustinkov",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH/RU",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_herzog",
+      "name": "Fabrice Herzog",
+      "position": "F",
+      "positionDetail": "RW/LW",
+      "nationality": "CH",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_sauser",
+      "name": "Flavio Sauser",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_albrecht",
+      "name": "Yannick-Lennart Albrecht",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "CH",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_capaul",
+      "name": "Luca Capaul",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_dufner",
+      "name": "Mauro Dufner",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_duenner",
+      "name": "Nico Dünner",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "CH/DE",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_embacher",
+      "name": "Janis Embacher",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "CH",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_graf",
+      "name": "Marlon Graf",
+      "position": "F",
+      "positionDetail": "F",
+      "nationality": "CH",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_hofer",
+      "name": "Valentin Hofer",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "CH",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_hornecker",
+      "name": "Jan Hornecker",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "CH",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_jelovac",
+      "name": "Igor Jelovac",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_jensen",
+      "name": "Nicklas Jensen",
+      "position": "F",
+      "positionDetail": "RW/LW",
+      "nationality": "DK/CA",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_lammer",
+      "name": "Dominic Lammer",
+      "position": "F",
+      "positionDetail": "RW/LW",
+      "nationality": "CH",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_larsson",
+      "name": "Jacob Larsson",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "SE",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_maier",
+      "name": "Fabian Maier",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_moy",
+      "name": "Tyler Moy",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "CH/US",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_pilut",
+      "name": "Lawrence Pilut",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "SE/US",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_quinn",
+      "name": "Benjamin Quinn",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH/CA",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_rask",
+      "name": "Victor Rask",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "SE",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_wetter",
+      "name": "Gian-Marco Wetter",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "CH",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_zangger",
+      "name": "Sandro Zangger",
+      "position": "F",
+      "positionDetail": "RW/LW",
+      "nationality": "CH",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_fritz",
+      "name": "Tanner Fritz",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CA",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_segafredo",
+      "name": "Alessandro Segafredo",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "IT",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_labanc",
+      "name": "Kevin Labanc",
+      "position": "F",
+      "positionDetail": "RW/LW",
+      "nationality": "US/SK",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_nyffeler",
+      "name": "Melvin Nyffeler",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_punnenovs",
+      "name": "Ivars Punnenovs",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "LV",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_scl_nussbaumer",
+      "name": "Arno Nussbaumer",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_meier_g",
+      "name": "Gian Meier",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_dahlen",
+      "name": "Jonathan Dahlén",
+      "position": "F",
+      "positionDetail": "LW",
+      "nationality": "SE",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_eggenberger",
+      "name": "Nando Eggenberger",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "CH",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_aeschlimann",
+      "name": "Mike Aeschlimann",
+      "position": "F",
+      "positionDetail": "F",
+      "nationality": "CH",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_allenspach",
+      "name": "Dario Allenspach",
+      "position": "F",
+      "positionDetail": "C/W",
+      "nationality": "CH",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_bachofner",
+      "name": "Jérôme Bachofner",
+      "position": "F",
+      "positionDetail": "LW",
+      "nationality": "CH",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_baltisberger",
+      "name": "Phil Baltisberger",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_bjorninen",
+      "name": "Hannes Björninen",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "FI",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_baer",
+      "name": "Simon Bär",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_erni",
+      "name": "Samuel Erni",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_guggenheim",
+      "name": "Bastian Guggenheim",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH/CZ",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_kinnunen",
+      "name": "Santtu Kinnunen",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "FI",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_lapinskis",
+      "name": "Oskars Lapinskis",
+      "position": "F",
+      "positionDetail": "F",
+      "nationality": "LV",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_lehmann",
+      "name": "Nik Lehmann",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_mathys",
+      "name": "Tim Mathys",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_meier_n",
+      "name": "Noah Meier",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_maenalanen",
+      "name": "Saku Mäenalanen",
+      "position": "F",
+      "positionDetail": "LW/C",
+      "nationality": "FI",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_petersson",
+      "name": "André Petersson",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "SE",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_petrini",
+      "name": "Patrick Petrini",
+      "position": "F",
+      "positionDetail": "F",
+      "nationality": "CH/IT",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_riikola",
+      "name": "Juuso Riikola",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "FI",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_salzgeber",
+      "name": "Joel Salzgeber",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_schmutz_j",
+      "name": "Julian Schmutz",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "CH",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_schmutz_f",
+      "name": "Flavio Schmutz",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "CH",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_wagner",
+      "name": "Matteo Wagner",
+      "position": "F",
+      "positionDetail": "LW",
+      "nationality": "CH",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_pettersson",
+      "name": "Emil Pettersson",
+      "position": "F",
+      "positionDetail": "W/C",
+      "nationality": "SE",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_boltshauser",
+      "name": "Luca Boltshauser",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_meyer",
+      "name": "Robin Meyer",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_scl_neckar",
+      "name": "Martin Neckar",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "FR/CZ",
+      "teamId": "team_scl"
+    },
+    {
+      "id": "player_zsc_knak",
+      "name": "Simon Knak",
+      "position": "F",
+      "positionDetail": "RW/LW",
+      "nationality": "CH",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_berni",
+      "name": "Tim Berni",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_stromwall",
+      "name": "Malte Strömwall",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "SE",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_gruber",
+      "name": "Kimo Gruber",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "CH",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_meier",
+      "name": "Endo Meier",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_andrighetto",
+      "name": "Sven Andrighetto",
+      "position": "F",
+      "positionDetail": "W/C",
+      "nationality": "CH",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_bader",
+      "name": "Thierry Bader",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_baechler",
+      "name": "Nicolas Baechler",
+      "position": "F",
+      "positionDetail": "F",
+      "nationality": "CH",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_balcers",
+      "name": "Rudolfs Balcers",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "LV",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_baltisberger",
+      "name": "Chris Baltisberger",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "CH",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_buenzli",
+      "name": "Timo Bünzli",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_froden",
+      "name": "Jesper Frödén",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "SE",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_geering",
+      "name": "Patrick Geering",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_grant",
+      "name": "Derek Grant",
+      "position": "F",
+      "positionDetail": "C/W",
+      "nationality": "CA",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_kukan",
+      "name": "Dean Kukan",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_lammikko",
+      "name": "Juho Lammikko",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "FI",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_lehtonen",
+      "name": "Mikko Lehtonen",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "FI",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_malgin",
+      "name": "Denis Malgin",
+      "position": "F",
+      "positionDetail": "C/W",
+      "nationality": "CH/RU",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_marti",
+      "name": "Christian Marti",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_riedi",
+      "name": "Willy Riedi",
+      "position": "F",
+      "positionDetail": "F",
+      "nationality": "CH",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_schwendeler",
+      "name": "Jan Schwendeler",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH/SK",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_sigrist",
+      "name": "Justin Sigrist",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "CH",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_weber",
+      "name": "Yannick Weber",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_fahrni",
+      "name": "Joshua Fahrni",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_hrubec",
+      "name": "Simon Hrubec",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CZ",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zsc_zumbuhl",
+      "name": "Robin Zumbühl",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH/IT",
+      "teamId": "team_zsc"
+    },
+    {
+      "id": "player_zug_gredig",
+      "name": "Rico Gredig",
+      "position": "F",
+      "positionDetail": "LW/C",
+      "nationality": "CH",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_schneller",
+      "name": "Eric Schneller",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH/SE",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_egli",
+      "name": "Chris Egli",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "CH",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_guerra",
+      "name": "Samuel Guerra",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_antenen",
+      "name": "Robin Nico Antenen",
+      "position": "F",
+      "positionDetail": "LW",
+      "nationality": "CH",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_balestra",
+      "name": "Nic Balestra",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_bengtsson",
+      "name": "Lukas Bengtsson",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "SE",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_daron",
+      "name": "Jan Daron",
+      "position": "F",
+      "positionDetail": "RW/LW",
+      "nationality": "CH/CZ",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_geisser_t",
+      "name": "Tobias Geisser",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_hofmann",
+      "name": "Grégory Hofmann",
+      "position": "F",
+      "positionDetail": "LW",
+      "nationality": "CH",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_kovar",
+      "name": "Jan Kovář",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CZ",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_kubalik",
+      "name": "Dominik Kubalík",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "CZ",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_kuenzle",
+      "name": "Mike Künzle",
+      "position": "F",
+      "positionDetail": "RW/LW",
+      "nationality": "CH",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_leuenberger",
+      "name": "Sven Leuenberger",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "CH",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_lindemann",
+      "name": "Colin Lindemann",
+      "position": "F",
+      "positionDetail": "LW",
+      "nationality": "CH",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_martschini",
+      "name": "Lino Martschini",
+      "position": "F",
+      "positionDetail": "RW",
+      "nationality": "CH",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_petrovic",
+      "name": "Nik Christian Petrovic",
+      "position": "F",
+      "positionDetail": "F",
+      "nationality": "SI",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_riva",
+      "name": "Elia Riva",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_senteler",
+      "name": "Sven Senteler",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "CH",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_sklenicka",
+      "name": "David Sklenička",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CZ",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_stadler",
+      "name": "Livio Stadler",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_tatar",
+      "name": "Tomas Tatar",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "SK",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_wey",
+      "name": "Loris Wey",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "CH",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_wingerli",
+      "name": "Andreas Wingerli",
+      "position": "F",
+      "positionDetail": "LW/C",
+      "nationality": "SE",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_diaz",
+      "name": "Raphael Díaz",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH/ES",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_moverare",
+      "name": "Jacob Moverare",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "SE",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_rohrer",
+      "name": "Vinzenz Rohrer",
+      "position": "F",
+      "positionDetail": "C/RW",
+      "nationality": "AT",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_croce",
+      "name": "Mathieu Croce",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_genoni",
+      "name": "Leonardo Genoni",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_klo_simmchen",
+      "name": "Santo Simmchen",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH/DE",
+      "teamId": "team_klo"
+    },
+    {
+      "id": "player_ajo_hauser",
+      "name": "Ludovic Hauser",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_ajo_romanenghi",
+      "name": "Matteo Romanenghi",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "CH",
+      "teamId": "team_ajo"
+    },
+    {
+      "id": "player_apk_pekar",
+      "name": "Matěj Pekař",
+      "position": "F",
+      "positionDetail": "C/W",
+      "nationality": "CZ",
+      "teamId": "team_apk"
+    },
+    {
+      "id": "player_scb_zurcher",
+      "name": "Kevin Zürcher",
+      "position": "F",
+      "positionDetail": "F",
+      "nationality": "CH",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_moser",
+      "name": "Levin Moser",
+      "position": "F",
+      "positionDetail": "F",
+      "nationality": "CH",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_serkins",
+      "name": "Daniels Serkins",
+      "position": "F",
+      "positionDetail": "C/LW",
+      "nationality": "LV",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_scb_bont",
+      "name": "Kimo Bont",
+      "position": "F",
+      "positionDetail": "C",
+      "nationality": "CH",
+      "teamId": "team_scb"
+    },
+    {
+      "id": "player_dav_muller",
+      "name": "Simon Müller",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_dav"
+    },
+    {
+      "id": "player_fri_neuenschwander",
+      "name": "Elijah Neuenschwander",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH",
+      "teamId": "team_fri"
+    },
+    {
+      "id": "player_rap_bisig",
+      "name": "Robin Bisig",
+      "position": "D",
+      "positionDetail": "D",
+      "nationality": "CH",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_rap_diethelm",
+      "name": "Marc Diethelm",
+      "position": "F",
+      "positionDetail": "LW/RW",
+      "nationality": "CH",
+      "teamId": "team_rap"
+    },
+    {
+      "id": "player_zug_geisser_m",
+      "name": "Mischa Geisser",
+      "position": "D",
+      "positionDetail": "D/LW",
+      "nationality": "CH",
+      "teamId": "team_zug"
+    },
+    {
+      "id": "player_zug_birchler",
+      "name": "Matia Nico Birchler",
+      "position": "G",
+      "positionDetail": "G",
+      "nationality": "CH",
+      "teamId": "team_zug"
+    }
+  ],
+  "games": [
+    {
+      "id": "game_2026-09-15_ajo_apk",
+      "date": "2026-09-15",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-15_bie_fri",
+      "date": "2026-09-15",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-15_dav_scl",
+      "date": "2026-09-15",
+      "time": "19:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-15_rap_klo",
+      "date": "2026-09-15",
+      "time": "19:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-15_lau_zug",
+      "date": "2026-09-15",
+      "time": "19:45",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-15_lug_gse",
+      "date": "2026-09-15",
+      "time": "19:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-15_zsc_scb",
+      "date": "2026-09-15",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-18_apk_rap",
+      "date": "2026-09-18",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-18_scb_dav",
+      "date": "2026-09-18",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-18_fri_lau",
+      "date": "2026-09-18",
+      "time": "19:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-18_gse_ajo",
+      "date": "2026-09-18",
+      "time": "19:45",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-18_klo_lug",
+      "date": "2026-09-18",
+      "time": "19:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-18_scl_zsc",
+      "date": "2026-09-18",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-19_ajo_klo",
+      "date": "2026-09-19",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-19_bie_scl",
+      "date": "2026-09-19",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-19_dav_zug",
+      "date": "2026-09-19",
+      "time": "19:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-19_rap_fri",
+      "date": "2026-09-19",
+      "time": "19:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-19_lau_apk",
+      "date": "2026-09-19",
+      "time": "19:45",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-19_zsc_gse",
+      "date": "2026-09-19",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-22_ajo_zsc",
+      "date": "2026-09-22",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-22_bie_apk",
+      "date": "2026-09-22",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-22_gse_rap",
+      "date": "2026-09-22",
+      "time": "19:45",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-22_klo_scb",
+      "date": "2026-09-22",
+      "time": "19:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-22_lug_zug",
+      "date": "2026-09-22",
+      "time": "19:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-22_scl_lau",
+      "date": "2026-09-22",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-22_dav_fri",
+      "date": "2026-09-22",
+      "time": "19:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-24_klo_bie",
+      "date": "2026-09-24",
+      "time": "20:00",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-25_apk_zsc",
+      "date": "2026-09-25",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-25_scb_ajo",
+      "date": "2026-09-25",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-25_gse_fri",
+      "date": "2026-09-25",
+      "time": "19:45",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-25_rap_dav",
+      "date": "2026-09-25",
+      "time": "19:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-25_scl_zug",
+      "date": "2026-09-25",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-26_ajo_rap",
+      "date": "2026-09-26",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-26_dav_lau",
+      "date": "2026-09-26",
+      "time": "19:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-26_fri_scl",
+      "date": "2026-09-26",
+      "time": "19:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-26_lug_apk",
+      "date": "2026-09-26",
+      "time": "19:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-26_zsc_klo",
+      "date": "2026-09-26",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-27_bie_gse",
+      "date": "2026-09-27",
+      "time": "14:00",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-29_ajo_lau",
+      "date": "2026-09-29",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-29_apk_dav",
+      "date": "2026-09-29",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-29_fri_scb",
+      "date": "2026-09-29",
+      "time": "19:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-29_gse_klo",
+      "date": "2026-09-29",
+      "time": "19:45",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-29_rap_zug",
+      "date": "2026-09-29",
+      "time": "19:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-29_scl_lug",
+      "date": "2026-09-29",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-29_zsc_bie",
+      "date": "2026-09-29",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-09-30_lau_gse",
+      "date": "2026-09-30",
+      "time": "19:45",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-01_apk_scl",
+      "date": "2026-10-01",
+      "time": "20:00",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-02_scb_gse",
+      "date": "2026-10-02",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-02_dav_ajo",
+      "date": "2026-10-02",
+      "time": "19:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-02_klo_fri",
+      "date": "2026-10-02",
+      "time": "19:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-02_lau_bie",
+      "date": "2026-10-02",
+      "time": "19:45",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-02_lug_rap",
+      "date": "2026-10-02",
+      "time": "19:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-03_bie_dav",
+      "date": "2026-10-03",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-03_fri_apk",
+      "date": "2026-10-03",
+      "time": "19:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-03_rap_scb",
+      "date": "2026-10-03",
+      "time": "19:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-03_scl_klo",
+      "date": "2026-10-03",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-03_zsc_lau",
+      "date": "2026-10-03",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-04_ajo_lug",
+      "date": "2026-10-04",
+      "time": "14:00",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-04_gse_zug",
+      "date": "2026-10-04",
+      "time": "14:00",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-07_lau_lug",
+      "date": "2026-10-07",
+      "time": "19:45",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-08_fri_ajo",
+      "date": "2026-10-08",
+      "time": "20:00",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-09_scb_bie",
+      "date": "2026-10-09",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-09_dav_klo",
+      "date": "2026-10-09",
+      "time": "19:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-09_lug_zsc",
+      "date": "2026-10-09",
+      "time": "19:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-09_scl_rap",
+      "date": "2026-10-09",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-10_ajo_scl",
+      "date": "2026-10-10",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-10_apk_scb",
+      "date": "2026-10-10",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-10_bie_lug",
+      "date": "2026-10-10",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-10_gse_dav",
+      "date": "2026-10-10",
+      "time": "19:45",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-10_rap_lau",
+      "date": "2026-10-10",
+      "time": "19:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-10_zsc_fri",
+      "date": "2026-10-10",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-11_klo_zug",
+      "date": "2026-10-11",
+      "time": "14:00",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-14_lau_ajo",
+      "date": "2026-10-14",
+      "time": "19:45",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-16_scb_lau",
+      "date": "2026-10-16",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-16_bie_ajo",
+      "date": "2026-10-16",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-16_gse_scl",
+      "date": "2026-10-16",
+      "time": "19:45",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-16_klo_apk",
+      "date": "2026-10-16",
+      "time": "19:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-16_lug_dav",
+      "date": "2026-10-16",
+      "time": "19:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-16_zsc_rap",
+      "date": "2026-10-16",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-17_ajo_zug",
+      "date": "2026-10-17",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-17_apk_gse",
+      "date": "2026-10-17",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-17_dav_zsc",
+      "date": "2026-10-17",
+      "time": "19:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-17_fri_lug",
+      "date": "2026-10-17",
+      "time": "19:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-17_rap_bie",
+      "date": "2026-10-17",
+      "time": "19:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-17_lau_klo",
+      "date": "2026-10-17",
+      "time": "19:45",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-17_scl_scb",
+      "date": "2026-10-17",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-20_apk_fri",
+      "date": "2026-10-20",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-20_scb_scl",
+      "date": "2026-10-20",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-20_bie_rap",
+      "date": "2026-10-20",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-20_gse_lug",
+      "date": "2026-10-20",
+      "time": "19:45",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-20_klo_lau",
+      "date": "2026-10-20",
+      "time": "19:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-20_zsc_dav",
+      "date": "2026-10-20",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-23_ajo_gse",
+      "date": "2026-10-23",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-23_dav_scb",
+      "date": "2026-10-23",
+      "time": "19:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-23_fri_bie",
+      "date": "2026-10-23",
+      "time": "19:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-23_rap_apk",
+      "date": "2026-10-23",
+      "time": "19:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-23_lug_klo",
+      "date": "2026-10-23",
+      "time": "19:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-23_zsc_scl",
+      "date": "2026-10-23",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-23_zug_lau",
+      "date": "2026-10-23",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-24_apk_ajo",
+      "date": "2026-10-24",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-24_bie_zug",
+      "date": "2026-10-24",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-24_klo_rap",
+      "date": "2026-10-24",
+      "time": "19:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-24_lau_fri",
+      "date": "2026-10-24",
+      "time": "19:45",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-24_scl_dav",
+      "date": "2026-10-24",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-25_scb_lug",
+      "date": "2026-10-25",
+      "time": "14:00",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-25_gse_zsc",
+      "date": "2026-10-25",
+      "time": "14:00",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-27_fri_dav",
+      "date": "2026-10-27",
+      "time": "19:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-27_apk_bie",
+      "date": "2026-10-27",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-27_scb_zsc",
+      "date": "2026-10-27",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-27_klo_ajo",
+      "date": "2026-10-27",
+      "time": "19:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-27_rap_gse",
+      "date": "2026-10-27",
+      "time": "19:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-27_lau_scl",
+      "date": "2026-10-27",
+      "time": "19:45",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-27_zug_lug",
+      "date": "2026-10-27",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-28_scl_fri",
+      "date": "2026-10-28",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-29_lug_lau",
+      "date": "2026-10-29",
+      "time": "20:00",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-30_ajo_scb",
+      "date": "2026-10-30",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-30_bie_klo",
+      "date": "2026-10-30",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-30_dav_rap",
+      "date": "2026-10-30",
+      "time": "19:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-30_fri_gse",
+      "date": "2026-10-30",
+      "time": "19:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-30_zsc_apk",
+      "date": "2026-10-30",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-30_zug_scl",
+      "date": "2026-10-30",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-31_apk_lug",
+      "date": "2026-10-31",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-31_scb_zug",
+      "date": "2026-10-31",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-31_gse_bie",
+      "date": "2026-10-31",
+      "time": "19:45",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-31_klo_zsc",
+      "date": "2026-10-31",
+      "time": "19:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-31_rap_ajo",
+      "date": "2026-10-31",
+      "time": "19:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-10-31_lau_dav",
+      "date": "2026-10-31",
+      "time": "19:45",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-11_lug_scb",
+      "date": "2026-11-11",
+      "time": "19:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-11_zug_apk",
+      "date": "2026-11-11",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-12_bie_zsc",
+      "date": "2026-11-12",
+      "time": "20:00",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-13_scb_fri",
+      "date": "2026-11-13",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-13_dav_apk",
+      "date": "2026-11-13",
+      "time": "19:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-13_lug_scl",
+      "date": "2026-11-13",
+      "time": "19:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-13_zug_rap",
+      "date": "2026-11-13",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-14_ajo_dav",
+      "date": "2026-11-14",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-14_fri_klo",
+      "date": "2026-11-14",
+      "time": "19:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-14_gse_scb",
+      "date": "2026-11-14",
+      "time": "19:45",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-14_rap_lug",
+      "date": "2026-11-14",
+      "time": "19:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-14_scl_bie",
+      "date": "2026-11-14",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-14_zsc_zug",
+      "date": "2026-11-14",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-15_klo_gse",
+      "date": "2026-11-15",
+      "time": "15:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-15_apk_lau",
+      "date": "2026-11-15",
+      "time": "15:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-18_zug_ajo",
+      "date": "2026-11-18",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-19_lau_zsc",
+      "date": "2026-11-19",
+      "time": "20:00",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-20_scb_klo",
+      "date": "2026-11-20",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-20_fri_rap",
+      "date": "2026-11-20",
+      "time": "19:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-20_lug_ajo",
+      "date": "2026-11-20",
+      "time": "19:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-20_scl_apk",
+      "date": "2026-11-20",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-20_zug_gse",
+      "date": "2026-11-20",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-21_ajo_fri",
+      "date": "2026-11-21",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-21_apk_zug",
+      "date": "2026-11-21",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-21_bie_scb",
+      "date": "2026-11-21",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-21_klo_dav",
+      "date": "2026-11-21",
+      "time": "19:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-21_zsc_lug",
+      "date": "2026-11-21",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-22_gse_lau",
+      "date": "2026-11-22",
+      "time": "14:00",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-22_rap_scl",
+      "date": "2026-11-22",
+      "time": "14:00",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-24_scb_apk",
+      "date": "2026-11-24",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-24_dav_gse",
+      "date": "2026-11-24",
+      "time": "19:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-24_fri_zsc",
+      "date": "2026-11-24",
+      "time": "19:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-24_lau_rap",
+      "date": "2026-11-24",
+      "time": "19:45",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-24_lug_bie",
+      "date": "2026-11-24",
+      "time": "19:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-24_scl_ajo",
+      "date": "2026-11-24",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-24_zug_klo",
+      "date": "2026-11-24",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-26_ajo_bie",
+      "date": "2026-11-26",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-26_fri_zug",
+      "date": "2026-11-26",
+      "time": "19:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-27_apk_klo",
+      "date": "2026-11-27",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-27_rap_zsc",
+      "date": "2026-11-27",
+      "time": "19:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-27_lau_scb",
+      "date": "2026-11-27",
+      "time": "19:45",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-27_scl_gse",
+      "date": "2026-11-27",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-27_lug_fri",
+      "date": "2026-11-27",
+      "time": "19:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-28_scb_rap",
+      "date": "2026-11-28",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-28_bie_lau",
+      "date": "2026-11-28",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-28_gse_apk",
+      "date": "2026-11-28",
+      "time": "19:45",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-28_klo_scl",
+      "date": "2026-11-28",
+      "time": "19:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-28_zug_dav",
+      "date": "2026-11-28",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-29_zsc_ajo",
+      "date": "2026-11-29",
+      "time": "14:00",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-11-29_dav_lug",
+      "date": "2026-11-29",
+      "time": "15:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-02_lau_scl",
+      "date": "2026-12-02",
+      "time": "19:45",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-03_zug_ajo",
+      "date": "2026-12-03",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-04_gse_lug",
+      "date": "2026-12-04",
+      "time": "19:45",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-04_klo_lau",
+      "date": "2026-12-04",
+      "time": "19:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-04_rap_bie",
+      "date": "2026-12-04",
+      "time": "19:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-04_scl_scb",
+      "date": "2026-12-04",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-05_ajo_gse",
+      "date": "2026-12-05",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-05_apk_rap",
+      "date": "2026-12-05",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-05_scb_dav",
+      "date": "2026-12-05",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-05_bie_fri",
+      "date": "2026-12-05",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-05_lau_zug",
+      "date": "2026-12-05",
+      "time": "19:45",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-05_zsc_scl",
+      "date": "2026-12-05",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-06_dav_zsc",
+      "date": "2026-12-06",
+      "time": "15:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-06_fri_apk",
+      "date": "2026-12-06",
+      "time": "15:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-06_lug_klo",
+      "date": "2026-12-06",
+      "time": "15:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-16_apk_ajo",
+      "date": "2026-12-16",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-16_scb_lug",
+      "date": "2026-12-16",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-16_dav_scl",
+      "date": "2026-12-16",
+      "time": "19:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-16_gse_zsc",
+      "date": "2026-12-16",
+      "time": "19:45",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-16_klo_rap",
+      "date": "2026-12-16",
+      "time": "19:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-16_lau_fri",
+      "date": "2026-12-16",
+      "time": "19:45",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-16_zug_bie",
+      "date": "2026-12-16",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-18_ajo_klo",
+      "date": "2026-12-18",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-18_bie_apk",
+      "date": "2026-12-18",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-18_fri_dav",
+      "date": "2026-12-18",
+      "time": "19:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-18_rap_gse",
+      "date": "2026-12-18",
+      "time": "19:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-18_lug_zug",
+      "date": "2026-12-18",
+      "time": "19:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-18_scl_lau",
+      "date": "2026-12-18",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-18_zsc_scb",
+      "date": "2026-12-18",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-19_apk_zsc",
+      "date": "2026-12-19",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-19_scb_ajo",
+      "date": "2026-12-19",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-19_dav_rap",
+      "date": "2026-12-19",
+      "time": "19:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-19_gse_fri",
+      "date": "2026-12-19",
+      "time": "19:45",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-19_klo_bie",
+      "date": "2026-12-19",
+      "time": "19:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-19_lau_lug",
+      "date": "2026-12-19",
+      "time": "19:45",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-19_zug_scl",
+      "date": "2026-12-19",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-21_fri_scl",
+      "date": "2026-12-21",
+      "time": "19:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-22_dav_bie",
+      "date": "2026-12-22",
+      "time": "19:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-22_ajo_rap",
+      "date": "2026-12-22",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-22_klo_zsc",
+      "date": "2026-12-22",
+      "time": "19:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-22_lug_apk",
+      "date": "2026-12-22",
+      "time": "19:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-22_zug_scb",
+      "date": "2026-12-22",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-23_apk_dav",
+      "date": "2026-12-23",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-23_scb_fri",
+      "date": "2026-12-23",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-23_gse_klo",
+      "date": "2026-12-23",
+      "time": "19:45",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-23_rap_zug",
+      "date": "2026-12-23",
+      "time": "19:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-23_lau_ajo",
+      "date": "2026-12-23",
+      "time": "19:45",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-23_scl_lug",
+      "date": "2026-12-23",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2026-12-23_zsc_bie",
+      "date": "2026-12-23",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-02_gse_scb",
+      "date": "2027-01-02",
+      "time": "14:00",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-02_ajo_dav",
+      "date": "2027-01-02",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-02_apk_lau",
+      "date": "2027-01-02",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-02_bie_scl",
+      "date": "2027-01-02",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-02_klo_fri",
+      "date": "2027-01-02",
+      "time": "19:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-02_rap_lug",
+      "date": "2027-01-02",
+      "time": "19:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-02_zsc_zug",
+      "date": "2027-01-02",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-03_scb_klo",
+      "date": "2027-01-03",
+      "time": "15:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-03_dav_bie",
+      "date": "2027-01-03",
+      "time": "15:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-03_fri_rap",
+      "date": "2027-01-03",
+      "time": "15:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-03_lug_ajo",
+      "date": "2027-01-03",
+      "time": "15:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-03_scl_apk",
+      "date": "2027-01-03",
+      "time": "15:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-03_zug_gse",
+      "date": "2027-01-03",
+      "time": "15:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-04_lau_zsc",
+      "date": "2027-01-04",
+      "time": "19:45",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-05_zug_fri",
+      "date": "2027-01-05",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-05_bie_gse",
+      "date": "2027-01-05",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-05_dav_lug",
+      "date": "2027-01-05",
+      "time": "19:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-06_lau_klo",
+      "date": "2027-01-06",
+      "time": "19:45",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-07_gse_lau",
+      "date": "2027-01-07",
+      "time": "20:00",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-08_ajo_fri",
+      "date": "2027-01-08",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-08_apk_zug",
+      "date": "2027-01-08",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-08_bie_scb",
+      "date": "2027-01-08",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-08_rap_scl",
+      "date": "2027-01-08",
+      "time": "19:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-08_zsc_lug",
+      "date": "2027-01-08",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-09_scb_apk",
+      "date": "2027-01-09",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-09_dav_gse",
+      "date": "2027-01-09",
+      "time": "19:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-09_fri_zsc",
+      "date": "2027-01-09",
+      "time": "19:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-09_lug_bie",
+      "date": "2027-01-09",
+      "time": "19:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-09_scl_ajo",
+      "date": "2027-01-09",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-09_zug_klo",
+      "date": "2027-01-09",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-10_lau_rap",
+      "date": "2027-01-10",
+      "time": "14:00",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-10_klo_dav",
+      "date": "2027-01-10",
+      "time": "15:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-13_zug_bie",
+      "date": "2027-01-13",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-14_rap_zsc",
+      "date": "2027-01-14",
+      "time": "20:00",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-15_ajo_bie",
+      "date": "2027-01-15",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-15_fri_zug",
+      "date": "2027-01-15",
+      "time": "19:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-15_gse_scl",
+      "date": "2027-01-15",
+      "time": "19:45",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-15_klo_apk",
+      "date": "2027-01-15",
+      "time": "19:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-15_lau_scb",
+      "date": "2027-01-15",
+      "time": "19:45",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-16_apk_gse",
+      "date": "2027-01-16",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-16_scb_rap",
+      "date": "2027-01-16",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-16_bie_lau",
+      "date": "2027-01-16",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-16_lug_fri",
+      "date": "2027-01-16",
+      "time": "19:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-16_scl_klo",
+      "date": "2027-01-16",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-16_zug_dav",
+      "date": "2027-01-16",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-17_zsc_ajo",
+      "date": "2027-01-17",
+      "time": "15:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-20_zug_scb",
+      "date": "2027-01-20",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-22_ajo_zug",
+      "date": "2027-01-22",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-22_apk_fri",
+      "date": "2027-01-22",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-22_scb_scl",
+      "date": "2027-01-22",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-22_bie_rap",
+      "date": "2027-01-22",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-22_lug_gse",
+      "date": "2027-01-22",
+      "time": "19:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-22_zsc_dav",
+      "date": "2027-01-22",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-23_fri_bie",
+      "date": "2027-01-23",
+      "time": "19:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-23_klo_lug",
+      "date": "2027-01-23",
+      "time": "19:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-23_rap_apk",
+      "date": "2027-01-23",
+      "time": "19:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-23_scl_zsc",
+      "date": "2027-01-23",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-23_zug_lau",
+      "date": "2027-01-23",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-24_gse_ajo",
+      "date": "2027-01-24",
+      "time": "14:00",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-26_zug_zsc",
+      "date": "2027-01-26",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-26_dav_scb",
+      "date": "2027-01-26",
+      "time": "19:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-28_gse_rap",
+      "date": "2027-01-28",
+      "time": "19:45",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-29_ajo_apk",
+      "date": "2027-01-29",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-29_bie_zug",
+      "date": "2027-01-29",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-29_fri_lau",
+      "date": "2027-01-29",
+      "time": "19:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-29_rap_klo",
+      "date": "2027-01-29",
+      "time": "19:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-29_lug_scb",
+      "date": "2027-01-29",
+      "time": "19:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-29_scl_dav",
+      "date": "2027-01-29",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-29_zsc_gse",
+      "date": "2027-01-29",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-30_apk_bie",
+      "date": "2027-01-30",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-30_scb_zsc",
+      "date": "2027-01-30",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-30_dav_fri",
+      "date": "2027-01-30",
+      "time": "19:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-30_klo_ajo",
+      "date": "2027-01-30",
+      "time": "19:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-01-30_zug_lug",
+      "date": "2027-01-30",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-02_ajo_scb",
+      "date": "2027-02-02",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-02_bie_klo",
+      "date": "2027-02-02",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-02_fri_gse",
+      "date": "2027-02-02",
+      "time": "19:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-02_rap_dav",
+      "date": "2027-02-02",
+      "time": "19:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-02_lug_lau",
+      "date": "2027-02-02",
+      "time": "19:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-02_scl_zug",
+      "date": "2027-02-02",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-02_zsc_apk",
+      "date": "2027-02-02",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-03_dav_lau",
+      "date": "2027-02-03",
+      "time": "19:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-04_fri_scb",
+      "date": "2027-02-04",
+      "time": "19:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-05_apk_lug",
+      "date": "2027-02-05",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-05_scb_zug",
+      "date": "2027-02-05",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-05_gse_bie",
+      "date": "2027-02-05",
+      "time": "19:45",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-05_scl_fri",
+      "date": "2027-02-05",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-05_zsc_klo",
+      "date": "2027-02-05",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-06_ajo_lau",
+      "date": "2027-02-06",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-06_bie_zsc",
+      "date": "2027-02-06",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-06_dav_apk",
+      "date": "2027-02-06",
+      "time": "19:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-06_klo_gse",
+      "date": "2027-02-06",
+      "time": "19:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-06_lug_scl",
+      "date": "2027-02-06",
+      "time": "19:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-06_zug_rap",
+      "date": "2027-02-06",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-07_rap_ajo",
+      "date": "2027-02-07",
+      "time": "15:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-07_lau_dav",
+      "date": "2027-02-07",
+      "time": "15:45",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-16_scb_gse",
+      "date": "2027-02-16",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-16_dav_ajo",
+      "date": "2027-02-16",
+      "time": "19:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-16_fri_klo",
+      "date": "2027-02-16",
+      "time": "19:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-16_lau_apk",
+      "date": "2027-02-16",
+      "time": "19:45",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-16_lug_rap",
+      "date": "2027-02-16",
+      "time": "19:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-16_scl_bie",
+      "date": "2027-02-16",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-16_zug_zsc",
+      "date": "2027-02-16",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-18_ajo_lug",
+      "date": "2027-02-18",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-18_gse_zug",
+      "date": "2027-02-18",
+      "time": "19:45",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-19_apk_scl",
+      "date": "2027-02-19",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-19_bie_dav",
+      "date": "2027-02-19",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-19_klo_scb",
+      "date": "2027-02-19",
+      "time": "19:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-19_rap_fri",
+      "date": "2027-02-19",
+      "time": "19:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-19_zsc_lau",
+      "date": "2027-02-19",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-20_scb_bie",
+      "date": "2027-02-20",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-20_dav_klo",
+      "date": "2027-02-20",
+      "time": "19:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-20_fri_ajo",
+      "date": "2027-02-20",
+      "time": "19:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-20_lug_zsc",
+      "date": "2027-02-20",
+      "time": "19:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-20_scl_rap",
+      "date": "2027-02-20",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-21_lau_gse",
+      "date": "2027-02-21",
+      "time": "14:00",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-21_zug_apk",
+      "date": "2027-02-21",
+      "time": "14:00",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-25_ajo_scl",
+      "date": "2027-02-25",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-25_apk_scb",
+      "date": "2027-02-25",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-25_bie_lug",
+      "date": "2027-02-25",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-25_gse_dav",
+      "date": "2027-02-25",
+      "time": "19:45",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-25_klo_zug",
+      "date": "2027-02-25",
+      "time": "19:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-25_rap_lau",
+      "date": "2027-02-25",
+      "time": "19:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-25_zsc_fri",
+      "date": "2027-02-25",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-27_apk_klo",
+      "date": "2027-02-27",
+      "time": "19:45",
+      "homeTeamId": "team_apk",
+      "awayTeamId": "team_klo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-27_scb_lau",
+      "date": "2027-02-27",
+      "time": "19:45",
+      "homeTeamId": "team_scb",
+      "awayTeamId": "team_lau",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-27_bie_ajo",
+      "date": "2027-02-27",
+      "time": "19:45",
+      "homeTeamId": "team_bie",
+      "awayTeamId": "team_ajo",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-27_lug_dav",
+      "date": "2027-02-27",
+      "time": "19:45",
+      "homeTeamId": "team_lug",
+      "awayTeamId": "team_dav",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-27_scl_gse",
+      "date": "2027-02-27",
+      "time": "19:45",
+      "homeTeamId": "team_scl",
+      "awayTeamId": "team_gse",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-27_zsc_rap",
+      "date": "2027-02-27",
+      "time": "19:45",
+      "homeTeamId": "team_zsc",
+      "awayTeamId": "team_rap",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-02-27_zug_fri",
+      "date": "2027-02-27",
+      "time": "19:45",
+      "homeTeamId": "team_zug",
+      "awayTeamId": "team_fri",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-03-01_ajo_zsc",
+      "date": "2027-03-01",
+      "time": "19:45",
+      "homeTeamId": "team_ajo",
+      "awayTeamId": "team_zsc",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-03-01_dav_zug",
+      "date": "2027-03-01",
+      "time": "19:45",
+      "homeTeamId": "team_dav",
+      "awayTeamId": "team_zug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-03-01_fri_lug",
+      "date": "2027-03-01",
+      "time": "19:45",
+      "homeTeamId": "team_fri",
+      "awayTeamId": "team_lug",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-03-01_gse_apk",
+      "date": "2027-03-01",
+      "time": "19:45",
+      "homeTeamId": "team_gse",
+      "awayTeamId": "team_apk",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-03-01_klo_scl",
+      "date": "2027-03-01",
+      "time": "19:45",
+      "homeTeamId": "team_klo",
+      "awayTeamId": "team_scl",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-03-01_rap_scb",
+      "date": "2027-03-01",
+      "time": "19:45",
+      "homeTeamId": "team_rap",
+      "awayTeamId": "team_scb",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    },
+    {
+      "id": "game_2027-03-01_lau_bie",
+      "date": "2027-03-01",
+      "time": "19:45",
+      "homeTeamId": "team_lau",
+      "awayTeamId": "team_bie",
+      "status": "scheduled",
+      "homeGoals": null,
+      "awayGoals": null,
+      "decision": null,
+      "playerStats": []
+    }
+  ]
+}

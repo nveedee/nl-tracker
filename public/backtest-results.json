@@ -1,0 +1,2224 @@
+{
+  "generatedAt": "2026-08-24T14:03:07.276Z",
+  "seasons": [
+    "2017/18",
+    "2018/19",
+    "2019/20",
+    "2020/21",
+    "2021/22",
+    "2022/23",
+    "2023/24",
+    "2024/25",
+    "2025/26"
+  ],
+  "coronaSeasons": [
+    "2019/20",
+    "2020/21"
+  ],
+  "totalGames": 3224,
+  "dataAudit": {
+    "seasonsAvailable": [
+      "2017/18",
+      "2018/19",
+      "2019/20",
+      "2020/21",
+      "2021/22",
+      "2022/23",
+      "2023/24",
+      "2024/25",
+      "2025/26"
+    ],
+    "perSeason": [
+      {
+        "season": "2017/18",
+        "games": 364,
+        "ot": 41,
+        "so": 38,
+        "corona": false,
+        "failedImports": []
+      },
+      {
+        "season": "2018/19",
+        "games": 317,
+        "ot": 23,
+        "so": 16,
+        "corona": false,
+        "failedImports": []
+      },
+      {
+        "season": "2019/20",
+        "games": 300,
+        "ot": 48,
+        "so": 29,
+        "corona": true,
+        "failedImports": []
+      },
+      {
+        "season": "2020/21",
+        "games": 304,
+        "ot": 41,
+        "so": 21,
+        "corona": true,
+        "failedImports": [
+          "20211105000002",
+          "20211105000010",
+          "20211105000013",
+          "20211105000015",
+          "20211105000019",
+          "20211105000020",
+          "20211105000026",
+          "20211105000033"
+        ]
+      },
+      {
+        "season": "2021/22",
+        "games": 334,
+        "ot": 39,
+        "so": 18,
+        "corona": false,
+        "failedImports": [
+          "20221105000224",
+          "20221105000237",
+          "20221105000245",
+          "20221105000253"
+        ]
+      },
+      {
+        "season": "2022/23",
+        "games": 420,
+        "ot": 56,
+        "so": 39,
+        "corona": false,
+        "failedImports": []
+      },
+      {
+        "season": "2023/24",
+        "games": 364,
+        "ot": 52,
+        "so": 31,
+        "corona": false,
+        "failedImports": []
+      },
+      {
+        "season": "2024/25",
+        "games": 411,
+        "ot": 67,
+        "so": 30,
+        "corona": false,
+        "failedImports": []
+      },
+      {
+        "season": "2025/26",
+        "games": 410,
+        "ot": 49,
+        "so": 41,
+        "corona": false,
+        "failedImports": []
+      }
+    ],
+    "marketValueHistoricallyAvailable": false,
+    "marketValueReason": "Historische Archivdaten (server/data/historical/*.json) enthalten keine Marktwert-Felder - Marktwerte werden ausschliesslich live von nationalleague.ch synchronisiert (server/sync.js), kein saisonbezogenes Archiv vorhanden.",
+    "sogHistoricallyAvailable": true,
+    "sogSource": "server/data/historical/*.json: games[].goalies.{home,away}[].{saves,goalsAgainst} (identische Definition wie src/playoffSim.js::computeSogAllowedStats, für alle 9 Saisons vollständig vorhanden)."
+  },
+  "teamNames": {
+    "101060": "SCRJ",
+    "101139": "ZSC",
+    "101144": "EVZ",
+    "101149": "EHCK",
+    "101150": "HCL",
+    "101151": "HCD",
+    "101152": "HCAP",
+    "102126": "SCB",
+    "102127": "SCL",
+    "102128": "EHCB",
+    "103138": "FRI",
+    "103139": "HCC",
+    "103140": "GSHC",
+    "103141": "LHC",
+    "103144": "HCA"
+  },
+  "predictors": [
+    {
+      "id": "v0",
+      "name": "v0 - Naive Basisrate",
+      "description": "Konstante Heimsieg-Quote aus allen VORHERIGEN Saisons (kein ELO, keine Team-Information). Reine Referenzuntergrenze.",
+      "features": [
+        "Heimsieg-Basisrate (walk-forward über Saisons)"
+      ],
+      "notValidatable": false,
+      "reason": null,
+      "caveat": null,
+      "overall": {
+        "core": {
+          "n": 2256,
+          "accuracy": 0.5842,
+          "brier": 0.2432,
+          "logLoss": 0.6796,
+          "mae": 0.4882,
+          "favoriteWinRate": 0.5842,
+          "upsetRate": 0.4158,
+          "bias": {
+            "avgPredicted": 0.5706,
+            "actualRate": 0.5842,
+            "diff": -0.0136
+          }
+        },
+        "corona": {
+          "n": 604,
+          "accuracy": 0.5497,
+          "brier": 0.2483,
+          "logLoss": 0.6898,
+          "mae": 0.4926,
+          "favoriteWinRate": 0.5497,
+          "upsetRate": 0.4503,
+          "bias": {
+            "avgPredicted": 0.5756,
+            "actualRate": 0.5497,
+            "diff": 0.0259
+          }
+        },
+        "total": {
+          "n": 2860,
+          "accuracy": 0.5769,
+          "brier": 0.2443,
+          "logLoss": 0.6817,
+          "mae": 0.4891,
+          "favoriteWinRate": 0.5769,
+          "upsetRate": 0.4231,
+          "bias": {
+            "avgPredicted": 0.5717,
+            "actualRate": 0.5769,
+            "diff": -0.0052
+          }
+        }
+      },
+      "perSeason": {
+        "2017/18": null,
+        "2018/19": {
+          "n": 317,
+          "accuracy": 0.571,
+          "brier": 0.245,
+          "logLoss": 0.6831,
+          "mae": 0.4891,
+          "favoriteWinRate": 0.571,
+          "upsetRate": 0.429,
+          "bias": {
+            "avgPredicted": 0.5769,
+            "actualRate": 0.571,
+            "diff": 0.0059
+          }
+        },
+        "2019/20": {
+          "n": 300,
+          "accuracy": 0.5833,
+          "brier": 0.2431,
+          "logLoss": 0.6794,
+          "mae": 0.4876,
+          "favoriteWinRate": 0.5833,
+          "upsetRate": 0.4167,
+          "bias": {
+            "avgPredicted": 0.5742,
+            "actualRate": 0.5833,
+            "diff": -0.0092
+          }
+        },
+        "2020/21": {
+          "n": 304,
+          "accuracy": 0.5164,
+          "brier": 0.2534,
+          "logLoss": 0.7,
+          "mae": 0.4975,
+          "favoriteWinRate": 0.5164,
+          "upsetRate": 0.4836,
+          "bias": {
+            "avgPredicted": 0.577,
+            "actualRate": 0.5164,
+            "diff": 0.0605
+          }
+        },
+        "2021/22": {
+          "n": 334,
+          "accuracy": 0.5988,
+          "brier": 0.2415,
+          "logLoss": 0.6762,
+          "mae": 0.4876,
+          "favoriteWinRate": 0.5988,
+          "upsetRate": 0.4012,
+          "bias": {
+            "avgPredicted": 0.5626,
+            "actualRate": 0.5988,
+            "diff": -0.0362
+          }
+        },
+        "2022/23": {
+          "n": 420,
+          "accuracy": 0.5571,
+          "brier": 0.2469,
+          "logLoss": 0.6869,
+          "mae": 0.492,
+          "favoriteWinRate": 0.5571,
+          "upsetRate": 0.4429,
+          "bias": {
+            "avgPredicted": 0.5701,
+            "actualRate": 0.5571,
+            "diff": 0.013
+          }
+        },
+        "2023/24": {
+          "n": 364,
+          "accuracy": 0.5742,
+          "brier": 0.2445,
+          "logLoss": 0.6822,
+          "mae": 0.49,
+          "favoriteWinRate": 0.5742,
+          "upsetRate": 0.4258,
+          "bias": {
+            "avgPredicted": 0.5674,
+            "actualRate": 0.5742,
+            "diff": -0.0067
+          }
+        },
+        "2024/25": {
+          "n": 411,
+          "accuracy": 0.6326,
+          "brier": 0.2365,
+          "logLoss": 0.6661,
+          "mae": 0.4818,
+          "favoriteWinRate": 0.6326,
+          "upsetRate": 0.3674,
+          "bias": {
+            "avgPredicted": 0.5685,
+            "actualRate": 0.6326,
+            "diff": -0.0641
+          }
+        },
+        "2025/26": {
+          "n": 410,
+          "accuracy": 0.5707,
+          "brier": 0.245,
+          "logLoss": 0.6832,
+          "mae": 0.489,
+          "favoriteWinRate": 0.5707,
+          "upsetRate": 0.4293,
+          "bias": {
+            "avgPredicted": 0.5778,
+            "actualRate": 0.5707,
+            "diff": 0.0071
+          }
+        }
+      },
+      "calibration": [
+        {
+          "lo": 0.5,
+          "hi": 0.55,
+          "label": "50–55%",
+          "count": 0,
+          "avgPredicted": null,
+          "actualRate": null,
+          "diff": null,
+          "lowSample": true
+        },
+        {
+          "lo": 0.55,
+          "hi": 0.6,
+          "label": "55–60%",
+          "count": 2256,
+          "avgPredicted": 0.570630571624059,
+          "actualRate": 0.5842198581560284,
+          "diff": -0.013589286531969447,
+          "lowSample": false
+        },
+        {
+          "lo": 0.6,
+          "hi": 0.65,
+          "label": "60–65%",
+          "count": 0,
+          "avgPredicted": null,
+          "actualRate": null,
+          "diff": null,
+          "lowSample": true
+        },
+        {
+          "lo": 0.65,
+          "hi": 0.7,
+          "label": "65–70%",
+          "count": 0,
+          "avgPredicted": null,
+          "actualRate": null,
+          "diff": null,
+          "lowSample": true
+        },
+        {
+          "lo": 0.7,
+          "hi": 0.75,
+          "label": "70–75%",
+          "count": 0,
+          "avgPredicted": null,
+          "actualRate": null,
+          "diff": null,
+          "lowSample": true
+        },
+        {
+          "lo": 0.75,
+          "hi": 0.8,
+          "label": "75–80%",
+          "count": 0,
+          "avgPredicted": null,
+          "actualRate": null,
+          "diff": null,
+          "lowSample": true
+        },
+        {
+          "lo": 0.8,
+          "hi": 0.85,
+          "label": "80–85%",
+          "count": 0,
+          "avgPredicted": null,
+          "actualRate": null,
+          "diff": null,
+          "lowSample": true
+        },
+        {
+          "lo": 0.85,
+          "hi": 0.9,
+          "label": "85–90%",
+          "count": 0,
+          "avgPredicted": null,
+          "actualRate": null,
+          "diff": null,
+          "lowSample": true
+        },
+        {
+          "lo": 0.9,
+          "hi": 1.0001,
+          "label": "90%+",
+          "count": 0,
+          "avgPredicted": null,
+          "actualRate": null,
+          "diff": null,
+          "lowSample": true
+        }
+      ],
+      "ece": 0.0136
+    },
+    {
+      "id": "v1",
+      "name": "v1 - ELO Baseline",
+      "description": "Produktives ELO (src/elo.js, unverändert) mit flachem Saisonstart (1500) - repliziert das reale Live-Verhalten ohne Pre-Season-ELO-Komponente.",
+      "features": [
+        "ELO (K-Tiers, Torunterschied, OT/SO-Gewichtung)",
+        "Heimvorteil (+65)"
+      ],
+      "notValidatable": false,
+      "reason": null,
+      "caveat": null,
+      "overall": {
+        "core": {
+          "n": 2620,
+          "accuracy": 0.6,
+          "brier": 0.2355,
+          "logLoss": 0.6637,
+          "mae": 0.4683,
+          "favoriteWinRate": 0.6,
+          "upsetRate": 0.4,
+          "bias": {
+            "avgPredicted": 0.5893,
+            "actualRate": 0.5832,
+            "diff": 0.0061
+          }
+        },
+        "corona": {
+          "n": 604,
+          "accuracy": 0.5811,
+          "brier": 0.2375,
+          "logLoss": 0.668,
+          "mae": 0.4714,
+          "favoriteWinRate": 0.5811,
+          "upsetRate": 0.4189,
+          "bias": {
+            "avgPredicted": 0.5892,
+            "actualRate": 0.5497,
+            "diff": 0.0395
+          }
+        },
+        "total": {
+          "n": 3224,
+          "accuracy": 0.5965,
+          "brier": 0.2359,
+          "logLoss": 0.6645,
+          "mae": 0.4689,
+          "favoriteWinRate": 0.5965,
+          "upsetRate": 0.4035,
+          "bias": {
+            "avgPredicted": 0.5893,
+            "actualRate": 0.5769,
+            "diff": 0.0124
+          }
+        }
+      },
+      "perSeason": {
+        "2017/18": {
+          "n": 364,
+          "accuracy": 0.5879,
+          "brier": 0.2392,
+          "logLoss": 0.6717,
+          "mae": 0.4729,
+          "favoriteWinRate": 0.5879,
+          "upsetRate": 0.4121,
+          "bias": {
+            "avgPredicted": 0.5897,
+            "actualRate": 0.5769,
+            "diff": 0.0127
+          }
+        },
+        "2018/19": {
+          "n": 317,
+          "accuracy": 0.5868,
+          "brier": 0.2399,
+          "logLoss": 0.673,
+          "mae": 0.4713,
+          "favoriteWinRate": 0.5868,
+          "upsetRate": 0.4132,
+          "bias": {
+            "avgPredicted": 0.59,
+            "actualRate": 0.571,
+            "diff": 0.019
+          }
+        },
+        "2019/20": {
+          "n": 300,
+          "accuracy": 0.57,
+          "brier": 0.2412,
+          "logLoss": 0.6751,
+          "mae": 0.4783,
+          "favoriteWinRate": 0.57,
+          "upsetRate": 0.43,
+          "bias": {
+            "avgPredicted": 0.5916,
+            "actualRate": 0.5833,
+            "diff": 0.0082
+          }
+        },
+        "2020/21": {
+          "n": 304,
+          "accuracy": 0.5921,
+          "brier": 0.2339,
+          "logLoss": 0.6609,
+          "mae": 0.4645,
+          "favoriteWinRate": 0.5921,
+          "upsetRate": 0.4079,
+          "bias": {
+            "avgPredicted": 0.5868,
+            "actualRate": 0.5164,
+            "diff": 0.0704
+          }
+        },
+        "2021/22": {
+          "n": 334,
+          "accuracy": 0.6587,
+          "brier": 0.2185,
+          "logLoss": 0.6265,
+          "mae": 0.4478,
+          "favoriteWinRate": 0.6587,
+          "upsetRate": 0.3413,
+          "bias": {
+            "avgPredicted": 0.5883,
+            "actualRate": 0.5988,
+            "diff": -0.0105
+          }
+        },
+        "2022/23": {
+          "n": 420,
+          "accuracy": 0.5357,
+          "brier": 0.2475,
+          "logLoss": 0.6885,
+          "mae": 0.4812,
+          "favoriteWinRate": 0.5357,
+          "upsetRate": 0.4643,
+          "bias": {
+            "avgPredicted": 0.5915,
+            "actualRate": 0.5571,
+            "diff": 0.0344
+          }
+        },
+        "2023/24": {
+          "n": 364,
+          "accuracy": 0.6154,
+          "brier": 0.2343,
+          "logLoss": 0.6626,
+          "mae": 0.4663,
+          "favoriteWinRate": 0.6154,
+          "upsetRate": 0.3846,
+          "bias": {
+            "avgPredicted": 0.5868,
+            "actualRate": 0.5742,
+            "diff": 0.0126
+          }
+        },
+        "2024/25": {
+          "n": 411,
+          "accuracy": 0.6277,
+          "brier": 0.2323,
+          "logLoss": 0.6571,
+          "mae": 0.4681,
+          "favoriteWinRate": 0.6277,
+          "upsetRate": 0.3723,
+          "bias": {
+            "avgPredicted": 0.5892,
+            "actualRate": 0.6326,
+            "diff": -0.0434
+          }
+        },
+        "2025/26": {
+          "n": 410,
+          "accuracy": 0.5976,
+          "brier": 0.2349,
+          "logLoss": 0.6621,
+          "mae": 0.4674,
+          "favoriteWinRate": 0.5976,
+          "upsetRate": 0.4024,
+          "bias": {
+            "avgPredicted": 0.5896,
+            "actualRate": 0.5707,
+            "diff": 0.0188
+          }
+        }
+      },
+      "calibration": [
+        {
+          "lo": 0.5,
+          "hi": 0.55,
+          "label": "50–55%",
+          "count": 619,
+          "avgPredicted": 0.5242986692277781,
+          "actualRate": 0.5024232633279483,
+          "diff": 0.021875405899829836,
+          "lowSample": false
+        },
+        {
+          "lo": 0.55,
+          "hi": 0.6,
+          "label": "55–60%",
+          "count": 712,
+          "avgPredicted": 0.5758507367801387,
+          "actualRate": 0.5730337078651685,
+          "diff": 0.0028170289149701544,
+          "lowSample": false
+        },
+        {
+          "lo": 0.6,
+          "hi": 0.65,
+          "label": "60–65%",
+          "count": 585,
+          "avgPredicted": 0.6231663880892577,
+          "actualRate": 0.6239316239316239,
+          "diff": -0.0007652358423662076,
+          "lowSample": false
+        },
+        {
+          "lo": 0.65,
+          "hi": 0.7,
+          "label": "65–70%",
+          "count": 381,
+          "avgPredicted": 0.6740446091029041,
+          "actualRate": 0.7007874015748031,
+          "diff": -0.026742792471899035,
+          "lowSample": false
+        },
+        {
+          "lo": 0.7,
+          "hi": 0.75,
+          "label": "70–75%",
+          "count": 195,
+          "avgPredicted": 0.7211216462462051,
+          "actualRate": 0.6461538461538462,
+          "diff": 0.07496780009235893,
+          "lowSample": false
+        },
+        {
+          "lo": 0.75,
+          "hi": 0.8,
+          "label": "75–80%",
+          "count": 101,
+          "avgPredicted": 0.7680299461865917,
+          "actualRate": 0.7326732673267327,
+          "diff": 0.03535667885985905,
+          "lowSample": false
+        },
+        {
+          "lo": 0.8,
+          "hi": 0.85,
+          "label": "80–85%",
+          "count": 23,
+          "avgPredicted": 0.8191030815949241,
+          "actualRate": 0.7391304347826086,
+          "diff": 0.07997264681231542,
+          "lowSample": false
+        },
+        {
+          "lo": 0.85,
+          "hi": 0.9,
+          "label": "85–90%",
+          "count": 4,
+          "avgPredicted": 0.8632465091276136,
+          "actualRate": 1,
+          "diff": -0.13675349087238642,
+          "lowSample": true
+        },
+        {
+          "lo": 0.9,
+          "hi": 1.0001,
+          "label": "90%+",
+          "count": 0,
+          "avgPredicted": null,
+          "actualRate": null,
+          "diff": null,
+          "lowSample": true
+        }
+      ],
+      "ece": 0.0178
+    },
+    {
+      "id": "v2",
+      "name": "v2 - ELO + Pre-Season-ELO",
+      "description": "Wie v1, aber Saisonstart-ELO wird aus dem (25% Richtung 1500 regressierten) Saisonend-ELO der Vorsaison abgeleitet (computeElo()s eigene seasonEndRegression, durchgehend über die Archiv-Kette angewendet) - identische Methode wie src/preseasonElo.js für die laufende Saison.",
+      "features": [
+        "ELO (wie v1)",
+        "Pre-Season-ELO-Carryover (seasonEndRegression=0.25)"
+      ],
+      "notValidatable": false,
+      "reason": null,
+      "caveat": null,
+      "overall": {
+        "core": {
+          "n": 2620,
+          "accuracy": 0.6065,
+          "brier": 0.2322,
+          "logLoss": 0.6566,
+          "mae": 0.4619,
+          "favoriteWinRate": 0.6065,
+          "upsetRate": 0.3935,
+          "bias": {
+            "avgPredicted": 0.588,
+            "actualRate": 0.5832,
+            "diff": 0.0047
+          }
+        },
+        "corona": {
+          "n": 604,
+          "accuracy": 0.5695,
+          "brier": 0.2379,
+          "logLoss": 0.6683,
+          "mae": 0.4712,
+          "favoriteWinRate": 0.5695,
+          "upsetRate": 0.4305,
+          "bias": {
+            "avgPredicted": 0.5895,
+            "actualRate": 0.5497,
+            "diff": 0.0398
+          }
+        },
+        "total": {
+          "n": 3224,
+          "accuracy": 0.5996,
+          "brier": 0.2333,
+          "logLoss": 0.6588,
+          "mae": 0.4636,
+          "favoriteWinRate": 0.5996,
+          "upsetRate": 0.4004,
+          "bias": {
+            "avgPredicted": 0.5882,
+            "actualRate": 0.5769,
+            "diff": 0.0113
+          }
+        }
+      },
+      "perSeason": {
+        "2017/18": {
+          "n": 364,
+          "accuracy": 0.5879,
+          "brier": 0.2392,
+          "logLoss": 0.6717,
+          "mae": 0.4729,
+          "favoriteWinRate": 0.5879,
+          "upsetRate": 0.4121,
+          "bias": {
+            "avgPredicted": 0.5897,
+            "actualRate": 0.5769,
+            "diff": 0.0127
+          }
+        },
+        "2018/19": {
+          "n": 317,
+          "accuracy": 0.6025,
+          "brier": 0.2369,
+          "logLoss": 0.6663,
+          "mae": 0.4677,
+          "favoriteWinRate": 0.6025,
+          "upsetRate": 0.3975,
+          "bias": {
+            "avgPredicted": 0.5893,
+            "actualRate": 0.571,
+            "diff": 0.0184
+          }
+        },
+        "2019/20": {
+          "n": 300,
+          "accuracy": 0.5467,
+          "brier": 0.2446,
+          "logLoss": 0.6818,
+          "mae": 0.4804,
+          "favoriteWinRate": 0.5467,
+          "upsetRate": 0.4533,
+          "bias": {
+            "avgPredicted": 0.5916,
+            "actualRate": 0.5833,
+            "diff": 0.0083
+          }
+        },
+        "2020/21": {
+          "n": 304,
+          "accuracy": 0.5921,
+          "brier": 0.2313,
+          "logLoss": 0.6549,
+          "mae": 0.4622,
+          "favoriteWinRate": 0.5921,
+          "upsetRate": 0.4079,
+          "bias": {
+            "avgPredicted": 0.5873,
+            "actualRate": 0.5164,
+            "diff": 0.0708
+          }
+        },
+        "2021/22": {
+          "n": 334,
+          "accuracy": 0.6766,
+          "brier": 0.212,
+          "logLoss": 0.6137,
+          "mae": 0.4371,
+          "favoriteWinRate": 0.6766,
+          "upsetRate": 0.3234,
+          "bias": {
+            "avgPredicted": 0.5862,
+            "actualRate": 0.5988,
+            "diff": -0.0126
+          }
+        },
+        "2022/23": {
+          "n": 420,
+          "accuracy": 0.5548,
+          "brier": 0.2434,
+          "logLoss": 0.6798,
+          "mae": 0.4706,
+          "favoriteWinRate": 0.5548,
+          "upsetRate": 0.4452,
+          "bias": {
+            "avgPredicted": 0.5873,
+            "actualRate": 0.5571,
+            "diff": 0.0302
+          }
+        },
+        "2023/24": {
+          "n": 364,
+          "accuracy": 0.5824,
+          "brier": 0.2332,
+          "logLoss": 0.6594,
+          "mae": 0.4625,
+          "favoriteWinRate": 0.5824,
+          "upsetRate": 0.4176,
+          "bias": {
+            "avgPredicted": 0.5864,
+            "actualRate": 0.5742,
+            "diff": 0.0122
+          }
+        },
+        "2024/25": {
+          "n": 411,
+          "accuracy": 0.618,
+          "brier": 0.2293,
+          "logLoss": 0.6502,
+          "mae": 0.4607,
+          "favoriteWinRate": 0.618,
+          "upsetRate": 0.382,
+          "bias": {
+            "avgPredicted": 0.5879,
+            "actualRate": 0.6326,
+            "diff": -0.0447
+          }
+        },
+        "2025/26": {
+          "n": 410,
+          "accuracy": 0.6317,
+          "brier": 0.2294,
+          "logLoss": 0.651,
+          "mae": 0.4596,
+          "favoriteWinRate": 0.6317,
+          "upsetRate": 0.3683,
+          "bias": {
+            "avgPredicted": 0.5889,
+            "actualRate": 0.5707,
+            "diff": 0.0182
+          }
+        }
+      },
+      "calibration": [
+        {
+          "lo": 0.5,
+          "hi": 0.55,
+          "label": "50–55%",
+          "count": 647,
+          "avgPredicted": 0.5249140565336564,
+          "actualRate": 0.4945904173106646,
+          "diff": 0.030323639222991805,
+          "lowSample": false
+        },
+        {
+          "lo": 0.55,
+          "hi": 0.6,
+          "label": "55–60%",
+          "count": 580,
+          "avgPredicted": 0.5746893461180516,
+          "actualRate": 0.5637931034482758,
+          "diff": 0.010896242669775735,
+          "lowSample": false
+        },
+        {
+          "lo": 0.6,
+          "hi": 0.65,
+          "label": "60–65%",
+          "count": 532,
+          "avgPredicted": 0.6235328151976577,
+          "actualRate": 0.631578947368421,
+          "diff": -0.008046132170763332,
+          "lowSample": false
+        },
+        {
+          "lo": 0.65,
+          "hi": 0.7,
+          "label": "65–70%",
+          "count": 430,
+          "avgPredicted": 0.6737420806942203,
+          "actualRate": 0.686046511627907,
+          "diff": -0.012304430933686716,
+          "lowSample": false
+        },
+        {
+          "lo": 0.7,
+          "hi": 0.75,
+          "label": "70–75%",
+          "count": 243,
+          "avgPredicted": 0.723360399343931,
+          "actualRate": 0.7242798353909465,
+          "diff": -0.0009194360470154983,
+          "lowSample": false
+        },
+        {
+          "lo": 0.75,
+          "hi": 0.8,
+          "label": "75–80%",
+          "count": 133,
+          "avgPredicted": 0.7715431140234604,
+          "actualRate": 0.6917293233082706,
+          "diff": 0.07981379071518979,
+          "lowSample": false
+        },
+        {
+          "lo": 0.8,
+          "hi": 0.85,
+          "label": "80–85%",
+          "count": 47,
+          "avgPredicted": 0.8223962003202407,
+          "actualRate": 0.7659574468085106,
+          "diff": 0.05643875351173011,
+          "lowSample": false
+        },
+        {
+          "lo": 0.85,
+          "hi": 0.9,
+          "label": "85–90%",
+          "count": 8,
+          "avgPredicted": 0.8654887173270105,
+          "actualRate": 0.875,
+          "diff": -0.009511282672989507,
+          "lowSample": true
+        },
+        {
+          "lo": 0.9,
+          "hi": 1.0001,
+          "label": "90%+",
+          "count": 0,
+          "avgPredicted": null,
+          "actualRate": null,
+          "diff": null,
+          "lowSample": true
+        }
+      ],
+      "ece": 0.0187
+    },
+    {
+      "id": "v2_marketvalue",
+      "name": "v2b - ELO + Marktwert-Prior",
+      "description": "HISTORISCH NICHT VALIDIERBAR: Der Marktwert-Prior (src/marketValuePrior.js) basiert auf den AKTUELLEN, live von nationalleague.ch synchronisierten Kaderwerten (server/sync.js). Es existiert kein saisonbezogenes historisches Marktwert-Archiv - eine rückwirkende Anwendung heutiger Werte auf z.B. die Saison 2019/20 wäre Leakage (der heutige Marktwert spiegelt 7 Jahre spätere Kaderentwicklung). Wird deshalb NICHT berechnet.",
+      "features": [
+        "Marktwert-Prior"
+      ],
+      "notValidatable": true,
+      "reason": "Keine saisonbezogenen historischen Marktwerte verfügbar (nur aktueller Live-Snapshot) - rückwirkende Anwendung wäre Leakage.",
+      "caveat": null,
+      "overall": {
+        "core": null,
+        "corona": null,
+        "total": null
+      },
+      "perSeason": {
+        "2017/18": null,
+        "2018/19": null,
+        "2019/20": null,
+        "2020/21": null,
+        "2021/22": null,
+        "2022/23": null,
+        "2023/24": null,
+        "2024/25": null,
+        "2025/26": null
+      },
+      "calibration": [
+        {
+          "lo": 0.5,
+          "hi": 0.55,
+          "label": "50–55%",
+          "count": 0,
+          "avgPredicted": null,
+          "actualRate": null,
+          "diff": null,
+          "lowSample": true
+        },
+        {
+          "lo": 0.55,
+          "hi": 0.6,
+          "label": "55–60%",
+          "count": 0,
+          "avgPredicted": null,
+          "actualRate": null,
+          "diff": null,
+          "lowSample": true
+        },
+        {
+          "lo": 0.6,
+          "hi": 0.65,
+          "label": "60–65%",
+          "count": 0,
+          "avgPredicted": null,
+          "actualRate": null,
+          "diff": null,
+          "lowSample": true
+        },
+        {
+          "lo": 0.65,
+          "hi": 0.7,
+          "label": "65–70%",
+          "count": 0,
+          "avgPredicted": null,
+          "actualRate": null,
+          "diff": null,
+          "lowSample": true
+        },
+        {
+          "lo": 0.7,
+          "hi": 0.75,
+          "label": "70–75%",
+          "count": 0,
+          "avgPredicted": null,
+          "actualRate": null,
+          "diff": null,
+          "lowSample": true
+        },
+        {
+          "lo": 0.75,
+          "hi": 0.8,
+          "label": "75–80%",
+          "count": 0,
+          "avgPredicted": null,
+          "actualRate": null,
+          "diff": null,
+          "lowSample": true
+        },
+        {
+          "lo": 0.8,
+          "hi": 0.85,
+          "label": "80–85%",
+          "count": 0,
+          "avgPredicted": null,
+          "actualRate": null,
+          "diff": null,
+          "lowSample": true
+        },
+        {
+          "lo": 0.85,
+          "hi": 0.9,
+          "label": "85–90%",
+          "count": 0,
+          "avgPredicted": null,
+          "actualRate": null,
+          "diff": null,
+          "lowSample": true
+        },
+        {
+          "lo": 0.9,
+          "hi": 1.0001,
+          "label": "90%+",
+          "count": 0,
+          "avgPredicted": null,
+          "actualRate": null,
+          "diff": null,
+          "lowSample": true
+        }
+      ],
+      "ece": null
+    },
+    {
+      "id": "v3",
+      "name": "v3 - v2 + Ruhetage/Back-to-back",
+      "description": "Wie v2, zusätzlich Heimsieg-Wahrscheinlichkeit bei einseitigem Back-to-back angepasst (src/restDays.js, unverändert, Default ±4%). Tage seit letztem Spiel aus dem historischen Spielplan rekonstruiert (Datumsfelder), keine externe Information nötig.",
+      "features": [
+        "ELO (wie v1)",
+        "Pre-Season-ELO (wie v2)",
+        "Ruhetage/Back-to-back (±4%)"
+      ],
+      "notValidatable": false,
+      "reason": null,
+      "caveat": null,
+      "overall": {
+        "core": {
+          "n": 2620,
+          "accuracy": 0.6065,
+          "brier": 0.232,
+          "logLoss": 0.6563,
+          "mae": 0.4614,
+          "favoriteWinRate": 0.6065,
+          "upsetRate": 0.3935,
+          "bias": {
+            "avgPredicted": 0.5881,
+            "actualRate": 0.5832,
+            "diff": 0.0049
+          }
+        },
+        "corona": {
+          "n": 604,
+          "accuracy": 0.5745,
+          "brier": 0.2373,
+          "logLoss": 0.6668,
+          "mae": 0.4703,
+          "favoriteWinRate": 0.5745,
+          "upsetRate": 0.4255,
+          "bias": {
+            "avgPredicted": 0.5898,
+            "actualRate": 0.5497,
+            "diff": 0.0402
+          }
+        },
+        "total": {
+          "n": 3224,
+          "accuracy": 0.6005,
+          "brier": 0.233,
+          "logLoss": 0.6583,
+          "mae": 0.4631,
+          "favoriteWinRate": 0.6005,
+          "upsetRate": 0.3995,
+          "bias": {
+            "avgPredicted": 0.5884,
+            "actualRate": 0.5769,
+            "diff": 0.0115
+          }
+        }
+      },
+      "perSeason": {
+        "2017/18": {
+          "n": 364,
+          "accuracy": 0.5852,
+          "brier": 0.2404,
+          "logLoss": 0.6743,
+          "mae": 0.4738,
+          "favoriteWinRate": 0.5852,
+          "upsetRate": 0.4148,
+          "bias": {
+            "avgPredicted": 0.5894,
+            "actualRate": 0.5769,
+            "diff": 0.0125
+          }
+        },
+        "2018/19": {
+          "n": 317,
+          "accuracy": 0.612,
+          "brier": 0.2363,
+          "logLoss": 0.6653,
+          "mae": 0.4671,
+          "favoriteWinRate": 0.612,
+          "upsetRate": 0.388,
+          "bias": {
+            "avgPredicted": 0.5895,
+            "actualRate": 0.571,
+            "diff": 0.0185
+          }
+        },
+        "2019/20": {
+          "n": 300,
+          "accuracy": 0.55,
+          "brier": 0.2435,
+          "logLoss": 0.6795,
+          "mae": 0.479,
+          "favoriteWinRate": 0.55,
+          "upsetRate": 0.45,
+          "bias": {
+            "avgPredicted": 0.5922,
+            "actualRate": 0.5833,
+            "diff": 0.0088
+          }
+        },
+        "2020/21": {
+          "n": 304,
+          "accuracy": 0.5987,
+          "brier": 0.2311,
+          "logLoss": 0.6544,
+          "mae": 0.4617,
+          "favoriteWinRate": 0.5987,
+          "upsetRate": 0.4013,
+          "bias": {
+            "avgPredicted": 0.5875,
+            "actualRate": 0.5164,
+            "diff": 0.0711
+          }
+        },
+        "2021/22": {
+          "n": 334,
+          "accuracy": 0.6737,
+          "brier": 0.211,
+          "logLoss": 0.6114,
+          "mae": 0.4356,
+          "favoriteWinRate": 0.6737,
+          "upsetRate": 0.3263,
+          "bias": {
+            "avgPredicted": 0.5877,
+            "actualRate": 0.5988,
+            "diff": -0.0111
+          }
+        },
+        "2022/23": {
+          "n": 420,
+          "accuracy": 0.5619,
+          "brier": 0.243,
+          "logLoss": 0.6794,
+          "mae": 0.47,
+          "favoriteWinRate": 0.5619,
+          "upsetRate": 0.4381,
+          "bias": {
+            "avgPredicted": 0.5871,
+            "actualRate": 0.5571,
+            "diff": 0.03
+          }
+        },
+        "2023/24": {
+          "n": 364,
+          "accuracy": 0.5797,
+          "brier": 0.2331,
+          "logLoss": 0.6595,
+          "mae": 0.4621,
+          "favoriteWinRate": 0.5797,
+          "upsetRate": 0.4203,
+          "bias": {
+            "avgPredicted": 0.5861,
+            "actualRate": 0.5742,
+            "diff": 0.0119
+          }
+        },
+        "2024/25": {
+          "n": 411,
+          "accuracy": 0.6107,
+          "brier": 0.2286,
+          "logLoss": 0.6487,
+          "mae": 0.4598,
+          "favoriteWinRate": 0.6107,
+          "upsetRate": 0.3893,
+          "bias": {
+            "avgPredicted": 0.5883,
+            "actualRate": 0.6326,
+            "diff": -0.0443
+          }
+        },
+        "2025/26": {
+          "n": 410,
+          "accuracy": 0.6317,
+          "brier": 0.2294,
+          "logLoss": 0.651,
+          "mae": 0.4592,
+          "favoriteWinRate": 0.6317,
+          "upsetRate": 0.3683,
+          "bias": {
+            "avgPredicted": 0.5889,
+            "actualRate": 0.5707,
+            "diff": 0.0182
+          }
+        }
+      },
+      "calibration": [
+        {
+          "lo": 0.5,
+          "hi": 0.55,
+          "label": "50–55%",
+          "count": 643,
+          "avgPredicted": 0.5251347600673894,
+          "actualRate": 0.48833592534992226,
+          "diff": 0.03679883471746709,
+          "lowSample": false
+        },
+        {
+          "lo": 0.55,
+          "hi": 0.6,
+          "label": "55–60%",
+          "count": 573,
+          "avgPredicted": 0.575191189020136,
+          "actualRate": 0.5636998254799301,
+          "diff": 0.011491363540205857,
+          "lowSample": false
+        },
+        {
+          "lo": 0.6,
+          "hi": 0.65,
+          "label": "60–65%",
+          "count": 532,
+          "avgPredicted": 0.623688077122048,
+          "actualRate": 0.6390977443609023,
+          "diff": -0.015409667238854285,
+          "lowSample": false
+        },
+        {
+          "lo": 0.65,
+          "hi": 0.7,
+          "label": "65–70%",
+          "count": 435,
+          "avgPredicted": 0.6733801719222182,
+          "actualRate": 0.6758620689655173,
+          "diff": -0.0024818970432990417,
+          "lowSample": false
+        },
+        {
+          "lo": 0.7,
+          "hi": 0.75,
+          "label": "70–75%",
+          "count": 246,
+          "avgPredicted": 0.7232870831347886,
+          "actualRate": 0.7398373983739838,
+          "diff": -0.016550315239195146,
+          "lowSample": false
+        },
+        {
+          "lo": 0.75,
+          "hi": 0.8,
+          "label": "75–80%",
+          "count": 130,
+          "avgPredicted": 0.7726146025690421,
+          "actualRate": 0.6923076923076923,
+          "diff": 0.08030691026134984,
+          "lowSample": false
+        },
+        {
+          "lo": 0.8,
+          "hi": 0.85,
+          "label": "80–85%",
+          "count": 52,
+          "avgPredicted": 0.8226583058086991,
+          "actualRate": 0.7307692307692307,
+          "diff": 0.09188907503946842,
+          "lowSample": false
+        },
+        {
+          "lo": 0.85,
+          "hi": 0.9,
+          "label": "85–90%",
+          "count": 9,
+          "avgPredicted": 0.8663330704050206,
+          "actualRate": 0.8888888888888888,
+          "diff": -0.02255581848386823,
+          "lowSample": true
+        },
+        {
+          "lo": 0.9,
+          "hi": 1.0001,
+          "label": "90%+",
+          "count": 0,
+          "avgPredicted": null,
+          "actualRate": null,
+          "diff": null,
+          "lowSample": true
+        }
+      ],
+      "ece": 0.0225
+    },
+    {
+      "id": "v2_sog",
+      "name": "v2c - v2 + SOG-Allowed (Ablation)",
+      "description": "Wie v2, zusätzlich ELO-Adjustierung nach \"zugelassenen Schüssen/Spiel\" (src/powerRankings.js/src/playoffSim.js-Formel dupliziert, innerhalb der Saison leak-frei akkumuliert). Isolierte Ablation OHNE Ruhetage/Poisson-Transformation, um den Zusatznutzen von SOG-Allowed für sich zu prüfen.",
+      "features": [
+        "ELO (wie v1)",
+        "Pre-Season-ELO (wie v2)",
+        "SOG-Allowed-Adjustierung"
+      ],
+      "notValidatable": false,
+      "reason": null,
+      "caveat": null,
+      "overall": {
+        "core": {
+          "n": 2620,
+          "accuracy": 0.6134,
+          "brier": 0.2327,
+          "logLoss": 0.6583,
+          "mae": 0.4561,
+          "favoriteWinRate": 0.6134,
+          "upsetRate": 0.3866,
+          "bias": {
+            "avgPredicted": 0.5847,
+            "actualRate": 0.5832,
+            "diff": 0.0015
+          }
+        },
+        "corona": {
+          "n": 604,
+          "accuracy": 0.5993,
+          "brier": 0.2371,
+          "logLoss": 0.6673,
+          "mae": 0.4656,
+          "favoriteWinRate": 0.5993,
+          "upsetRate": 0.4007,
+          "bias": {
+            "avgPredicted": 0.5854,
+            "actualRate": 0.5497,
+            "diff": 0.0358
+          }
+        },
+        "total": {
+          "n": 3224,
+          "accuracy": 0.6107,
+          "brier": 0.2335,
+          "logLoss": 0.66,
+          "mae": 0.4579,
+          "favoriteWinRate": 0.6107,
+          "upsetRate": 0.3893,
+          "bias": {
+            "avgPredicted": 0.5848,
+            "actualRate": 0.5769,
+            "diff": 0.0079
+          }
+        }
+      },
+      "perSeason": {
+        "2017/18": {
+          "n": 364,
+          "accuracy": 0.5879,
+          "brier": 0.2412,
+          "logLoss": 0.6768,
+          "mae": 0.4724,
+          "favoriteWinRate": 0.5879,
+          "upsetRate": 0.4121,
+          "bias": {
+            "avgPredicted": 0.5862,
+            "actualRate": 0.5769,
+            "diff": 0.0093
+          }
+        },
+        "2018/19": {
+          "n": 317,
+          "accuracy": 0.6025,
+          "brier": 0.2371,
+          "logLoss": 0.668,
+          "mae": 0.4606,
+          "favoriteWinRate": 0.6025,
+          "upsetRate": 0.3975,
+          "bias": {
+            "avgPredicted": 0.5853,
+            "actualRate": 0.571,
+            "diff": 0.0143
+          }
+        },
+        "2019/20": {
+          "n": 300,
+          "accuracy": 0.5767,
+          "brier": 0.2471,
+          "logLoss": 0.6878,
+          "mae": 0.4792,
+          "favoriteWinRate": 0.5767,
+          "upsetRate": 0.4233,
+          "bias": {
+            "avgPredicted": 0.5876,
+            "actualRate": 0.5833,
+            "diff": 0.0042
+          }
+        },
+        "2020/21": {
+          "n": 304,
+          "accuracy": 0.6217,
+          "brier": 0.2272,
+          "logLoss": 0.6471,
+          "mae": 0.4522,
+          "favoriteWinRate": 0.6217,
+          "upsetRate": 0.3783,
+          "bias": {
+            "avgPredicted": 0.5833,
+            "actualRate": 0.5164,
+            "diff": 0.0669
+          }
+        },
+        "2021/22": {
+          "n": 334,
+          "accuracy": 0.7006,
+          "brier": 0.2077,
+          "logLoss": 0.6039,
+          "mae": 0.4247,
+          "favoriteWinRate": 0.7006,
+          "upsetRate": 0.2994,
+          "bias": {
+            "avgPredicted": 0.5838,
+            "actualRate": 0.5988,
+            "diff": -0.015
+          }
+        },
+        "2022/23": {
+          "n": 420,
+          "accuracy": 0.5667,
+          "brier": 0.2458,
+          "logLoss": 0.6849,
+          "mae": 0.4653,
+          "favoriteWinRate": 0.5667,
+          "upsetRate": 0.4333,
+          "bias": {
+            "avgPredicted": 0.5841,
+            "actualRate": 0.5571,
+            "diff": 0.027
+          }
+        },
+        "2023/24": {
+          "n": 364,
+          "accuracy": 0.6016,
+          "brier": 0.2335,
+          "logLoss": 0.6612,
+          "mae": 0.4551,
+          "favoriteWinRate": 0.6016,
+          "upsetRate": 0.3984,
+          "bias": {
+            "avgPredicted": 0.5828,
+            "actualRate": 0.5742,
+            "diff": 0.0086
+          }
+        },
+        "2024/25": {
+          "n": 411,
+          "accuracy": 0.6131,
+          "brier": 0.233,
+          "logLoss": 0.6585,
+          "mae": 0.4594,
+          "favoriteWinRate": 0.6131,
+          "upsetRate": 0.3869,
+          "bias": {
+            "avgPredicted": 0.585,
+            "actualRate": 0.6326,
+            "diff": -0.0476
+          }
+        },
+        "2025/26": {
+          "n": 410,
+          "accuracy": 0.6317,
+          "brier": 0.2278,
+          "logLoss": 0.6486,
+          "mae": 0.452,
+          "favoriteWinRate": 0.6317,
+          "upsetRate": 0.3683,
+          "bias": {
+            "avgPredicted": 0.5857,
+            "actualRate": 0.5707,
+            "diff": 0.0149
+          }
+        }
+      },
+      "calibration": [
+        {
+          "lo": 0.5,
+          "hi": 0.55,
+          "label": "50–55%",
+          "count": 560,
+          "avgPredicted": 0.5239306004714326,
+          "actualRate": 0.5142857142857142,
+          "diff": 0.009644886185718349,
+          "lowSample": false
+        },
+        {
+          "lo": 0.55,
+          "hi": 0.6,
+          "label": "55–60%",
+          "count": 540,
+          "avgPredicted": 0.5754508084325338,
+          "actualRate": 0.5685185185185185,
+          "diff": 0.006932289914015288,
+          "lowSample": false
+        },
+        {
+          "lo": 0.6,
+          "hi": 0.65,
+          "label": "60–65%",
+          "count": 502,
+          "avgPredicted": 0.6237777901977417,
+          "actualRate": 0.6175298804780877,
+          "diff": 0.0062479097196540545,
+          "lowSample": false
+        },
+        {
+          "lo": 0.65,
+          "hi": 0.7,
+          "label": "65–70%",
+          "count": 395,
+          "avgPredicted": 0.6733832846461106,
+          "actualRate": 0.6430379746835443,
+          "diff": 0.030345309962566347,
+          "lowSample": false
+        },
+        {
+          "lo": 0.7,
+          "hi": 0.75,
+          "label": "70–75%",
+          "count": 277,
+          "avgPredicted": 0.7239322302642006,
+          "actualRate": 0.703971119133574,
+          "diff": 0.019961111130626596,
+          "lowSample": false
+        },
+        {
+          "lo": 0.75,
+          "hi": 0.8,
+          "label": "75–80%",
+          "count": 191,
+          "avgPredicted": 0.7712689913395023,
+          "actualRate": 0.7172774869109948,
+          "diff": 0.05399150442850753,
+          "lowSample": false
+        },
+        {
+          "lo": 0.8,
+          "hi": 0.85,
+          "label": "80–85%",
+          "count": 102,
+          "avgPredicted": 0.8247697975536246,
+          "actualRate": 0.7058823529411765,
+          "diff": 0.11888744461244805,
+          "lowSample": false
+        },
+        {
+          "lo": 0.85,
+          "hi": 0.9,
+          "label": "85–90%",
+          "count": 49,
+          "avgPredicted": 0.8727693760896774,
+          "actualRate": 0.8163265306122449,
+          "diff": 0.0564428454774325,
+          "lowSample": false
+        },
+        {
+          "lo": 0.9,
+          "hi": 1.0001,
+          "label": "90%+",
+          "count": 4,
+          "avgPredicted": 0.9135197689322354,
+          "actualRate": 1,
+          "diff": -0.08648023106776459,
+          "lowSample": true
+        }
+      ],
+      "ece": 0.0211
+    },
+    {
+      "id": "production_reference",
+      "name": "Produktions-Referenz (ohne Marktwert-Prior)",
+      "description": "Die tatsächlich aktuell live laufende Prognose-Pipeline (server/scripts/predictions.js, src/playoffSim.js::computeFixtures), soweit historisch rekonstruierbar: ELO + Pre-Season-ELO + SOG-Allowed -> Poisson-Toreerwartung -> Sieg-Wahrscheinlichkeit (geschlossene Form statt 10k-Monte-Carlo, siehe Dateikopf) + Ruhetage/Back-to-back. Der Marktwert-Prior fehlt (historisch nicht rekonstruierbar, siehe v2b) - das ist die einzige produktive Komponente, die hier NICHT enthalten ist.",
+      "features": [
+        "ELO",
+        "Pre-Season-ELO",
+        "SOG-Allowed",
+        "Poisson/Skellam-Toreerwartung (statt roher ELO-Logistik)",
+        "Ruhetage/Back-to-back"
+      ],
+      "notValidatable": false,
+      "reason": null,
+      "caveat": "Ohne Marktwert-Prior (historisch nicht rekonstruierbar). Nutzt die geschlossene Poisson/Skellam-Form statt der 10k-Monte-Carlo-Simulation aus src/playoffSim.js - mathematisch äquivalent im Grenzwert, aber ohne deren Simulationsrauschen.",
+      "overall": {
+        "core": {
+          "n": 2620,
+          "accuracy": 0.6137,
+          "brier": 0.2317,
+          "logLoss": 0.6555,
+          "mae": 0.4642,
+          "favoriteWinRate": 0.6137,
+          "upsetRate": 0.3863,
+          "bias": {
+            "avgPredicted": 0.5685,
+            "actualRate": 0.5832,
+            "diff": -0.0147
+          }
+        },
+        "corona": {
+          "n": 604,
+          "accuracy": 0.5993,
+          "brier": 0.2356,
+          "logLoss": 0.6637,
+          "mae": 0.4713,
+          "favoriteWinRate": 0.5993,
+          "upsetRate": 0.4007,
+          "bias": {
+            "avgPredicted": 0.5698,
+            "actualRate": 0.5497,
+            "diff": 0.0201
+          }
+        },
+        "total": {
+          "n": 3224,
+          "accuracy": 0.611,
+          "brier": 0.2324,
+          "logLoss": 0.657,
+          "mae": 0.4656,
+          "favoriteWinRate": 0.611,
+          "upsetRate": 0.389,
+          "bias": {
+            "avgPredicted": 0.5687,
+            "actualRate": 0.5769,
+            "diff": -0.0082
+          }
+        }
+      },
+      "perSeason": {
+        "2017/18": {
+          "n": 364,
+          "accuracy": 0.5852,
+          "brier": 0.2411,
+          "logLoss": 0.6755,
+          "mae": 0.4783,
+          "favoriteWinRate": 0.5852,
+          "upsetRate": 0.4148,
+          "bias": {
+            "avgPredicted": 0.57,
+            "actualRate": 0.5769,
+            "diff": -0.0069
+          }
+        },
+        "2018/19": {
+          "n": 317,
+          "accuracy": 0.6057,
+          "brier": 0.2349,
+          "logLoss": 0.6623,
+          "mae": 0.4677,
+          "favoriteWinRate": 0.6057,
+          "upsetRate": 0.3943,
+          "bias": {
+            "avgPredicted": 0.5689,
+            "actualRate": 0.571,
+            "diff": -0.0021
+          }
+        },
+        "2019/20": {
+          "n": 300,
+          "accuracy": 0.5733,
+          "brier": 0.2439,
+          "logLoss": 0.6808,
+          "mae": 0.4818,
+          "favoriteWinRate": 0.5733,
+          "upsetRate": 0.4267,
+          "bias": {
+            "avgPredicted": 0.5719,
+            "actualRate": 0.5833,
+            "diff": -0.0114
+          }
+        },
+        "2020/21": {
+          "n": 304,
+          "accuracy": 0.625,
+          "brier": 0.2275,
+          "logLoss": 0.6468,
+          "mae": 0.4609,
+          "favoriteWinRate": 0.625,
+          "upsetRate": 0.375,
+          "bias": {
+            "avgPredicted": 0.5676,
+            "actualRate": 0.5164,
+            "diff": 0.0512
+          }
+        },
+        "2021/22": {
+          "n": 334,
+          "accuracy": 0.7006,
+          "brier": 0.2096,
+          "logLoss": 0.6089,
+          "mae": 0.4382,
+          "favoriteWinRate": 0.7006,
+          "upsetRate": 0.2994,
+          "bias": {
+            "avgPredicted": 0.5687,
+            "actualRate": 0.5988,
+            "diff": -0.0301
+          }
+        },
+        "2022/23": {
+          "n": 420,
+          "accuracy": 0.5667,
+          "brier": 0.2417,
+          "logLoss": 0.6759,
+          "mae": 0.472,
+          "favoriteWinRate": 0.5667,
+          "upsetRate": 0.4333,
+          "bias": {
+            "avgPredicted": 0.5672,
+            "actualRate": 0.5571,
+            "diff": 0.0101
+          }
+        },
+        "2023/24": {
+          "n": 364,
+          "accuracy": 0.6154,
+          "brier": 0.2321,
+          "logLoss": 0.6569,
+          "mae": 0.4636,
+          "favoriteWinRate": 0.6154,
+          "upsetRate": 0.3846,
+          "bias": {
+            "avgPredicted": 0.5662,
+            "actualRate": 0.5742,
+            "diff": -0.008
+          }
+        },
+        "2024/25": {
+          "n": 411,
+          "accuracy": 0.6034,
+          "brier": 0.2319,
+          "logLoss": 0.6558,
+          "mae": 0.4663,
+          "favoriteWinRate": 0.6034,
+          "upsetRate": 0.3966,
+          "bias": {
+            "avgPredicted": 0.5692,
+            "actualRate": 0.6326,
+            "diff": -0.0634
+          }
+        },
+        "2025/26": {
+          "n": 410,
+          "accuracy": 0.6317,
+          "brier": 0.2279,
+          "logLoss": 0.6479,
+          "mae": 0.4608,
+          "favoriteWinRate": 0.6317,
+          "upsetRate": 0.3683,
+          "bias": {
+            "avgPredicted": 0.5691,
+            "actualRate": 0.5707,
+            "diff": -0.0016
+          }
+        }
+      },
+      "calibration": [
+        {
+          "lo": 0.5,
+          "hi": 0.55,
+          "label": "50–55%",
+          "count": 657,
+          "avgPredicted": 0.5242452111725976,
+          "actualRate": 0.528158295281583,
+          "diff": -0.003913084108985387,
+          "lowSample": false
+        },
+        {
+          "lo": 0.55,
+          "hi": 0.6,
+          "label": "55–60%",
+          "count": 660,
+          "avgPredicted": 0.5752389664821667,
+          "actualRate": 0.5696969696969697,
+          "diff": 0.0055419967851969565,
+          "lowSample": false
+        },
+        {
+          "lo": 0.6,
+          "hi": 0.65,
+          "label": "60–65%",
+          "count": 557,
+          "avgPredicted": 0.6239206402974028,
+          "actualRate": 0.6391382405745063,
+          "diff": -0.015217600277103505,
+          "lowSample": false
+        },
+        {
+          "lo": 0.65,
+          "hi": 0.7,
+          "label": "65–70%",
+          "count": 383,
+          "avgPredicted": 0.672884721634478,
+          "actualRate": 0.6945169712793734,
+          "diff": -0.021632249644895407,
+          "lowSample": false
+        },
+        {
+          "lo": 0.7,
+          "hi": 0.75,
+          "label": "70–75%",
+          "count": 237,
+          "avgPredicted": 0.7201651500720924,
+          "actualRate": 0.70042194092827,
+          "diff": 0.019743209143822327,
+          "lowSample": false
+        },
+        {
+          "lo": 0.75,
+          "hi": 0.8,
+          "label": "75–80%",
+          "count": 114,
+          "avgPredicted": 0.7713444230893007,
+          "actualRate": 0.7631578947368421,
+          "diff": 0.008186528352458589,
+          "lowSample": false
+        },
+        {
+          "lo": 0.8,
+          "hi": 0.85,
+          "label": "80–85%",
+          "count": 12,
+          "avgPredicted": 0.8101551260067953,
+          "actualRate": 0.8333333333333334,
+          "diff": -0.02317820732653808,
+          "lowSample": true
+        },
+        {
+          "lo": 0.85,
+          "hi": 0.9,
+          "label": "85–90%",
+          "count": 0,
+          "avgPredicted": null,
+          "actualRate": null,
+          "diff": null,
+          "lowSample": true
+        },
+        {
+          "lo": 0.9,
+          "hi": 1.0001,
+          "label": "90%+",
+          "count": 0,
+          "avgPredicted": null,
+          "actualRate": null,
+          "diff": null,
+          "lowSample": true
+        }
+      ],
+      "ece": 0.011
+    }
+  ],
+  "comparisons": [
+    {
+      "a": "v1",
+      "b": "v2",
+      "label": "Pre-Season-ELO-Zusatznutzen gegenüber flachem ELO-Start",
+      "n": 2620,
+      "observedLogLossDelta": -0.00711,
+      "bootstrapCi95": [
+        -0.01132,
+        -0.00315
+      ],
+      "pctResamplesBBetter": 1,
+      "seasonsBetter": {
+        "better": 6,
+        "total": 7,
+        "perSeason": {
+          "2017/18": {
+            "llA": 0.6716787798871211,
+            "llB": 0.6716787798871211,
+            "better": false
+          },
+          "2018/19": {
+            "llA": 0.6730003519952684,
+            "llB": 0.6663472748929365,
+            "better": true
+          },
+          "2021/22": {
+            "llA": 0.6264523247778528,
+            "llB": 0.6136651569666717,
+            "better": true
+          },
+          "2022/23": {
+            "llA": 0.6885263757632932,
+            "llB": 0.6797699747029042,
+            "better": true
+          },
+          "2023/24": {
+            "llA": 0.6625621160222479,
+            "llB": 0.6594261449945411,
+            "better": true
+          },
+          "2024/25": {
+            "llA": 0.6571284060874336,
+            "llB": 0.6501557627322554,
+            "better": true
+          },
+          "2025/26": {
+            "llA": 0.6621438964371713,
+            "llB": 0.6510419726653596,
+            "better": true
+          }
+        }
+      },
+      "robust": true,
+      "verdict": "v2 verbessert LogLoss gegenüber v1 um 0.0071 (n=2620). v2 war in 6 von 7 Nicht-Corona-Saisons besser, 95%-Bootstrap-CI [-0.0113, -0.0031] schliesst 0 aus. Der Effekt ist moderat und konsistent."
+    },
+    {
+      "a": "v2",
+      "b": "v3",
+      "label": "Ruhetage/Back-to-back-Zusatznutzen gegenüber v2",
+      "n": 2620,
+      "observedLogLossDelta": -0.00035,
+      "bootstrapCi95": [
+        -0.00146,
+        0.00077
+      ],
+      "pctResamplesBBetter": 0.732,
+      "seasonsBetter": {
+        "better": 5,
+        "total": 7,
+        "perSeason": {
+          "2017/18": {
+            "llA": 0.6716787798871211,
+            "llB": 0.6742746472644766,
+            "better": false
+          },
+          "2018/19": {
+            "llA": 0.6663472748929365,
+            "llB": 0.6652705835994287,
+            "better": true
+          },
+          "2021/22": {
+            "llA": 0.6136651569666717,
+            "llB": 0.6113851909836632,
+            "better": true
+          },
+          "2022/23": {
+            "llA": 0.6797699747029042,
+            "llB": 0.6793575012772226,
+            "better": true
+          },
+          "2023/24": {
+            "llA": 0.6594261449945411,
+            "llB": 0.6595145029010672,
+            "better": false
+          },
+          "2024/25": {
+            "llA": 0.6501557627322554,
+            "llB": 0.6486740841754445,
+            "better": true
+          },
+          "2025/26": {
+            "llA": 0.6510419726653596,
+            "llB": 0.6509908988069286,
+            "better": true
+          }
+        }
+      },
+      "robust": false,
+      "verdict": "v3 zeigt keinen robusten Zusatznutzen gegenüber v2 (ΔLogLoss=-0.0004, 5/7 Saisons besser). Grund: Effekt zu klein/uneindeutig; 95%-Bootstrap-CI schliesst 0 nicht aus (statistisch nicht von \"kein Effekt\" unterscheidbar). Daher NICHT für Production übernehmen."
+    },
+    {
+      "a": "v2",
+      "b": "v2_sog",
+      "label": "SOG-Allowed-Zusatznutzen gegenüber v2 (isolierte Ablation)",
+      "n": 2620,
+      "observedLogLossDelta": 0.00166,
+      "bootstrapCi95": [
+        -0.00192,
+        0.00519
+      ],
+      "pctResamplesBBetter": 0.178,
+      "seasonsBetter": {
+        "better": 2,
+        "total": 7,
+        "perSeason": {
+          "2017/18": {
+            "llA": 0.6716787798871211,
+            "llB": 0.6767661785766762,
+            "better": false
+          },
+          "2018/19": {
+            "llA": 0.6663472748929365,
+            "llB": 0.6679833390338031,
+            "better": false
+          },
+          "2021/22": {
+            "llA": 0.6136651569666717,
+            "llB": 0.6039016038432528,
+            "better": true
+          },
+          "2022/23": {
+            "llA": 0.6797699747029042,
+            "llB": 0.6848828717257321,
+            "better": false
+          },
+          "2023/24": {
+            "llA": 0.6594261449945411,
+            "llB": 0.6611877459643519,
+            "better": false
+          },
+          "2024/25": {
+            "llA": 0.6501557627322554,
+            "llB": 0.658504418106715,
+            "better": false
+          },
+          "2025/26": {
+            "llA": 0.6510419726653596,
+            "llB": 0.648646842794915,
+            "better": true
+          }
+        }
+      },
+      "robust": false,
+      "verdict": "v2_sog zeigt keinen robusten Zusatznutzen gegenüber v2 (ΔLogLoss=0.0017, 2/7 Saisons besser). Grund: Effekt zu klein/uneindeutig; nur 2/7 Saisons besser; 95%-Bootstrap-CI schliesst 0 nicht aus (statistisch nicht von \"kein Effekt\" unterscheidbar). Daher NICHT für Production übernehmen."
+    },
+    {
+      "a": "v3",
+      "b": "production_reference",
+      "label": "SOG-Allowed + Poisson/Skellam-Transformation kombiniert gegenüber v3",
+      "n": 2620,
+      "observedLogLossDelta": -0.00078,
+      "bootstrapCi95": [
+        -0.00373,
+        0.00232
+      ],
+      "pctResamplesBBetter": 0.705,
+      "seasonsBetter": {
+        "better": 5,
+        "total": 7,
+        "perSeason": {
+          "2017/18": {
+            "llA": 0.6742746472644766,
+            "llB": 0.6755362348273692,
+            "better": false
+          },
+          "2018/19": {
+            "llA": 0.6652705835994287,
+            "llB": 0.6622768971679862,
+            "better": true
+          },
+          "2021/22": {
+            "llA": 0.6113851909836632,
+            "llB": 0.6089063652770105,
+            "better": true
+          },
+          "2022/23": {
+            "llA": 0.6793575012772226,
+            "llB": 0.6758714711086959,
+            "better": true
+          },
+          "2023/24": {
+            "llA": 0.6595145029010672,
+            "llB": 0.6569154101418929,
+            "better": true
+          },
+          "2024/25": {
+            "llA": 0.6486740841754445,
+            "llB": 0.6558307816329146,
+            "better": false
+          },
+          "2025/26": {
+            "llA": 0.6509908988069286,
+            "llB": 0.647948588867549,
+            "better": true
+          }
+        }
+      },
+      "robust": false,
+      "verdict": "production_reference zeigt keinen robusten Zusatznutzen gegenüber v3 (ΔLogLoss=-0.0008, 5/7 Saisons besser). Grund: 95%-Bootstrap-CI schliesst 0 nicht aus (statistisch nicht von \"kein Effekt\" unterscheidbar). Daher NICHT für Production übernehmen."
+    }
+  ],
+  "modelVersions": [
+    {
+      "id": "v0",
+      "name": "v0 – Naive Basisrate",
+      "description": "Konstante historische Heimsieg-Quote (walk-forward aus Vorsaisons). Keine Team-Stärke-Information. Reine untere Referenzlinie.",
+      "features": [
+        "Heimsieg-Basisrate"
+      ],
+      "date": "2026-08-24",
+      "status": "candidate"
+    },
+    {
+      "id": "v1",
+      "name": "v1 – ELO Baseline",
+      "description": "Produktives ELO (src/elo.js, unverändert) mit flachem Saisonstart bei 1500 – entspricht dem tatsächlichen Live-Verhalten OHNE die separate Pre-Season-ELO-Komponente.",
+      "features": [
+        "ELO",
+        "Heimvorteil"
+      ],
+      "date": "2026-08-24",
+      "status": "candidate"
+    },
+    {
+      "id": "v2",
+      "name": "v2 – ELO + Pre-Season-ELO",
+      "description": "v1 + Saisonstart-ELO aus dem 25%-regressierten Saisonend-ELO der Vorsaison (src/preseasonElo.js) – das ist bereits eine PRODUKTIVE Komponente (Toggle in den Einstellungen, Default an).",
+      "features": [
+        "ELO",
+        "Heimvorteil",
+        "Pre-Season-ELO-Carryover"
+      ],
+      "date": "2026-08-24",
+      "status": "production"
+    },
+    {
+      "id": "v2_marketvalue",
+      "name": "v2b – ELO + Marktwert-Prior",
+      "description": "Produktive Komponente (src/marketValuePrior.js, Toggle Default an), aber HISTORISCH NICHT VALIDIERBAR – keine saisonbezogenen historischen Marktwerte verfügbar, rückwirkende Anwendung heutiger Werte wäre Leakage.",
+      "features": [
+        "Marktwert-Prior"
+      ],
+      "date": "2026-08-24",
+      "status": "not_validatable"
+    },
+    {
+      "id": "v3",
+      "name": "v3 – v2 + Ruhetage/Back-to-back",
+      "description": "v2 + Anpassung der Heimsieg-Wahrscheinlichkeit bei einseitigem Back-to-back (src/restDays.js) – ebenfalls bereits produktiv (Toggle Default an).",
+      "features": [
+        "ELO",
+        "Heimvorteil",
+        "Pre-Season-ELO-Carryover",
+        "Ruhetage/Back-to-back"
+      ],
+      "date": "2026-08-24",
+      "status": "production"
+    },
+    {
+      "id": "v2_sog",
+      "name": "v2c – v2 + SOG-Allowed (Ablation)",
+      "description": "v2 + ELO-Adjustierung nach zugelassenen Schüssen/Spiel (Teil der Live-Einzelspiel-Prognose via src/playoffSim.js), isoliert getestet OHNE Ruhetage/Poisson-Transformation.",
+      "features": [
+        "ELO",
+        "Heimvorteil",
+        "Pre-Season-ELO-Carryover",
+        "SOG-Allowed"
+      ],
+      "date": "2026-08-24",
+      "status": "production"
+    },
+    {
+      "id": "production_reference",
+      "name": "Produktions-Referenz (ohne Marktwert-Prior)",
+      "description": "Die tatsächlich live laufende Einzelspiel-Prognose-Pipeline (server/scripts/predictions.js), soweit historisch rekonstruierbar: v3 + SOG-Allowed + Poisson/Skellam-Toreerwartung. Fehlt: Marktwert-Prior (siehe v2b).",
+      "features": [
+        "ELO",
+        "Heimvorteil",
+        "Pre-Season-ELO-Carryover",
+        "SOG-Allowed",
+        "Poisson/Skellam-Toreerwartung",
+        "Ruhetage/Back-to-back"
+      ],
+      "date": "2026-08-24",
+      "status": "production"
+    }
+  ]
+}

@@ -1,0 +1,320 @@
+{
+  "dataQuality": [
+    [
+      "Spiele/GP",
+      "JA - vollständig, pro Spiel aus roster+players/goalies rekonstruierbar"
+    ],
+    [
+      "Tore/Assists/Punkte",
+      "JA - players[].goals/assists/points, direkt vorhanden"
+    ],
+    [
+      "Punkte pro Spiel",
+      "JA - abgeleitet (points/GP)"
+    ],
+    [
+      "TOI/TOI pro Spiel",
+      "JA - players[].timeOnIce (\"MM:SS\"), inkl. PP/PK-Split"
+    ],
+    [
+      "Schüsse/SOG",
+      "JA - players[].shotsOnGoal"
+    ],
+    [
+      "SOG pro Spiel",
+      "JA - abgeleitet (SOG/GP)"
+    ],
+    [
+      "+/-",
+      "JA - players[].plusMinus"
+    ],
+    [
+      "Powerplay-Punkte",
+      "NICHT VERWENDET - nur indirekt aus Freitext-Tags in events[].goals[].text (\"**PP1**\") rekonstruierbar, keine strukturierte Spalte; Zuordnung Torschütze/Assistenten über LicenceNr->Roster wäre nötig und fehleranfällig (Text-Parsing, keine Validierung möglich) -> stattdessen TOI-PP (strukturiert vorhanden) als Powerplay-Nutzungs-Proxy verwendet"
+    ],
+    [
+      "Position",
+      "JA, aber nur 2 Kategorien (Stürmer/Verteidiger) - keine Center/Wing-Unterscheidung; Top-6/Top-9/Top-4-Gruppen daher über TOI-Rang approximiert, nicht über offizielle Linienzuteilung"
+    ],
+    [
+      "Alter",
+      "TEILWEISE - nur roster[].ageGroup (GeburtsJAHR), kein exaktes Geburtsdatum -> Alter nur auf +/-1 Jahr genau, als grobe Kennzahl dokumentiert, nicht in Kernfeatures verwendet"
+    ],
+    [
+      "Teamzugehörigkeit",
+      "JA - roster[].teamId pro Spiel, Vereinswechsel innerhalb/zwischen Saisons dadurch korrekt nachvollziehbar"
+    ],
+    [
+      "Saison",
+      "JA - g.season/g.seasonEndYear"
+    ],
+    [
+      "Torhüterstats",
+      "JA - goalies[].saves/goalsAgainst/shotsAgainst/savesPercentage/secondsPlayed"
+    ]
+  ],
+  "identity": {
+    "totalIds": 1369,
+    "idsWithMultipleNames": 13,
+    "namesWithMultipleIds": 14
+  },
+  "featureCoverage": {
+    "last1_whole": 0.8610687022900764,
+    "last1_top6": 0.8610687022900764,
+    "last1_top9": 0.8610687022900764,
+    "last1_top4d": 0.8183206106870229,
+    "last2_whole": 0.7400763358778626,
+    "last3_whole": 0.7400763358778626,
+    "trend": 0.6973282442748091,
+    "offDefCombo": 0.8610687022900764,
+    "rosterChangeDelta": 0.6973282442748091,
+    "goalie_last1": 0.8610687022900764,
+    "goalie_last2": 0.7400763358778626
+  },
+  "modelA": {
+    "g": 0.85,
+    "c": 0,
+    "m": {
+      "n": 2620,
+      "accuracy": 0.5992366412213741,
+      "brier": 0.23396090824792165,
+      "logloss": 0.6602385780793407
+    }
+  },
+  "allFeatures": [
+    {
+      "feature": "goalie_last2",
+      "h": 0.15,
+      "c": 0,
+      "m": {
+        "n": 2620,
+        "accuracy": 0.6103053435114504,
+        "brier": 0.232830242909682,
+        "logloss": 0.6579936568238497
+      },
+      "deltaLogloss": -0.002244921255491028,
+      "deltaBrier": -0.0011306653382396614
+    },
+    {
+      "feature": "offDefCombo",
+      "h": 0.15,
+      "c": 0,
+      "m": {
+        "n": 2620,
+        "accuracy": 0.6053435114503817,
+        "brier": 0.23293144816138955,
+        "logloss": 0.6580537658938366
+      },
+      "deltaLogloss": -0.002184812185504148,
+      "deltaBrier": -0.0010294600865320969
+    },
+    {
+      "feature": "last1_whole",
+      "h": 0.15,
+      "c": 0,
+      "m": {
+        "n": 2620,
+        "accuracy": 0.6049618320610687,
+        "brier": 0.23343611556972774,
+        "logloss": 0.6591893462283306
+      },
+      "deltaLogloss": -0.001049231851010135,
+      "deltaBrier": -0.0005247926781939138
+    },
+    {
+      "feature": "last1_top9",
+      "h": 0.15,
+      "c": 0,
+      "m": {
+        "n": 2620,
+        "accuracy": 0.599618320610687,
+        "brier": 0.233590259054063,
+        "logloss": 0.6594159562300667
+      },
+      "deltaLogloss": -0.0008226218492740633,
+      "deltaBrier": -0.000370649193858652
+    },
+    {
+      "feature": "last2_whole",
+      "h": 0.15,
+      "c": 0,
+      "m": {
+        "n": 2620,
+        "accuracy": 0.6057251908396947,
+        "brier": 0.233567326248392,
+        "logloss": 0.6594898128846158
+      },
+      "deltaLogloss": -0.0007487651947248875,
+      "deltaBrier": -0.00039358199952965744
+    },
+    {
+      "feature": "last1_top6",
+      "h": 0.15,
+      "c": 0,
+      "m": {
+        "n": 2620,
+        "accuracy": 0.6034351145038168,
+        "brier": 0.23363012134054043,
+        "logloss": 0.6594875911418486
+      },
+      "deltaLogloss": -0.000750986937492093,
+      "deltaBrier": -0.0003307869073812253
+    },
+    {
+      "feature": "goalie_last1",
+      "h": 0.15,
+      "c": 0,
+      "m": {
+        "n": 2620,
+        "accuracy": 0.6045801526717557,
+        "brier": 0.2336094586562896,
+        "logloss": 0.6596075555463062
+      },
+      "deltaLogloss": -0.0006310225330344865,
+      "deltaBrier": -0.0003514495916320526
+    },
+    {
+      "feature": "last3_whole",
+      "h": 0.15,
+      "c": 0,
+      "m": {
+        "n": 2620,
+        "accuracy": 0.6022900763358778,
+        "brier": 0.23363325908704868,
+        "logloss": 0.6596286503004574
+      },
+      "deltaLogloss": -0.0006099277788833568,
+      "deltaBrier": -0.000327649160872967
+    },
+    {
+      "feature": "last1_top4d",
+      "h": 0,
+      "c": 0,
+      "m": {
+        "n": 2620,
+        "accuracy": 0.5992366412213741,
+        "brier": 0.23396090824792165,
+        "logloss": 0.6602385780793407
+      },
+      "deltaLogloss": 0,
+      "deltaBrier": 0
+    },
+    {
+      "feature": "trend",
+      "h": 0,
+      "c": 0,
+      "m": {
+        "n": 2620,
+        "accuracy": 0.5992366412213741,
+        "brier": 0.23396090824792165,
+        "logloss": 0.6602385780793407
+      },
+      "deltaLogloss": 0,
+      "deltaBrier": 0
+    },
+    {
+      "feature": "rosterChangeDelta",
+      "h": 0,
+      "c": 0,
+      "m": {
+        "n": 2620,
+        "accuracy": 0.5992366412213741,
+        "brier": 0.23396090824792165,
+        "logloss": 0.6602385780793407
+      },
+      "deltaLogloss": 0,
+      "deltaBrier": 0
+    }
+  ],
+  "modelB": {
+    "feature": "last1_whole",
+    "m": {
+      "n": 2620,
+      "accuracy": 0.6049618320610687,
+      "brier": 0.23343611556972774,
+      "logloss": 0.6591893462283306
+    }
+  },
+  "modelC": {
+    "feature": "last2_whole",
+    "m": {
+      "n": 2620,
+      "accuracy": 0.6057251908396947,
+      "brier": 0.233567326248392,
+      "logloss": 0.6594898128846158
+    }
+  },
+  "modelD": {
+    "feature": "last3_whole",
+    "m": {
+      "n": 2620,
+      "accuracy": 0.6022900763358778,
+      "brier": 0.23363325908704868,
+      "logloss": 0.6596286503004574
+    }
+  },
+  "modelE": {
+    "feature": "trend",
+    "m": {
+      "n": 2620,
+      "accuracy": 0.5992366412213741,
+      "brier": 0.23396090824792165,
+      "logloss": 0.6602385780793407
+    }
+  },
+  "modelF": {
+    "feature": "offDefCombo",
+    "m": {
+      "n": 2620,
+      "accuracy": 0.6053435114503817,
+      "brier": 0.23293144816138955,
+      "logloss": 0.6580537658938366
+    }
+  },
+  "modelG": {
+    "feature": "goalie_last2",
+    "m": {
+      "n": 2620,
+      "accuracy": 0.6103053435114504,
+      "brier": 0.232830242909682,
+      "logloss": 0.6579936568238497
+    }
+  },
+  "modelH": {
+    "features": [
+      "offDefCombo",
+      "goalie_last2"
+    ],
+    "m": {
+      "n": 2620,
+      "accuracy": 0.6110687022900764,
+      "brier": 0.2327633814770229,
+      "logloss": 0.6578359893029018
+    }
+  },
+  "stability": {
+    "improvedGvsA": 5,
+    "improvedHvsA": 5,
+    "coreSeasonCount": 7,
+    "avgDelta": -0.0021167985907631754,
+    "worstDelta": 0,
+    "perSeasonDeltas": [
+      0,
+      0,
+      -0.00023235042514146986,
+      -0.0004524923570110584,
+      -0.003990787343153612,
+      -0.0031916604267598903,
+      -0.006950299583276198
+    ]
+  },
+  "seasonStart": {
+    "earlyDelta20pct": -0.007965499077665195,
+    "endDelta": -0.0017651127714157777
+  },
+  "decision": {
+    "gRobust": true,
+    "hRobust": true,
+    "finalDecision": "SPIELERFEATURE ÜBERNEHMEN"
+  }
+}

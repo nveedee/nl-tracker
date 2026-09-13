@@ -1,0 +1,519 @@
+{
+  "baseline": {
+    "g": 0.7,
+    "c": 0.15,
+    "m": {
+      "n": 2620,
+      "accuracy": 0.6061068702290077,
+      "brier": 0.23189387611439305,
+      "logloss": 0.6559731667137787
+    }
+  },
+  "featureRanking": [
+    {
+      "key": "s_last10",
+      "label": "SOG-Allowed letzte 10",
+      "coverage": 0.940136476426799,
+      "std": 4.49006660445725,
+      "h": -0.15,
+      "c": 0.15,
+      "m": {
+        "n": 2468,
+        "accuracy": 0.6138573743922204,
+        "brier": 0.23235422583713822,
+        "logloss": 0.6572416376977511
+      },
+      "dLogloss": -0.00023135647987726493,
+      "dBrier": -0.0002421346041890926
+    },
+    {
+      "key": "s_split",
+      "label": "SOG-Allowed Heim/Auswärts-Split",
+      "coverage": 0.8725186104218362,
+      "std": 4.164314122192731,
+      "h": -0.15,
+      "c": 0,
+      "m": {
+        "n": 2294,
+        "accuracy": 0.6176983435047951,
+        "brier": 0.23146638988503437,
+        "logloss": 0.6551293422093507
+      },
+      "dLogloss": -0.0002867846972636201,
+      "dBrier": -0.00015494847656649657
+    },
+    {
+      "key": "s_last5",
+      "label": "SOG-Allowed letzte 5",
+      "coverage": 0.940136476426799,
+      "std": 5.368102724527805,
+      "h": -0.15,
+      "c": 0.15,
+      "m": {
+        "n": 2468,
+        "accuracy": 0.6106158833063209,
+        "brier": 0.2324069749341594,
+        "logloss": 0.6572797356085808
+      },
+      "dLogloss": -0.0001932585690476163,
+      "dBrier": -0.00018938550716790514
+    },
+    {
+      "key": "b_awayStreak",
+      "label": "Rest: Auswärtsspiel-Serie",
+      "coverage": 1,
+      "std": 1.0576759421934192,
+      "h": 0.15,
+      "c": 0,
+      "m": {
+        "n": 2620,
+        "accuracy": 0.6095419847328244,
+        "brier": 0.23187507435894564,
+        "logloss": 0.6558093136452924
+      },
+      "dLogloss": -0.0001638530684863193,
+      "dBrier": -0.000018801755447411805
+    },
+    {
+      "key": "g_seasonSV",
+      "label": "Torhüter: Saison-SV%",
+      "coverage": 0.8104838709677419,
+      "std": 0.0234392178379311,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2130,
+        "accuracy": 0.6089201877934273,
+        "brier": 0.23177097653771092,
+        "logloss": 0.6557206795374713
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "g_last5SV",
+      "label": "Torhüter: letzte 5 Sp. SV%",
+      "coverage": 0.8985732009925558,
+      "std": 0.03434243553796688,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2354,
+        "accuracy": 0.6049277824978759,
+        "brier": 0.2323287182946259,
+        "logloss": 0.65695239947189
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "g_last10SV",
+      "label": "Torhüter: letzte 10 Sp. SV%",
+      "coverage": 0.84212158808933,
+      "std": 0.024479708158357757,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2210,
+        "accuracy": 0.6063348416289592,
+        "brier": 0.23236694775162178,
+        "logloss": 0.6571516466216164
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "g_careerSV",
+      "label": "Torhüter: Karriere-SV%",
+      "coverage": 0.7227047146401985,
+      "std": 0.013426919292164127,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 1908,
+        "accuracy": 0.609538784067086,
+        "brier": 0.2325013548456077,
+        "logloss": 0.6574806221049784
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "g_shotsFacedPerGame",
+      "label": "Torhüter: Shots faced/Spiel",
+      "coverage": 0.923697270471464,
+      "std": 4.839414413228292,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2422,
+        "accuracy": 0.6052848885218828,
+        "brier": 0.23245828466066434,
+        "logloss": 0.657251771881774
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "p_ptsPer60",
+      "label": "Kader: Punkte/60",
+      "coverage": 0.9795285359801489,
+      "std": 0.43996606706919184,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2567,
+        "accuracy": 0.6069341643942345,
+        "brier": 0.23181176422014602,
+        "logloss": 0.6558091801340704
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "p_goalsPer60",
+      "label": "Kader: Tore/60",
+      "coverage": 0.9795285359801489,
+      "std": 0.16393783983689242,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2567,
+        "accuracy": 0.6069341643942345,
+        "brier": 0.23181176422014602,
+        "logloss": 0.6558091801340704
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "p_sogPer60",
+      "label": "Kader: SOG/60",
+      "coverage": 0.9795285359801489,
+      "std": 0.8102930361325509,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2567,
+        "accuracy": 0.6069341643942345,
+        "brier": 0.23181176422014602,
+        "logloss": 0.6558091801340704
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "p_plusMinusPer60",
+      "label": "Kader: +/-/60 (Defensiv-Proxy)",
+      "coverage": 0.9795285359801489,
+      "std": 1.2006364165020365,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2567,
+        "accuracy": 0.6069341643942345,
+        "brier": 0.23181176422014602,
+        "logloss": 0.6558091801340704
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "p_top6Pts60",
+      "label": "Kader: Top-6-Stürmer Pkt/60",
+      "coverage": 0.9795285359801489,
+      "std": 0.7254071881665931,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2567,
+        "accuracy": 0.6069341643942345,
+        "brier": 0.23181176422014602,
+        "logloss": 0.6558091801340704
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "p_top9Pts60",
+      "label": "Kader: Top-9-Stürmer Pkt/60",
+      "coverage": 0.9795285359801489,
+      "std": 0.6469872640558737,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2567,
+        "accuracy": 0.6069341643942345,
+        "brier": 0.23181176422014602,
+        "logloss": 0.6558091801340704
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "r_pts3",
+      "label": "Form: Pkt/Sp. letzte 3",
+      "coverage": 0.940136476426799,
+      "std": 1.1596754943096248,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2468,
+        "accuracy": 0.6049432739059968,
+        "brier": 0.2325963604413273,
+        "logloss": 0.6574729941776284
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "r_pts5",
+      "label": "Form: Pkt/Sp. letzte 5",
+      "coverage": 0.940136476426799,
+      "std": 0.9295783387612454,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2468,
+        "accuracy": 0.6049432739059968,
+        "brier": 0.2325963604413273,
+        "logloss": 0.6574729941776284
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "r_pts10",
+      "label": "Form: Pkt/Sp. letzte 10",
+      "coverage": 0.940136476426799,
+      "std": 0.729768906888847,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2468,
+        "accuracy": 0.6049432739059968,
+        "brier": 0.2325963604413273,
+        "logloss": 0.6574729941776284
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "r_diff3",
+      "label": "Form: Tordiff. letzte 3",
+      "coverage": 0.940136476426799,
+      "std": 2.2756358082887296,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2468,
+        "accuracy": 0.6049432739059968,
+        "brier": 0.2325963604413273,
+        "logloss": 0.6574729941776284
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "r_diff5",
+      "label": "Form: Tordiff. letzte 5",
+      "coverage": 0.940136476426799,
+      "std": 1.83204937142347,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2468,
+        "accuracy": 0.6049432739059968,
+        "brier": 0.2325963604413273,
+        "logloss": 0.6574729941776284
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "r_diff10",
+      "label": "Form: Tordiff. letzte 10",
+      "coverage": 0.940136476426799,
+      "std": 1.482987592868003,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2468,
+        "accuracy": 0.6049432739059968,
+        "brier": 0.2325963604413273,
+        "logloss": 0.6574729941776284
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "r_eloChange3",
+      "label": "Form: ELO-Änderung letzte 3",
+      "coverage": 0.9885235732009926,
+      "std": 15.114402270407403,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2583,
+        "accuracy": 0.6074332171893148,
+        "brier": 0.23151681075245575,
+        "logloss": 0.6551846276178452
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "r_eloChange5",
+      "label": "Form: ELO-Änderung letzte 5",
+      "coverage": 0.982940446650124,
+      "std": 19.79598284961983,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2565,
+        "accuracy": 0.6074074074074074,
+        "brier": 0.23138104864865072,
+        "logloss": 0.654869911010247
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "r_eloChange10",
+      "label": "Form: ELO-Änderung letzte 10",
+      "coverage": 0.9702233250620348,
+      "std": 27.575946122542135,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2524,
+        "accuracy": 0.6065768621236133,
+        "brier": 0.2317292746238864,
+        "logloss": 0.655596919566663
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "s_last3",
+      "label": "SOG-Allowed letzte 3",
+      "coverage": 0.940136476426799,
+      "std": 6.3480936028665935,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2468,
+        "accuracy": 0.6049432739059968,
+        "brier": 0.2325963604413273,
+        "logloss": 0.6574729941776284
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "s_season",
+      "label": "SOG-Allowed Saisonwert (roh)",
+      "coverage": 0.940136476426799,
+      "std": 3.932086761495674,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2468,
+        "accuracy": 0.6049432739059968,
+        "brier": 0.2325963604413273,
+        "logloss": 0.6574729941776284
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "s_trend",
+      "label": "SOG-Allowed Trend (letzte5 - Saison)",
+      "coverage": 0.8442928039702233,
+      "std": 3.9353418918415124,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2223,
+        "accuracy": 0.6063877642825011,
+        "brier": 0.2319135821785044,
+        "logloss": 0.6559480420609888
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "b_daysSince",
+      "label": "Rest: Tage seit letztem Spiel",
+      "coverage": 0.9795285359801489,
+      "std": 1.8962381660734935,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2567,
+        "accuracy": 0.6069341643942345,
+        "brier": 0.23181176422014602,
+        "logloss": 0.6558091801340704
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "b_backToBack",
+      "label": "Rest: Back-to-Back",
+      "coverage": 0.9795285359801489,
+      "std": 0.34012786938545386,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2567,
+        "accuracy": 0.6069341643942345,
+        "brier": 0.23181176422014602,
+        "logloss": 0.6558091801340704
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "b_games7",
+      "label": "Rest: Spiele letzte 7 Tage",
+      "coverage": 1,
+      "std": 0.7138211776211262,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2620,
+        "accuracy": 0.6061068702290077,
+        "brier": 0.23189387611439305,
+        "logloss": 0.6559731667137787
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    },
+    {
+      "key": "b_games14",
+      "label": "Rest: Spiele letzte 14 Tage",
+      "coverage": 1,
+      "std": 0.9560881289016557,
+      "h": 0,
+      "c": 0.15,
+      "m": {
+        "n": 2620,
+        "accuracy": 0.6061068702290077,
+        "brier": 0.23189387611439305,
+        "logloss": 0.6559731667137787
+      },
+      "dLogloss": 0,
+      "dBrier": 0
+    }
+  ],
+  "modelD": {
+    "chosen": [],
+    "m": {
+      "n": 2620,
+      "accuracy": 0.6061068702290077,
+      "brier": 0.23189387611439305,
+      "logloss": 0.6559731667137787
+    }
+  }
+}

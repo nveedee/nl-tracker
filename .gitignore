@@ -1,0 +1,13 @@
+node_modules
+dist
+.DS_Store
+*.log
+.vscode
+.idea
+
+# Laufzeit-/generierte Daten (werden aus seed.json + Auto-Sync neu erzeugt)
+server/data/db.json
+server/data/*.pretest-backup
+server/data/nl-sync-status.json
+server/data/sihf-sync-status.json
+server/data/historical/
