@@ -99,6 +99,9 @@ p { margin: 0 0 10px; }
   position: sticky;
   top: 0;
   z-index: 40;
+  padding-top: max(12px, env(safe-area-inset-top));
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 .topbar-inner {
