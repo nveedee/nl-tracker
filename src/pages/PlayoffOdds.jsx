@@ -9,13 +9,19 @@
 
 import { useState, useMemo } from 'react'
 import { useData } from '../DataContext.jsx'
-import { simulatePlayoffOdds } from '../playoffSim.js'
+import { simulatePlayoffOdds, computeMatchForecasts } from '../playoffSim.js'
 import { usePreseasonElo, computePreseasonRatings } from '../preseasonElo.js'
 import { computeMarketValuePrior, DEFAULT_PRIOR_SPREAD } from '../marketValuePrior.js'
 import { computePowerRankings } from '../powerRankings.js'
-import { TeamBadge } from '../components/ui.jsx'
+import { TeamBadge, Delta } from '../components/ui.jsx'
+import { getLastBaseline, recordBaselineIfNeeded, computeMovers } from '../baselineStore.js'
+import PositionMatrix from '../components/PositionMatrix.jsx'
+import BracketCards from '../components/BracketCards.jsx'
+import MatchForecast from '../components/MatchForecast.jsx'
 
 function fmtPct(v) { return v == null ? '–' : (v * 100).toFixed(1) + '%' }
+
+const RUN_CHOICES = [1000, 2500, 5000, 10000]
 
 // Neuer Zufalls-Seed pro manuellem Simulationslauf (Web Crypto API, kryptografisch
 // sicher) - NICHT derselbe hardcodierte Default-Seed wie zuvor. Ändert nichts an
@@ -33,6 +39,12 @@ export default function PlayoffOdds() {
   const [lastSimAt, setLastSimAt] = useState(null)
   const [lastSeed, setLastSeed] = useState(null)
   const [expandedTeam, setExpandedTeam] = useState(null)
+  const [runsChoice, setRunsChoice] = useState(10000)
+  // Beim Laden der Seite EINMAL geladen (nicht nach jedem Simulationslauf neu) -
+  // so vergleicht die gesamte Session konsistent gegen denselben Referenzpunkt
+  // ("seit dem letzten Checkpoint"), statt bei jedem Klick gegen den gerade
+  // selbst erzeugten Lauf. Siehe src/baselineStore.js für die genaue Regel.
+  const [baseline] = useState(() => getLastBaseline())
   const preseasonSeasonEnd = usePreseasonElo()
 
   const scheduledCount = useMemo(() => {
@@ -72,11 +84,12 @@ export default function PlayoffOdds() {
     const seed = generateSeed()
     setTimeout(() => {
       try {
-        const sim = simulatePlayoffOdds(data.teams, data.games, data.settings, { players: data.players || [], initialRatings, seed })
+        const sim = simulatePlayoffOdds(data.teams, data.games, data.settings, { runs: runsChoice, players: data.players || [], initialRatings, seed })
         setResults(sim)
         setLastSimAt(new Date())
         setLastSeed(seed)
         setExpandedTeam(null)
+        recordBaselineIfNeeded(sim)
       } catch (err) {
         console.error('Simulation error:', err)
       } finally {
@@ -84,6 +97,13 @@ export default function PlayoffOdds() {
       }
     }, 0)
   }
+
+  // Geschlossene Form (kein Monte-Carlo-Lauf nötig) - daher unabhängig von
+  // `results` immer verfügbar, sobald Daten geladen sind.
+  const forecasts = useMemo(() => {
+    if (!data?.teams || !data?.games) return []
+    return computeMatchForecasts(data.teams, data.games, data.settings, data.players || [], initialRatings)
+  }, [data, initialRatings])
 
   if (scheduledCount === 0) {
     return (
@@ -96,6 +116,7 @@ export default function PlayoffOdds() {
   const byChampion = results ? [...results.rows].sort((a, b) => b.pChampion - a.pChampion) : []
   const favorite = byChampion[0]
   const top3 = byChampion.slice(0, 3)
+  const movers = results ? computeMovers(results.rows, baseline) : { risers: [], fallers: [] }
 
   return (
     <>
@@ -112,10 +133,17 @@ export default function PlayoffOdds() {
             </span>
           )}
         </div>
-        <button onClick={handleSimulate} disabled={simulating} className="btn primary">
-          {simulating ? 'Simuliert…' : `Simulation starten (${scheduledCount} Spiele)`}
-        </button>
+        <div className="row gap-sm">
+          <select value={runsChoice} onChange={(e) => setRunsChoice(Number(e.target.value))} disabled={simulating} style={{ width: 'auto' }} title="Anzahl Saison-Simulationen">
+            {RUN_CHOICES.map((n) => <option key={n} value={n}>{n.toLocaleString('de-CH')} Läufe</option>)}
+          </select>
+          <button onClick={handleSimulate} disabled={simulating} className="btn primary">
+            {simulating ? 'Simuliert…' : `Simulation starten (${scheduledCount} Spiele)`}
+          </button>
+        </div>
       </div>
+
+      <MatchForecast forecasts={forecasts} />
 
       {results && (
         <>
@@ -141,6 +169,39 @@ export default function PlayoffOdds() {
               ))}
             </div>
           </div>
+
+          {/* Was hat sich bewegt (Playoff-Chance) seit der letzten Baseline */}
+          {baseline && (movers.risers.length > 0 || movers.fallers.length > 0) && (
+            <div className="grid grid-2 mb" style={{ gap: 14 }}>
+              <div className="card card-pad">
+                <div className="section-label">Riser seit {baseline.date} (Playoff-Chance)</div>
+                {movers.risers.length === 0 && <div className="muted" style={{ fontSize: 12 }}>Keine nennenswerte Bewegung</div>}
+                {movers.risers.map((m) => (
+                  <div key={m.row.team.id} className="row spread" style={{ padding: '4px 0' }}>
+                    <TeamBadge team={m.row.team} short />
+                    <Delta pp={m.delta} />
+                  </div>
+                ))}
+              </div>
+              <div className="card card-pad">
+                <div className="section-label">Faller seit {baseline.date} (Playoff-Chance)</div>
+                {movers.fallers.length === 0 && <div className="muted" style={{ fontSize: 12 }}>Keine nennenswerte Bewegung</div>}
+                {movers.fallers.map((m) => (
+                  <div key={m.row.team.id} className="row spread" style={{ padding: '4px 0' }}>
+                    <TeamBadge team={m.row.team} short />
+                    <Delta pp={m.delta} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Bracket-Karten: % je Ausgang, absteigend, mit Delta zur letzten Baseline */}
+          <div className="section-label">Bracket-Wahrscheinlichkeiten</div>
+          <BracketCards rows={results.rows} baseline={baseline} />
+
+          {/* Positions-Matrix: P(Rang k) je Team, Heatmap oder Bars */}
+          <PositionMatrix rows={results.rows} runs={results.runs} />
 
           {/* National League Projektion */}
           <div className="section-label">National League Projektion</div>

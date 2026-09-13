@@ -237,9 +237,62 @@ export function computeFixtures(teams, games, settings, players = [], initialRat
 
   const sogAdjustments = computeSogAllowedEloAdjustments(teams, finalGames, players)
 
-  const fixtures = scheduled.map((g) => buildFixture(g.homeTeamId, g.awayTeamId, eloRatings, sogAdjustments, eloStart, homeAdvElo))
+  // gameId/date sind rein informativ (Zuordnung zu einem konkreten Spielplan-
+  // Eintrag für die PER-MATCH-FORECAST-Anzeige) - fliessen in keine Formel
+  // ein und werden von simulateSeasonProjections() ignoriert.
+  const fixtures = scheduled.map((g) => ({
+    ...buildFixture(g.homeTeamId, g.awayTeamId, eloRatings, sogAdjustments, eloStart, homeAdvElo),
+    gameId: g.id,
+    date: g.date,
+  }))
 
   return { fixtures, startPts, startWins, startH2H, eloRatings, eloStart, homeAdvElo, sogAdjustments }
+}
+
+const FORECAST_GOAL_TRUNCATION = 30 // Poisson(k>30; λ<=6) numerisch vernachlässigbar (<1e-12)
+
+function poissonPmfTable(lambda, n) {
+  const table = new Array(n + 1)
+  table[0] = Math.exp(-lambda)
+  for (let k = 1; k <= n; k++) table[k] = table[k - 1] * (lambda / k)
+  return table
+}
+
+// Geschlossene Form (Doppelsumme über die Poisson-Wahrscheinlichkeitsmasse,
+// identisches Prinzip wie server/scripts/backtesting/predictors.js::
+// closedFormWinProbability) statt Simulation: Wahrscheinlichkeit, dass ein
+// Spiel nach 60 Minuten unentschieden steht (= Entscheidung in Verlängerung/
+// Penaltyschiessen). Reine Zusatzgrösse für die PER-MATCH-FORECAST-Anzeige -
+// ändert nichts an simulateGameResult()/der Monte-Carlo-Simulation.
+export function computeDecisionProbability(expHome, expAway) {
+  const pmfHome = poissonPmfTable(expHome, FORECAST_GOAL_TRUNCATION)
+  const pmfAway = poissonPmfTable(expAway, FORECAST_GOAL_TRUNCATION)
+  let pTie = 0
+  for (let k = 0; k <= FORECAST_GOAL_TRUNCATION; k++) {
+    pTie += pmfHome[k] * pmfAway[k]
+  }
+  return pTie
+}
+
+// Heimsieg-/Auswärtssieg-/Entscheidung-nach-Verlängerung-Wahrscheinlichkeit
+// für alle noch offenen Spiele, aus ELO + Heimvorteil + SOG-zugelassen-
+// Faktor (identische Teamstärke-Basis wie computeFixtures()/die Monte-Carlo-
+// Simulation - keine eigene Prognoseformel). Chronologisch sortiert.
+export function computeMatchForecasts(teams, games, settings, players = [], initialRatings) {
+  const { fixtures } = computeFixtures(teams, games, settings, players, initialRatings)
+  const teamById = new Map(teams.map((t) => [t.id, t]))
+
+  return fixtures
+    .map((f) => ({
+      gameId: f.gameId,
+      date: f.date,
+      homeTeam: teamById.get(f.home),
+      awayTeam: teamById.get(f.away),
+      pHomeWin: f.pHome,
+      pAwayWin: 1 - f.pHome,
+      pDecision: computeDecisionProbability(f.expHome, f.expAway),
+    }))
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
 }
 
 // Simuliert genau EIN Spiel (Poisson-Regulationstore + kalibrierte OT/SO-
@@ -388,6 +441,24 @@ function twoLegWinner(rng, idA, idB, rankOf, eloRatings, sogAdjustments, eloStar
 // Worst-Case). Kein separater Simulationslauf pro Tabellenzeile/Team.
 // ============================================================================
 
+// Median + Standardabweichung (Population, nicht Stichprobe - alle `runs`
+// Läufe liegen vollständig vor) aus einem typed array von Rohwerten (finalRank
+// oder finalPoints je Lauf). Typed-array-`.sort()` sortiert (anders als bei
+// normalen Arrays) bereits standardmässig numerisch aufsteigend.
+function medianAndStdDev(arr) {
+  const n = arr.length
+  if (n === 0) return { median: 0, stdDev: 0 }
+  let sum = 0
+  for (let i = 0; i < n; i++) sum += arr[i]
+  const mean = sum / n
+  let sumSq = 0
+  for (let i = 0; i < n; i++) { const d = arr[i] - mean; sumSq += d * d }
+  const sorted = arr.slice().sort()
+  const mid = Math.floor(n / 2)
+  const median = n % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
+  return { median, stdDev: Math.sqrt(sumSq / n) }
+}
+
 export function simulateSeasonProjections(
   teams,
   games,
@@ -432,7 +503,11 @@ export function simulateSeasonProjections(
       minPts: Infinity,
       maxPts: -Infinity,
       sumPts: 0,
-      allPts: [], // für Median - runs bleibt in der Praxis im 4-5-stelligen Bereich, unkritisch
+      // Kompakte Ablage der Rohwerte jedes Laufs (typed arrays statt eines
+      // Arrays von Objekten) für Median/σ - finalRank/finalPoints je Team,
+      // Länge = runs (1k-10k), s. Kommentar über simulateSeasonProjections().
+      allPts: new Uint16Array(runs),
+      allRanks: new Uint8Array(runs),
       sumRank: 0,
       minTore: Infinity,
       maxTore: -Infinity,
@@ -515,7 +590,8 @@ export function simulateSeasonProjections(
       const rank = rankIdx + 1
       const r = results[row.id]
       r.sumPts += row.pts
-      r.allPts.push(row.pts)
+      r.allPts[sim] = row.pts
+      r.allRanks[sim] = rank
       r.sumRank += rank
       r.sumGF += row.gf
       r.sumGA += row.ga
@@ -608,13 +684,8 @@ export function simulateSeasonProjections(
 
   const rows = teams.map((t) => {
     const r = results[t.id]
-    const sortedPts = [...r.allPts].sort((a, b) => a - b)
-    const mid = sortedPts.length / 2
-    const medianPts = sortedPts.length === 0
-      ? 0
-      : sortedPts.length % 2 === 0
-        ? (sortedPts[mid - 1] + sortedPts[mid]) / 2
-        : sortedPts[Math.floor(mid)]
+    const ptsStats = medianAndStdDev(r.allPts)
+    const rankStats = medianAndStdDev(r.allRanks)
     return {
       team: t,
       startPts: startPts[t.id] || 0,
@@ -628,12 +699,16 @@ export function simulateSeasonProjections(
       pPlayout1314: r.playout1314 / runs,
       pLigaQualifikation: r.ligaqualifikation / runs,
       avgPts: r.sumPts / runs,
-      medianPts,
+      medianPts: ptsStats.median,
+      stdDevPts: ptsStats.stdDev,
       minPts: r.minPts === Infinity ? 0 : r.minPts,
       maxPts: r.maxPts === -Infinity ? 0 : r.maxPts,
       avgRank: r.sumRank / runs,
+      medianRank: rankStats.median,
+      stdDevRank: rankStats.stdDev,
       avgGF: r.sumGF / runs,
       avgGA: r.sumGA / runs,
+      avgGD: r.sumGF / runs - r.sumGA / runs,
       minGF: r.minTore === Infinity ? 0 : r.minTore,
       maxGF: r.maxTore === -Infinity ? 0 : r.maxTore,
       rankDistribution: r.ranks,

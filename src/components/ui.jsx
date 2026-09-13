@@ -118,6 +118,15 @@ export function MarketValueTrend({ trend }) {
   return null
 }
 
+// Delta-Anzeige in Prozentpunkten ggü. der letzten Baseline (src/baselineStore.js).
+// Bewusst neutral eingefärbt (kein grün/rot) - siehe Kommentar in styles.css.
+export function Delta({ pp, digits = 1 }) {
+  if (pp == null) return null
+  if (Math.abs(pp) < 0.05) return <span className="delta">±0.0</span>
+  const dir = pp > 0 ? 'up' : 'down'
+  return <span className={'delta ' + dir}>{Math.abs(pp).toFixed(digits)}pp</span>
+}
+
 export function Empty({ title, hint, action }) {
   return (
     <div className="empty">
