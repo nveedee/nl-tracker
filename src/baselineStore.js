@@ -76,6 +76,15 @@ export function getLastBaseline() {
   return list.length ? list[list.length - 1] : null
 }
 
+// Die VOLLSTÄNDIGE Historie (ein Snapshot pro Spieltag), chronologisch
+// aufsteigend sortiert - für SEASON-EVOLUTION (Liniendiagramm über die
+// Spieltage). Baut sich ausschliesslich vorwärts auf: die Historie beginnt
+// mit dem ersten Tag, an dem dieses Feature genutzt wurde - keine
+// rückwirkenden Daten, siehe Hinweis in SeasonEvolution.jsx.
+export function getBaselineHistory() {
+  return loadBaselines().sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+}
+
 // Speichert den aktuellen Simulationslauf als Baseline für HEUTE, aber nur
 // wenn für heute noch keine existiert (die Tagesbaseline bleibt sonst fix).
 // Aufrufreihenfolge in der UI: erst getLastBaseline() für die Delta-Anzeige

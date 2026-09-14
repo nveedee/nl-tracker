@@ -18,7 +18,10 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { simulateSeasonProjections, computeMatchForecasts, computeSwingAnalysisForMatchday, SWING_CATEGORIES } from './playoffSim.js'
+import {
+  simulateSeasonProjections, computeMatchForecasts, computeSwingAnalysisForMatchday, SWING_CATEGORIES,
+  filterLockedRuns, computePointsTargets, LOCK_MIN_SAMPLE, POINTS_CONFIDENCE_LEVELS, POINTS_TARGET_CATEGORIES,
+} from './playoffSim.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const SEED_PATH = path.join(__dirname, '..', 'server', 'data', 'seed.json')
@@ -145,6 +148,74 @@ test('Swing-Analyse: endliche, plausible Max-/Expected-Swing-Werte pro Spiel/Tea
         // einer separaten Simulation und kann durch Simulationsrauschen leicht
         // ausserhalb der Szenario-Spanne liegen) - nur [0,1] ist garantiert.
         assert.ok(Number.isFinite(c.expectedSwing) && c.expectedSwing >= 0 && c.expectedSwing <= 1, `${t.team.name}.${cat.key}.expectedSwing`)
+      }
+    }
+  }
+})
+
+test('LOCK FINAL STANDINGS: Slicing erzeugt keine neuen Läufe (raw-Summe = aggregierte Wahrscheinlichkeit)', () => {
+  const sim = simulateSeasonProjections(teams, games, settings, { runs: 3000, seed: 321, players })
+  const t = sim.rows[0].team
+  let rawSum = 0
+  for (let i = 0; i < sim.runs; i++) rawSum += sim.raw.champion[t.id][i]
+  assert.equal(rawSum / sim.runs, sim.rows.find((r) => r.team.id === t.id).pChampion)
+})
+
+test('LOCK FINAL STANDINGS: Rang-Lock liefert deterministisches Teilergebnis, Bracket-Summen bleiben korrekt', () => {
+  const sim = simulateSeasonProjections(teams, games, settings, { runs: 3000, seed: 321, players })
+  const target = sim.rows[0].team
+
+  const locked = filterLockedRuns(sim, [{ teamId: target.id, kind: 'rank', rank: 1 }])
+  assert.ok(locked.matchingRuns > 0, 'Rang 1 sollte in einigen Läufen vorkommen')
+  assert.equal(locked.totalRuns, sim.runs)
+
+  const row = locked.rows.find((r) => r.team.id === target.id)
+  assert.equal(row.avgRank, 1)
+  assert.equal(row.medianRank, 1)
+  assert.equal(row.stdDevRank, 0)
+  assert.equal(row.pTop6, 1)
+
+  // Bracket-Summen (Top6=6 etc.) gelten für JEDE konsistente Teilmenge von
+  // vollständigen Saisonverläufen, nicht nur für alle Läufe.
+  const sumRuns = (field) => Math.round(locked.rows.reduce((s, r) => s + r[field], 0) * locked.matchingRuns)
+  assert.equal(sumRuns('pTop6'), 6 * locked.matchingRuns)
+  assert.equal(sumRuns('pPlayoffs'), 8 * locked.matchingRuns)
+  assert.equal(sumRuns('pChampion'), 1 * locked.matchingRuns)
+
+  // Rangverteilung: alle 14 Rang-Schlüssel vorhanden, Summe = matchingRuns,
+  // kein anderes Team kann in dieser Teilmenge ebenfalls Rang 1 haben.
+  const other = locked.rows.find((r) => r.team.id !== target.id)
+  assert.equal(Object.keys(other.rankDistribution).length, sim.teamCount)
+  assert.equal(Object.values(other.rankDistribution).reduce((a, b) => a + b, 0), locked.matchingRuns)
+  assert.equal(other.rankDistribution[1], 0)
+})
+
+test('LOCK FINAL STANDINGS: widersprüchliche Locks liefern 0 Läufe statt Absturz', () => {
+  const sim = simulateSeasonProjections(teams, games, settings, { runs: 1000, seed: 321, players })
+  const [a, b] = sim.rows
+  const locked = filterLockedRuns(sim, [
+    { teamId: a.team.id, kind: 'rank', rank: 1 },
+    { teamId: b.team.id, kind: 'rank', rank: 1 },
+  ])
+  assert.equal(locked.matchingRuns, 0)
+  assert.equal(locked.sufficientSample, false)
+  assert.ok(locked.matchingRuns < LOCK_MIN_SAMPLE)
+})
+
+test('POINTS-TARGETS: monoton steigende Punkte-Schwellen über die Konfidenzstufen, oder Dash', () => {
+  const sim = simulateSeasonProjections(teams, games, settings, { runs: 3000, seed: 321, players })
+  const targets = computePointsTargets(sim)
+  assert.equal(targets.length, sim.rows.length)
+
+  for (const t of targets) {
+    for (const cat of POINTS_TARGET_CATEGORIES) {
+      const levels = POINTS_CONFIDENCE_LEVELS.map((l) => t.targets[cat.key][l])
+      let prevNonNull = -Infinity
+      for (const v of levels) {
+        if (v == null) continue // Dash ist erlaubt (Konfidenz nie erreicht)
+        assert.ok(Number.isFinite(v))
+        assert.ok(v >= prevNonNull, `${t.team.name}.${cat.key}: Punkte-Schwellen sollten mit der Konfidenz nicht sinken`)
+        prevNonNull = v
       }
     }
   }

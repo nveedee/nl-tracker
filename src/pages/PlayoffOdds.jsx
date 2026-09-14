@@ -20,6 +20,9 @@ import BracketCards from '../components/BracketCards.jsx'
 import MatchForecast from '../components/MatchForecast.jsx'
 import WhatIfSimulator from '../components/WhatIfSimulator.jsx'
 import SwingAnalysis from '../components/SwingAnalysis.jsx'
+import LockStandings from '../components/LockStandings.jsx'
+import PointsTargets from '../components/PointsTargets.jsx'
+import SeasonEvolution from '../components/SeasonEvolution.jsx'
 
 function fmtPct(v) { return v == null ? '–' : (v * 100).toFixed(1) + '%' }
 
@@ -204,6 +207,18 @@ export default function PlayoffOdds() {
 
           {/* Positions-Matrix: P(Rang k) je Team, Heatmap oder Bars */}
           <PositionMatrix rows={results.rows} runs={results.runs} />
+
+          {/* Lock Final Standings: Teams auf Rang/Bracket pinnen, bedingte
+              Wahrscheinlichkeiten durch Filtern der bereits gelaufenen Läufe */}
+          <div className="section-label">Lock Final Standings</div>
+          <LockStandings teams={data.teams} baseResults={results} />
+
+          {/* Points-Targets: ab wie vielen Punkten ist ein Ziel "sicher" */}
+          <div className="section-label">Points-Targets</div>
+          <PointsTargets baseResults={results} />
+
+          {/* Season-Evolution: Bracket-Wahrscheinlichkeiten über die Spieltage */}
+          <SeasonEvolution teams={data.teams} />
 
           {/* What-if-Simulator: einzelne offene Spiele fix vorgeben */}
           <div className="section-label">What-if-Simulator</div>

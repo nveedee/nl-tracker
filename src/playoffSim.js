@@ -562,6 +562,16 @@ export function simulateSeasonProjections(
       maxTore: -Infinity,
       sumGF: 0,
       sumGA: 0,
+      // Pro-Lauf-Flags (0/1) für die 6 Bracket-Ausgänge - zusätzlich zu den
+      // Zählern oben (die unverändert bleiben), NUR für LOCK FINAL STANDINGS
+      // (filterLockedRuns() unten): erlaubt, die bereits gelaufenen Läufe im
+      // Nachhinein auf "Team X erreicht Y" zu filtern, ohne neu zu simulieren.
+      championArr: new Uint8Array(runs),
+      top6Arr: new Uint8Array(runs),
+      playoffsArr: new Uint8Array(runs),
+      playInArr: new Uint8Array(runs),
+      playout1314Arr: new Uint8Array(runs),
+      ligaqualArr: new Uint8Array(runs),
     }
     for (let r = 1; r <= n; r++) {
       results[id].ranks[r] = 0
@@ -652,6 +662,7 @@ export function simulateSeasonProjections(
 
       if (rank >= PLAYOFF_FORMAT.directQuarterfinal[0] && rank <= PLAYOFF_FORMAT.directQuarterfinal[1]) {
         r.top6++
+        r.top6Arr[sim] = 1
       }
       // "Top 4" = die 4 besten Teams innerhalb der direkten Quarterfinal-Gruppe (Rang 1-6),
       // NICHT identisch mit der Playoff-Grenze.
@@ -660,14 +671,17 @@ export function simulateSeasonProjections(
       }
       if (rank >= PLAYOFF_FORMAT.playIn[0] && rank <= PLAYOFF_FORMAT.playIn[1]) {
         r.playIn++
+        r.playInArr[sim] = 1
       }
       if (rank >= PLAYOFF_FORMAT.playout[0] && rank <= PLAYOFF_FORMAT.playout[1]) {
         r.playout1314++
+        r.playout1314Arr[sim] = 1
       }
       if (!canRunBracket && rank <= PLAYOFF_FORMAT.playIn[1]) {
         // Fallback ohne Bracket-Simulation (siehe canRunBracket oben):
         // Rang 1-10 als Näherung für "Playoffs" ausgeben statt 0.
         r.playoffs++
+        r.playoffsArr[sim] = 1
       }
     })
 
@@ -693,7 +707,7 @@ export function simulateSeasonProjections(
       const b4 = seedOrder[3], b5 = seedOrder[4], b6 = seedOrder[5]
       const b7 = winnerA, b8 = decisionWinner
 
-      ;[b1, b2, b3, b4, b5, b6, b7, b8].forEach((id) => { results[id].playoffs++ })
+      ;[b1, b2, b3, b4, b5, b6, b7, b8].forEach((id) => { results[id].playoffs++; results[id].playoffsArr[sim] = 1 })
 
       const qfPairs = [[b1, b8], [b2, b7], [b3, b6], [b4, b5]]
       const qfWinners = qfPairs.map(([idA, idB]) => {
@@ -718,6 +732,7 @@ export function simulateSeasonProjections(
       const finalWorse = sf1Rank <= sf2Rank ? sf2Winner : sf1Winner
       const champion = simulateSeries(rng, finalBetter, finalWorse, BO7_WINS_NEEDED, BO7_HOME_PATTERN, ...bracketArgs)
       results[champion].champion++
+      results[champion].championArr[sim] = 1
 
       // Play-out (Rang 13/14, Bo7): Verlierer -> Ligaqualifikation gegen den
       // Swiss-League-Meister (nicht Teil des Datenmodells - hier zählt nur
@@ -726,6 +741,7 @@ export function simulateSeasonProjections(
       const playoutWinner = simulateSeries(rng, s13, s14, BO7_WINS_NEEDED, BO7_HOME_PATTERN, ...bracketArgs)
       const playoutLoser = playoutWinner === s13 ? s14 : s13
       results[playoutLoser].ligaqualifikation++
+      results[playoutLoser].ligaqualArr[sim] = 1
     }
   }
 
@@ -767,6 +783,24 @@ export function simulateSeasonProjections(
   // Sortiere (identisch zum bisherigen Verhalten von simulatePlayoffOdds)
   rows.sort((a, b) => b.pPlayoffs - a.pPlayoffs || b.avgPts - a.avgPts)
 
+  // Rohdaten aller Läufe, je Team - für LOCK FINAL STANDINGS (filterLockedRuns())
+  // und POINTS-TARGETS (computePointsTargets()) unten: reines Durchreichen der
+  // bereits befüllten typed arrays, keine Kopie/zusätzliche Berechnung hier.
+  const raw = {
+    finalRank: {}, finalPoints: {}, champion: {}, top6: {}, playoffs: {}, playIn: {}, playout1314: {}, ligaqualifikation: {},
+  }
+  teamIds.forEach((id) => {
+    const r = results[id]
+    raw.finalRank[id] = r.allRanks
+    raw.finalPoints[id] = r.allPts
+    raw.champion[id] = r.championArr
+    raw.top6[id] = r.top6Arr
+    raw.playoffs[id] = r.playoffsArr
+    raw.playIn[id] = r.playInArr
+    raw.playout1314[id] = r.playout1314Arr
+    raw.ligaqualifikation[id] = r.ligaqualArr
+  })
+
   return {
     runs,
     seed,
@@ -777,6 +811,7 @@ export function simulateSeasonProjections(
     otRate: CALIBRATION.historicalTieRate,
     bracketSimulated: canRunBracket,
     rows,
+    raw,
     metadata: {
       simulation: 'calibrated_10k',
       factors: [
@@ -907,4 +942,187 @@ export function computeSwingAnalysisForMatchday(teams, games, settings, gameIds,
 
   perGame.sort((a, b) => b.influence - a.influence)
   return perGame
+}
+
+// ============================================================================
+// LOCK FINAL STANDINGS (bedingte Wahrscheinlichkeiten OHNE Neuberechnung)
+//
+// Filtert die bereits gelaufenen `runs` eines simulateSeasonProjections()-
+// Ergebnisses (dessen `raw`, s.o.) auf die Teilmenge, die ALLE vorgegebenen
+// "Locks" erfüllt (z.B. "Team X wird Rang 3" UND "Team Y erreicht die
+// Playoffs"), und rechnet alle Wahrscheinlichkeiten/die Rangverteilung NUR
+// über diese Teilmenge neu - reines Nachrechnen (Array-Filterung), KEINE
+// neue Simulation, kein einziger RNG-Aufruf.
+// ============================================================================
+
+export const LOCK_MIN_SAMPLE = 200 // darunter: "zu selten für stabile Aussage"
+
+export const LOCK_BRACKET_KINDS = [
+  { key: 'champion', label: 'Meister' },
+  { key: 'top6', label: 'Direkt Top 6' },
+  { key: 'playoffs', label: 'Playoffs (VF erreicht)' },
+  { key: 'playIn', label: 'Play-in' },
+  { key: 'playout1314', label: 'Play-out 13/14' },
+  { key: 'ligaqualifikation', label: 'Ligaqualifikation' },
+]
+
+// Baut dieselben Aggregat-Felder wie simulateSeasonProjections()'s `rows`
+// (Wahrscheinlichkeiten, Ø/Median/σ Rang+Punkte, Rangverteilung) aus den
+// gespeicherten Rohdaten EINER Teilmenge von Läufen (`runIndices`) - reines
+// Nachrechnen, keine Simulation. `teamCount` bestimmt die Anzahl möglicher
+// Ränge (1..teamCount), damit die Rangverteilung auch bei einer kleinen/
+// sparse gewordenen Teilmenge immer alle Rang-Schlüssel (ggf. mit 0) trägt
+// (PositionMatrix.jsx verlässt sich auf vollständige, dichte Rang-Spalten).
+function aggregateFromRaw(teams, raw, runIndices, teamCount) {
+  const m = runIndices.length
+  return teams.map((t) => {
+    const id = t.id
+    const rankDistribution = {}
+    for (let rk = 1; rk <= teamCount; rk++) rankDistribution[rk] = 0
+
+    if (m === 0) {
+      return {
+        team: t, pChampion: 0, pTop6: 0, pPlayoffs: 0, pPlayIn: 0, pPlayout1314: 0, pLigaQualifikation: 0,
+        avgRank: 0, medianRank: 0, stdDevRank: 0, avgPts: 0, medianPts: 0, stdDevPts: 0, rankDistribution,
+      }
+    }
+
+    let champion = 0, top6 = 0, playoffs = 0, playIn = 0, playout1314 = 0, ligaqualifikation = 0
+    let sumRank = 0, sumPts = 0
+    const rankArr = new Uint8Array(m)
+    const ptsArr = new Uint16Array(m)
+    for (let k = 0; k < m; k++) {
+      const i = runIndices[k]
+      champion += raw.champion[id][i]
+      top6 += raw.top6[id][i]
+      playoffs += raw.playoffs[id][i]
+      playIn += raw.playIn[id][i]
+      playout1314 += raw.playout1314[id][i]
+      ligaqualifikation += raw.ligaqualifikation[id][i]
+      const rank = raw.finalRank[id][i]
+      const pts = raw.finalPoints[id][i]
+      rankArr[k] = rank
+      ptsArr[k] = pts
+      sumRank += rank
+      sumPts += pts
+      rankDistribution[rank] = (rankDistribution[rank] || 0) + 1
+    }
+    const rankStats = medianAndStdDev(rankArr)
+    const ptsStats = medianAndStdDev(ptsArr)
+
+    return {
+      team: t,
+      pChampion: champion / m, pTop6: top6 / m, pPlayoffs: playoffs / m, pPlayIn: playIn / m,
+      pPlayout1314: playout1314 / m, pLigaQualifikation: ligaqualifikation / m,
+      avgRank: sumRank / m, medianRank: rankStats.median, stdDevRank: rankStats.stdDev,
+      avgPts: sumPts / m, medianPts: ptsStats.median, stdDevPts: ptsStats.stdDev,
+      rankDistribution,
+    }
+  })
+}
+
+// `locks`: Array von { teamId, kind: 'rank', rank } (Endrang 1..14) oder
+// { teamId, kind: 'champion'|'top6'|'playoffs'|'playIn'|'playout1314'|'ligaqualifikation' }
+// (siehe LOCK_BRACKET_KINDS). Alle Locks müssen für einen Lauf gleichzeitig
+// gelten (UND-Verknüpfung). Gibt null zurück, wenn `simResult` keine
+// Rohdaten trägt oder keine Locks übergeben wurden.
+export function filterLockedRuns(simResult, locks) {
+  if (!simResult?.raw || !locks || locks.length === 0) return null
+  const { raw, runs, teamCount } = simResult
+  const matching = []
+  for (let i = 0; i < runs; i++) {
+    let ok = true
+    for (const lock of locks) {
+      if (lock.kind === 'rank') {
+        if (raw.finalRank[lock.teamId][i] !== lock.rank) { ok = false; break }
+      } else {
+        const arr = raw[lock.kind]?.[lock.teamId]
+        if (!arr || arr[i] !== 1) { ok = false; break }
+      }
+    }
+    if (ok) matching.push(i)
+  }
+
+  const teams = simResult.rows.map((r) => r.team)
+  const rows = aggregateFromRaw(teams, raw, matching, teamCount)
+  rows.sort((a, b) => b.pPlayoffs - a.pPlayoffs || b.avgPts - a.avgPts)
+
+  return {
+    matchingRuns: matching.length,
+    totalRuns: runs,
+    sufficientSample: matching.length >= LOCK_MIN_SAMPLE,
+    rows,
+    runs: matching.length,
+  }
+}
+
+// ============================================================================
+// POINTS-TARGETS ("X Punkte = sicher")
+//
+// Aus der finalPoints-Verteilung je Team (raw.finalPoints, s.o.), bedingt auf
+// ein Punktefenster (±POINTS_SMOOTHING um einen Kandidaten-Punktestand P):
+// welcher Anteil der Läufe mit ~P Punkten erreicht (bzw. bei "Play-out
+// vermeiden": vermeidet) das Ziel? Die kleinste Punktzahl, ab der dieser
+// Anteil eine Konfidenzschwelle (50/75/90/99%) erreicht, ist der "Punkte-
+// Target". Reines Nachrechnen über die bereits gespeicherten Läufe, keine
+// neue Simulation.
+// ============================================================================
+
+const POINTS_SMOOTHING = 2
+const POINTS_MIN_WINDOW_SAMPLE = 20 // Punktefenster mit weniger Läufen gilt als zu verrauscht
+
+export const POINTS_CONFIDENCE_LEVELS = [0.5, 0.75, 0.9, 0.99]
+
+export const POINTS_TARGET_CATEGORIES = [
+  { key: 'top6', label: 'Top 6', field: 'top6', negate: false },
+  { key: 'playoffs', label: 'Playoffs', field: 'playoffs', negate: false },
+  { key: 'avoidPlayout', label: 'Play-out vermeiden', field: 'playout1314', negate: true },
+]
+
+export function computePointsTargets(simResult) {
+  if (!simResult?.raw) return []
+  const { raw, rows } = simResult
+
+  return rows.map((row) => {
+    const id = row.team.id
+    const pts = raw.finalPoints[id]
+    let minP = Infinity, maxP = -Infinity
+    for (let i = 0; i < pts.length; i++) {
+      if (pts[i] < minP) minP = pts[i]
+      if (pts[i] > maxP) maxP = pts[i]
+    }
+
+    const targets = {}
+    for (const cat of POINTS_TARGET_CATEGORIES) {
+      const flagArr = raw[cat.field][id]
+      // Für jeden möglichen Punktestand EINMAL die gefensterte bedingte
+      // Wahrscheinlichkeit berechnen (nicht pro Konfidenzstufe neu) - Performance.
+      const byPoints = []
+      for (let p = minP; p <= maxP; p++) {
+        let windowCount = 0, hitCount = 0
+        for (let i = 0; i < pts.length; i++) {
+          if (Math.abs(pts[i] - p) <= POINTS_SMOOTHING) {
+            windowCount++
+            const hit = cat.negate ? flagArr[i] === 0 : flagArr[i] === 1
+            if (hit) hitCount++
+          }
+        }
+        byPoints.push({ p, windowCount, prob: windowCount > 0 ? hitCount / windowCount : null })
+      }
+
+      const perLevel = {}
+      for (const level of POINTS_CONFIDENCE_LEVELS) {
+        let found = null
+        for (const entry of byPoints) {
+          if (entry.windowCount >= POINTS_MIN_WINDOW_SAMPLE && entry.prob != null && entry.prob >= level) {
+            found = entry.p
+            break
+          }
+        }
+        perLevel[level] = found // null -> Dash in der UI ("keine simulierte Punktzahl erreicht die Konfidenz")
+      }
+      targets[cat.key] = perLevel
+    }
+    return { team: row.team, targets }
+  })
 }
