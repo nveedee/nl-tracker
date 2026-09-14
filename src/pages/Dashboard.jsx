@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom'
 import { useData } from '../DataContext.jsx'
 import { TeamBadge, Empty, StatTile, SectionHeader } from '../components/ui.jsx'
 import { isFinalGame } from '../stats.js'
+import { getLastBaseline, getBaselineRow } from '../baselineStore.js'
+import PlayoffChancesCard from '../components/PlayoffChancesCard.jsx'
 
 export default function Dashboard() {
   const { data, derived } = useData()
@@ -20,6 +22,26 @@ export default function Dashboard() {
     ? upcoming.slice(0, 6)
     : [...playedGames].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 6)
   const scheduledCount = games.filter((g) => g.status === 'scheduled').length
+
+  // Playoff-Chancen-Karte: aus der letzten Tages-Baseline (src/baselineStore.js) -
+  // kein Live-Simulationslauf auf dem Dashboard (10'000 Läufe würden das
+  // sonst sofortige Laden blockieren). Baseline entsteht beim ersten
+  // Simulationslauf des Tages auf /playoff-odds; ohne bisherigen Lauf bleibt
+  // die Karte aus (kein erfundener/leerer Balken).
+  const baseline = getLastBaseline()
+  const playoffChancesRows = baseline
+    ? data.teams
+      .map((team) => {
+        const row = getBaselineRow(baseline, team.id)
+        return row ? { team, pPlayoffs: row.pPlayoffs, pSemifinal: row.pSemifinal, pFinal: row.pFinal } : null
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.pPlayoffs - a.pPlayoffs)
+      .slice(0, 8)
+    : []
+  const baselineUpdatedLabel = baseline
+    ? new Date(baseline.createdAt).toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit' }).replace(/\.$/, '')
+    : null
 
   return (
     <>
@@ -42,7 +64,19 @@ export default function Dashboard() {
           hint={'Teams, Kader und Spiele werden automatisch per Sync geladen (siehe „Sync" oben rechts).'}
         />
       ) : (
-        <div className="grid grid-2">
+        <>
+          {playoffChancesRows.length > 0 ? (
+            <PlayoffChancesCard rows={playoffChancesRows} updatedLabel={`Stand ${baselineUpdatedLabel}`} />
+          ) : (
+            <div className="playoff-chances-card mb">
+              <SectionHeader
+                title="Playoff-Chancen"
+                caption="Noch keine Simulation gelaufen."
+                action={<Link className="btn ghost sm" to="/playoff-odds">Simulieren →</Link>}
+              />
+            </div>
+          )}
+          <div className="grid grid-2">
           <div className="card card-pad">
             <SectionHeader
               title="Tabelle" caption="Aktueller Stand nach Punkten."
@@ -131,7 +165,8 @@ export default function Dashboard() {
               </div>
             )}
           </div>
-        </div>
+          </div>
+        </>
       )}
     </>
   )

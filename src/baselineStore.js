@@ -21,7 +21,7 @@ const STORAGE_KEY = 'nl-tracker:playoff-baselines'
 const MAX_BASELINES = 90 // ~3 Saison-Monate tägliche Historie, verhindert unbegrenztes Wachstum
 
 const BASELINE_FIELDS = [
-  'pPlayoffs', 'pTop6', 'pPlayIn', 'pChampion', 'pPlayout1314', 'pLigaQualifikation', 'avgRank',
+  'pPlayoffs', 'pTop6', 'pPlayIn', 'pSemifinal', 'pFinal', 'pChampion', 'pPlayout1314', 'pLigaQualifikation', 'avgRank',
 ]
 
 function todayKey(d = new Date()) {

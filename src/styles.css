@@ -60,6 +60,7 @@
   --radius: 8px;
   --radius-sm: 6px;
   --radius-lg: 10px;
+  --radius-xl: 18px; /* betont abgerundete Karten (z.B. Playoff-Chancen) - Fortsetzung derselben Stufung */
 
   --shadow-sm: none;
   --shadow: none;
@@ -537,6 +538,36 @@ input[type="checkbox"] { width: auto; accent-color: var(--accent); }
 .prob-bar-value {
   min-width: 42px; text-align: right; font-family: var(--mono);
   font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Playoff-Chancen-Karte (MoneyPuck-Stil: runde Karte, pill-
+   shaped Balken, Team x Runde als Balken statt Tabelle) ---------- */
+.playoff-chances-card {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: 18px 18px 8px;
+}
+.pc-head { display: grid; grid-template-columns: minmax(64px, 1fr) repeat(3, minmax(58px, 1.3fr)); gap: 6px 10px; margin-bottom: 4px; }
+.pc-head span {
+  font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-faint); text-align: center; white-space: nowrap;
+}
+.pc-head span:first-child { text-align: left; }
+.pc-divider { height: 1px; background: var(--border); margin-bottom: 6px; }
+.pc-row {
+  display: grid; grid-template-columns: minmax(64px, 1fr) repeat(3, minmax(58px, 1.3fr));
+  gap: 6px 10px; align-items: center; padding: 9px 0;
+}
+.pc-cell { display: flex; flex-direction: column; gap: 3px; align-items: stretch; }
+.pc-bar-track {
+  height: 9px; background: var(--bg-elev-2); border-radius: 999px; overflow: hidden;
+}
+.pc-bar-fill { height: 100%; border-radius: 999px; min-width: 3px; }
+.pc-cell .pc-value {
+  font-size: 10.5px; font-weight: 700; font-family: var(--mono); font-variant-numeric: tabular-nums;
+  color: var(--text-dim); text-align: center;
 }
 
 /* ---------- StatTile ---------- */
