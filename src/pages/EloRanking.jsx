@@ -1,6 +1,5 @@
 import { useData } from '../DataContext.jsx'
 import { TeamBadge } from '../components/ui.jsx'
-import { homeWinProbability } from '../elo.js'
 
 export default function EloRanking() {
   const { data, derived } = useData()

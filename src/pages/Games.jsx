@@ -20,7 +20,6 @@ export default function Games() {
         </div>
         <div className="row gap-sm">
           <Link className="btn ghost" to="/schedule">Spielplan</Link>
-          <Link className="btn primary" to="/games/new">Spiel erfassen</Link>
         </div>
       </div>
 
@@ -28,7 +27,6 @@ export default function Games() {
         <div className="empty">
           <div className="title">Noch keine Spiele gespielt</div>
           <div className="hint">Kommende Spiele findest du im <Link to="/schedule">Spielplan</Link>.</div>
-          <div style={{ marginTop: 14 }}><Link className="btn primary" to="/games/new">Erstes Spiel erfassen</Link></div>
         </div>
       ) : (
         <div className="card">
@@ -41,7 +39,6 @@ export default function Games() {
                   <th className="num">Resultat</th>
                   <th className="left">Auswärts</th>
                   <th className="left">Modus</th>
-                  <th className="num"></th>
                   <th className="num"></th>
                 </tr>
               </thead>
@@ -57,7 +54,6 @@ export default function Games() {
                       <td className="left" style={{ fontWeight: !homeWon ? 700 : 400 }} onClick={(e) => e.stopPropagation()}><TeamBadge team={a} /></td>
                       <td className="left">{g.decision === 'REG' ? <span className="muted">–</span> : <span className="chip">{g.decision === 'OT' ? 'Overtime' : 'Penalty'}</span>}</td>
                       <td className="num"><Link className="btn ghost sm" to={`/matchup/${g.id}`} onClick={(e) => e.stopPropagation()}>Matchup</Link></td>
-                      <td className="num"><Link className="btn ghost sm" to={`/games/${g.id}`} onClick={(e) => e.stopPropagation()}>Bearbeiten</Link></td>
                     </tr>
                   )
                 })}

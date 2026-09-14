@@ -27,7 +27,6 @@ export default function Dashboard() {
         <div>
           <h1>{data.settings.seasonName}</h1>
         </div>
-        <Link className="btn primary" to="/games/new">Spiel erfassen</Link>
       </div>
 
       <div className="tiles mb">
@@ -39,9 +38,8 @@ export default function Dashboard() {
 
       {games.length === 0 ? (
         <Empty
-          title="Noch keine Spiele erfasst"
-          hint={'Lege zuerst die Kader unter „Teams & Kader" an und erfasse dann dein erstes Spiel.'}
-          action={<Link className="btn primary" to="/games/new">Erstes Spiel erfassen</Link>}
+          title="Noch keine Daten synchronisiert"
+          hint={'Teams, Kader und Spiele werden automatisch per Sync geladen (siehe „Sync" oben rechts).'}
         />
       ) : (
         <div className="grid grid-2">

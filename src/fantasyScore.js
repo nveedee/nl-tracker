@@ -99,35 +99,3 @@ export function computeFantasyBreakdown(statRow) {
 export function computeFantasyScores(playerStatRows) {
   return (playerStatRows || []).map((row) => ({ ...row, fantasy: computeFantasyBreakdown(row) }))
 }
-
-// ---------------------------------------------------------------------------
-// VALUE-ANALYSE: Fantasy-Punkte im Verhältnis zum Marktwert (NL-API,
-// player.marketValue). Rein abgeleitet aus bereits vorhandenen Werten -
-// keine neue Datenquelle, kein Eingriff in ELO/Prognose.
-// ---------------------------------------------------------------------------
-
-// "Punkte pro CHF", normiert auf 1 Mio CHF Marktwert (sonst sehr kleine
-// Dezimalzahlen). null, wenn kein Marktwert bekannt ist (nicht 0 - ein
-// fehlender Marktwert ist etwas anderes als ein Marktwert von 0).
-export function pointsPerMillionChf(fantasyTotal, marketValue) {
-  if (marketValue == null || marketValue <= 0 || fantasyTotal == null) return null
-  return fantasyTotal / (marketValue / 1_000_000)
-}
-
-// Einfache lineare Regression (Fantasy-Punkte ~ Marktwert) über die
-// übergebenen Punkte - liefert die Trendlinie für die Scatter-Ansicht UND
-// die Grundlage für "Value"/"überbezahlt" (Residuum = tatsächliche Punkte
-// minus die durch den Marktwert erwartete Punktzahl gemäss dieser Linie).
-// null bei zu wenig Datenpunkten oder wenn alle x-Werte identisch sind.
-export function fitValueTrendLine(points) {
-  const n = points.length
-  if (n < 2) return null
-  const meanX = points.reduce((s, p) => s + p.x, 0) / n
-  const meanY = points.reduce((s, p) => s + p.y, 0) / n
-  let num = 0, den = 0
-  for (const p of points) { num += (p.x - meanX) * (p.y - meanY); den += (p.x - meanX) ** 2 }
-  if (den === 0) return null
-  const slope = num / den
-  const intercept = meanY - slope * meanX
-  return { slope, intercept, predict: (x) => slope * x + intercept }
-}

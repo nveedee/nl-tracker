@@ -134,7 +134,9 @@ function crud(collection, idPrefix) {
 
 crud('teams', 'team')
 crud('players', 'player')
-crud('games', 'game')
+// KEIN crud('games', 'game') mehr: Spiele kommen ausschliesslich über den
+// Sync (SIHF/NL, s.u.) - manuelle Erfassung/Bearbeitung/Löschung von Spielen
+// wurde entfernt (src/pages/GameEntry.jsx), da sie den Sync nur duplizierte.
 
 // ---------------------------------------------------------------------------
 // SIHF-Sync (server/scripts/sync-sihf.cjs) - hält den Spielplan mit den

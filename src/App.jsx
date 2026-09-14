@@ -15,10 +15,8 @@ import TeamDetail from './pages/TeamDetail.jsx'
 import PlayerDetail from './pages/PlayerDetail.jsx'
 import Games from './pages/Games.jsx'
 import Schedule from './pages/Schedule.jsx'
-import GameEntry from './pages/GameEntry.jsx'
 import PlayerRankings from './pages/PlayerRankings.jsx'
 import Fantasy from './pages/Fantasy.jsx'
-import TeamBuilder from './pages/TeamBuilder.jsx'
 import Settings from './pages/Settings.jsx'
 import SimulationTest from './pages/SimulationTest.jsx'
 import ModelPerformance from './pages/ModelPerformance.jsx'
@@ -35,7 +33,6 @@ const primaryNav = [
   { to: '/playoff-odds', label: 'Playoff Odds' },
   { to: '/players', label: 'Spieler' },
   { to: '/fantasy', label: 'Fantasy' },
-  { to: '/team-builder', label: 'Team-Builder' },
   { to: '/goalies', label: 'Torhüter' },
   { to: '/head-to-head', label: 'H2H' },
   { to: '/simulation-test', label: 'Simulation' },
@@ -45,7 +42,6 @@ const primaryNav = [
 
 // Verwaltung/Erfassung: sekundäres Menü, nicht Teil der Hauptnavigation.
 const secondaryNav = [
-  { to: '/games/new', label: 'Spiel erfassen' },
   { to: '/schedule', label: 'Spielplan' },
   { to: '/games', label: 'Alle Spiele' },
   { to: '/teams', label: 'Teams & Kader' },
@@ -160,12 +156,9 @@ export default function App() {
             <Route path="/backtesting" element={<Backtesting />} />
             <Route path="/players" element={<PlayerRankings />} />
             <Route path="/fantasy" element={<Fantasy />} />
-            <Route path="/team-builder" element={<TeamBuilder />} />
             <Route path="/games" element={<Games />} />
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/matchup/:gameId" element={<MatchupDetail />} />
-            <Route path="/games/new" element={<GameEntry />} />
-            <Route path="/games/:id" element={<GameEntry />} />
             <Route path="/teams" element={<Teams />} />
             <Route path="/teams/:id" element={<TeamDetail />} />
             <Route path="/players/:id" element={<PlayerDetail />} />

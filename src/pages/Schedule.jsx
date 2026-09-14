@@ -42,7 +42,6 @@ export default function Schedule() {
                   <th className="left">Prognose</th>
                   <th className="left">Auswärts</th>
                   <th className="num"></th>
-                  <th className="num"></th>
                 </tr>
               </thead>
               <tbody>
@@ -72,7 +71,6 @@ export default function Schedule() {
                       </td>
                       <td className="left" onClick={(e) => e.stopPropagation()}><TeamBadge team={a} /></td>
                       <td className="num"><Link className="btn ghost sm" to={`/matchup/${g.id}`} onClick={(e) => e.stopPropagation()}>Matchup</Link></td>
-                      <td className="num"><Link className="btn ghost sm" to={`/games/${g.id}`} onClick={(e) => e.stopPropagation()}>Resultat eintragen</Link></td>
                     </tr>
                   )
                 })}

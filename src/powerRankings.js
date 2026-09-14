@@ -21,7 +21,7 @@
 // unverändert, ebenso Offensive/Defensive/Form-Gewichtung.
 // ---------------------------------------------------------------------------
 
-import { isFinalGame, computeHomeSplits, computeTeamForm } from './stats.js'
+import { isFinalGame } from './stats.js'
 
 // ============================================================================
 // KONFIGURATION (zentral optimierbar)

@@ -317,7 +317,7 @@ p { margin: 0 0 10px; }
   border-radius: var(--radius);
   box-shadow: var(--shadow);
 }
-a.card:hover, .card.hover:hover {
+a.card:hover {
   border-color: var(--border-strong);
   background: var(--bg-hover);
 }
@@ -327,7 +327,6 @@ a.card:hover, .card.hover:hover {
 .grid { display: grid; gap: 14px; }
 .grid-2 { grid-template-columns: repeat(2, 1fr); }
 .grid-3 { grid-template-columns: repeat(3, 1fr); }
-.grid-4 { grid-template-columns: repeat(4, 1fr); }
 
 /* ---------- Stat strip (kompakte Kennzahlenzeile) ---------- */
 .stat-strip {
@@ -447,7 +446,6 @@ input, select {
 input::placeholder { color: var(--text-faint); }
 input:hover, select:hover { border-color: var(--text-faint); }
 input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-input.mini { padding: 6px 8px; text-align: right; font-family: var(--mono); font-weight: 600; }
 input[type="checkbox"] { width: auto; accent-color: var(--accent); }
 .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
 .form-row > * { flex: 1; min-width: 140px; }
@@ -596,8 +594,6 @@ input[type="checkbox"] { width: auto; accent-color: var(--accent); }
 .split-bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; border: 1px solid var(--border); background: var(--bg-elev-2); }
 .split-bar .home { background: var(--accent); }
 .split-bar .away { background: var(--border-strong); }
-.match-row { cursor: pointer; }
-.match-row:hover { background: var(--bg-hover); }
 
 /* Match-Liste als Karten-Zeilen statt Tabelle (kein Team pro Zeile -> kein
    sinnvolles Sticky-First-Pattern; als Liste vermeidet sie horizontales
@@ -642,7 +638,7 @@ td.num strong, th.num strong { font-weight: 800; }
     padding-left: max(16px, env(safe-area-inset-left));
     padding-right: max(16px, env(safe-area-inset-right));
   }
-  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
   .stat-strip .stat { padding-right: 12px; }
   .stat-strip .stat:not(:first-child) { padding-left: 12px; }
 }

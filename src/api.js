@@ -31,10 +31,6 @@ export const api = {
   updatePlayer: (id, p) => req('PUT', `/players/${id}`, p),
   deletePlayer: (id) => req('DELETE', `/players/${id}`),
 
-  createGame: (g) => req('POST', '/games', g),
-  updateGame: (id, g) => req('PUT', `/games/${id}`, g),
-  deleteGame: (id) => req('DELETE', `/games/${id}`),
-
   importData: (data) => req('POST', '/import', data),
   reset: (opts) => req('POST', '/reset', opts || {}),
 

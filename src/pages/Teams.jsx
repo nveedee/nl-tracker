@@ -1,7 +1,6 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useData } from '../DataContext.jsx'
-import { TeamBadge, Modal, toast } from '../components/ui.jsx'
+import { TeamBadge } from '../components/ui.jsx'
 
 export default function Teams() {
   const { data } = useData()

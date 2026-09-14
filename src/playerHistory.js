@@ -289,10 +289,9 @@ export function buildCurrentSeasonRecord(stat, player, seasonLabel) {
 // dort ohnehin schon für das Spielprotokoll aufgebaut, hier nur
 // wiederverwendet statt erneut aus data.games abgeleitet). null, wenn
 // weniger als `n` Spiele vorhanden sind - keine Berechnung auf zu wenig
-// Datenbasis. `sog`/`toiSec` sind optional (nur vom SIHF-Sync befüllt, nicht
-// bei manuell über GameEntry.jsx erfassten Spielen) - werden nur summiert,
-// wenn mindestens ein Eintrag im Fenster einen Wert > 0 hat, sonst `null`
-// statt eines irreführenden 0.
+// Datenbasis. `sog`/`toiSec` sind optional (nur vom SIHF-Sync befüllt) -
+// werden nur summiert, wenn mindestens ein Eintrag im Fenster einen Wert > 0
+// hat, sonst `null` statt eines irreführenden 0.
 export function computeRollingForm(log, n) {
   if (!log || log.length < n) return null
   let goals = 0, assists = 0, sog = 0, toiSec = 0, hasSog = false, hasToi = false

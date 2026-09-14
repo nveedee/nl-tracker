@@ -109,9 +109,9 @@ export function compareTiebreak(a, b, h2hMap) {
 //
 //   1. player.apiStats  - offizielle Saison-Totale von nationalleague.ch
 //      (server/sync.js), bevorzugt wenn vorhanden.
-//   2. Spielbasierte Aggregation über games[].playerStats[] (SIHF-Sync bzw.
-//      manuell über GameEntry.jsx erfasst) - Fallback für Spieler ohne
-//      player.apiStats (z.B. (noch) nicht verknüpfte manuelle Kader-Einträge).
+//   2. Spielbasierte Aggregation über games[].playerStats[] (SIHF-Sync) -
+//      Fallback für Spieler ohne player.apiStats (z.B. (noch) nicht
+//      verknüpfte Kader-Einträge).
 //
 // SOG/TOI sowie die Sieg/Niederlage-Bilanz eines Torhüters liefert AUSSCHLIESSLICH
 // die spielbasierte Aggregation - die NL-API-Saison-Totale kennen diese Felder
