@@ -51,14 +51,13 @@ const STAGES = [
   { key: 'pChampion', label: 'Meister', short: 'M', opacity: 1 },
 ]
 const RADIUS_KEY = { pPlayoffs: 'rQF', pSemifinal: 'rSF', pFinal: 'rFinal', pChampion: 'rCup' }
-// Position der vier Runden-Labels IN der Grafik (nicht nur in der HTML-
-// Legende darunter) - die leere Ecke des quadratischen viewBox ausserhalb
-// des Kreises (Kreis reicht bis ~148 vom Zentrum, Ecke liegt bei ~240) bietet
-// dafür genug Platz, ohne mit Sektoren/Logos zu kollidieren, unabhängig
-// davon wie schmal einzelne Team-Lücken gerade sind.
-const RING_LABEL_X = 10
-const RING_LABEL_Y0 = 14
-const RING_LABEL_STEP = 13
+// Radiale Position der vier Runden-Labels, GENAU AUF der 12-Uhr-Achse
+// (oberer Bereich, innerhalb des Kreises - nicht in einer Ecke ausserhalb).
+// Rein dekorative Referenzradien auf der gemeinsamen 0-100%-Skala (wie die
+// %-Ringe selbst) - unabhängig von jedem einzelnen Team-Sektor, verändert
+// keine Geometrie (startAngle/endAngle/rQF/... bleiben unberührt). Absteigend
+// aussen (Viertelfinal, nahe maxRadius) -> innen (Meister, knapp über dem Hub).
+const RING_LABEL_RADIUS = { pPlayoffs: 0.91, pSemifinal: 0.67, pFinal: 0.43, pChampion: 0.19 }
 
 function fmtPct(v) {
   if (v == null) return '–'
@@ -174,17 +173,24 @@ export default function PlayoffWheel({ rows, updatedLabel }) {
             ))}
           </g>
 
-          {/* Runden-Labels ALS TEIL DER GRAFIK (nicht nur als HTML-Legende
-              darunter) - in der leeren Ecke ausserhalb des Kreises, in
-              derselben Reihenfolge/Deckkraft wie die Ringe selbst (aussen
-              hell/Viertelfinal -> innen kräftig/Meister). */}
-          <g className="wheel-round-labels">
-            {STAGES.map((s, i) => (
-              <g key={s.key} transform={`translate(${RING_LABEL_X}, ${RING_LABEL_Y0 + i * RING_LABEL_STEP})`}>
-                <rect width={9} height={9} rx={2} fill="currentColor" opacity={s.opacity} />
-                <text x={13} y={7.5}>{s.label}</text>
-              </g>
-            ))}
+          {/* Runden-Labels DIREKT IN der Kreisgrafik (nicht ausserhalb, nicht
+              in einer Ecke) - stehen aufrecht am oberen Bereich der jeweils
+              zugehörigen Ebene, auf derselben radialen 0-100%-Skala wie die
+              %-Ringe. Reines Text-Overlay - beeinflusst keinerlei Geometrie
+              (startAngle/endAngle/rQF/rSF/rFinal/rCup unverändert). Text
+              bekommt einen Hintergrund-farbenen "Halo" (paint-order:stroke,
+              siehe CSS), damit er unabhängig von der jeweils darunter
+              liegenden Teamfarbe lesbar bleibt. */}
+          <g className="wheel-round-labels" aria-hidden="true">
+            {STAGES.map((s) => {
+              const y = CENTER - RING_LABEL_RADIUS[s.key] * MAX_RADIUS
+              return (
+                <g key={s.key}>
+                  <text x={CENTER} y={y}>{s.label.toUpperCase()}</text>
+                  <line x1={CENTER - 15} x2={CENTER + 15} y1={y + 4} y2={y + 4} />
+                </g>
+              )
+            })}
           </g>
 
           {layout.map((entry) => {

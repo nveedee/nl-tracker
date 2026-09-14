@@ -567,15 +567,20 @@ input[type="checkbox"] { width: auto; accent-color: var(--accent); }
   stroke-width: 2.5px; pointer-events: none;
 }
 
-/* Runden-Labels in der leeren Ecke des quadratischen viewBox (ausserhalb
-   des Kreises) - Teil der Grafik selbst, nicht nur der HTML-Legende
-   darunter. currentColor auf dem Swatch nimmt die color-Deklaration hier
-   an (neutral, nicht teamfarbig - die vier Stufen sind ja generisch). */
-.wheel-round-labels { color: var(--text-dim); pointer-events: none; }
+/* Runden-Labels DIREKT IN der Kreisgrafik (oberer Bereich, auf der 12-Uhr-
+   Achse) - kein externes Legenden-Element. paint-order:stroke mit einem
+   Kartenhintergrund-"Halo" hält den Text lesbar, unabhängig davon, welche
+   Teamfarbe an dieser Stelle gerade darunter liegt (ändert sich mit jeder
+   Simulation). Kleine zentrierte Trennlinie darunter ordnet das Label
+   eindeutig "seiner" Ebene zu, ohne echte (pro Team unterschiedliche)
+   Ringgrenzen vorzutäuschen. */
 .wheel-round-labels text {
-  font-size: 7.5px; font-weight: 700; font-family: var(--mono);
-  fill: var(--text-dim);
+  font-size: 7.3px; font-weight: 800; font-family: var(--mono);
+  letter-spacing: 0.02em; text-anchor: middle; fill: var(--text);
+  paint-order: stroke; stroke: var(--bg-elev); stroke-width: 3px;
+  stroke-linejoin: round;
 }
+.wheel-round-labels line { stroke: var(--bg-elev); stroke-width: 1.6; stroke-linecap: round; opacity: 0.85; }
 
 /* Neutrale Trackfläche (0 bis maxRadius) - macht aus jedem Sektor immer ein
    VOLLSTÄNDIGES Zielscheiben-Segment statt eines kurzen "Balkens", der im
