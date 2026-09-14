@@ -98,10 +98,9 @@ export default function PlayoffOdds() {
     if (!data?.teams || !data?.games) return
     setSimulating(true)
     // Ein neuer Seed wird genau EINMAL pro Klick erzeugt (hier, als lokale
-    // Variable) - nicht bei jedem Re-Render. Explizite Seeds (z.B. in Tests
-    // oder src/pages/SimulationTest.jsx) bleiben davon unberührt, da dort
-    // weiterhin ein eigener `seed` an simulatePlayoffOdds()/
-    // simulateSeasonProjections() übergeben wird.
+    // Variable) - nicht bei jedem Re-Render. Explizite Seeds (z.B. in Tests)
+    // bleiben davon unberührt, da dort weiterhin ein eigener `seed` an
+    // simulatePlayoffOdds()/simulateSeasonProjections() übergeben wird.
     const seed = generateSeed()
     setTimeout(() => {
       try {

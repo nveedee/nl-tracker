@@ -16,9 +16,7 @@ import PlayerDetail from './pages/PlayerDetail.jsx'
 import Games from './pages/Games.jsx'
 import Schedule from './pages/Schedule.jsx'
 import PlayerRankings from './pages/PlayerRankings.jsx'
-import Fantasy from './pages/Fantasy.jsx'
 import Settings from './pages/Settings.jsx'
-import SimulationTest from './pages/SimulationTest.jsx'
 import ModelPerformance from './pages/ModelPerformance.jsx'
 import Backtesting from './pages/Backtesting.jsx'
 import MatchupDetail from './pages/MatchupDetail.jsx'
@@ -32,10 +30,8 @@ const primaryNav = [
   { to: '/power', label: 'Power Ranking' },
   { to: '/playoff-odds', label: 'Playoff Odds' },
   { to: '/players', label: 'Spieler' },
-  { to: '/fantasy', label: 'Fantasy' },
   { to: '/goalies', label: 'Torhüter' },
   { to: '/head-to-head', label: 'H2H' },
-  { to: '/simulation-test', label: 'Simulation' },
   { to: '/model-performance', label: 'Modell' },
   { to: '/backtesting', label: 'Backtest' },
 ]
@@ -151,11 +147,9 @@ export default function App() {
             <Route path="/playoff-odds" element={<PlayoffOdds />} />
             <Route path="/goalies" element={<Goalies />} />
             <Route path="/head-to-head" element={<HeadToHead />} />
-            <Route path="/simulation-test" element={<SimulationTest />} />
             <Route path="/model-performance" element={<ModelPerformance />} />
             <Route path="/backtesting" element={<Backtesting />} />
             <Route path="/players" element={<PlayerRankings />} />
-            <Route path="/fantasy" element={<Fantasy />} />
             <Route path="/games" element={<Games />} />
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/matchup/:gameId" element={<MatchupDetail />} />

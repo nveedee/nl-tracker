@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useData } from '../DataContext.jsx'
 import { TeamBadge, MarketValueTrend } from '../components/ui.jsx'
 import { fmtPct, fmtNum, plusMinusStr, ageFromBirthdate, fmtChf } from '../stats.js'
-import { computeFantasyBreakdown } from '../fantasyScore.js'
 import { hasEnoughHistoryForChart, computeMarketValueChange } from '../marketValueHistory.js'
 import {
   usePlayerHistory, usePositionBaselines, getPlayerSeasons, seasonRates, careerSummary, yoyDevelopment,
@@ -33,7 +32,6 @@ export default function PlayerDetail() {
   const team = data.teams.find((t) => t.id === player.teamId)
   const stat = derived.playerStats.find((s) => s.player.id === id)
   const goalie = player.position === 'G'
-  const fantasy = computeFantasyBreakdown(stat)
 
   const age = ageFromBirthdate(player.birthdate)
   const infoBits = [
@@ -230,42 +228,6 @@ export default function PlayerDetail() {
           />
         )}
       </div>
-
-      {/* Fantasy-Punkte (angenäherter Topscorers-Score, src/fantasyScore.js) -
-          rein additive Anzeige, keine neue Datenquelle. */}
-      {fantasy && fantasy.gp > 0 && (
-        <div className="card card-pad mb">
-          <div className="row spread" style={{ alignItems: 'baseline', flexWrap: 'wrap', rowGap: 4, marginBottom: 10 }}>
-            <h2 style={{ margin: 0 }}>Fantasy-Punkte</h2>
-            <span className="muted" style={{ fontSize: 11 }}>angenäherter Topscorers-Score</span>
-          </div>
-          <div className="tiles mb" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
-            <Tile label="Total" value={Math.round(fantasy.total)} />
-            <Tile label="Punkte/Spiel" value={fantasy.perGame != null ? fantasy.perGame.toFixed(1) : '–'} />
-          </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr><th className="left">Kategorie</th><th className="num">Anzahl</th><th className="num">Satz</th><th className="num">Punkte</th></tr>
-              </thead>
-              <tbody>
-                {fantasy.lines.filter((l) => l.count !== 0 || l.key === 'gp').map((l) => (
-                  <tr key={l.key}>
-                    <td className="left">{l.label}</td>
-                    <td className="num">{l.count}</td>
-                    <td className="num muted">{l.rate >= 0 ? '+' : ''}{l.rate}</td>
-                    <td className="num"><strong className={l.points > 0 ? 'good' : l.points < 0 ? 'bad' : ''}>{Math.round(l.points)}</strong></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="muted mt" style={{ fontSize: 11 }}>
-            Nur Kategorien mit verlässlichen Daten berücksichtigt (Details/fehlende Kategorien siehe „Kategorien anzeigen" auf der{' '}
-            <Link to="/fantasy">Fantasy-Rangliste</Link>).
-          </div>
-        </div>
-      )}
 
       {/* Marktwert-Verlauf (player.marketValueHistory, server/sync.js) - rein
           additive Anzeige, ein Snapshot pro Kalendertag seit Einführung

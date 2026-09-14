@@ -825,8 +825,8 @@ export function simulateSeasonProjections(
 }
 
 // Bestehende Funktion/Signatur/Rückgabestruktur bleibt für bestehende
-// Aufrufer (SimulationTest.jsx, bisher PlayoffOdds.jsx) unverändert nutzbar -
-// reiner Wrapper um simulateSeasonProjections(), das eine Obermenge derselben
+// Aufrufer (PlayoffOdds.jsx) unverändert nutzbar - reiner Wrapper um
+// simulateSeasonProjections(), das eine Obermenge derselben
 // Felder liefert (playoffs/top6/top4/Rangverteilung/Punkte identisch berechnet,
 // zusätzlich jetzt auch Halbfinal/Final/Meister/Median - ignorierbar für
 // bestehenden Code, der nur die alten Felder liest).
