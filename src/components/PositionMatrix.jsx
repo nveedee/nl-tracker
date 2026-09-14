@@ -1,34 +1,42 @@
-import { useState } from 'react'
-import { TeamBadge, Delta } from './ui.jsx'
+import { useEffect, useState } from 'react'
+import { TeamBadge, Delta, SectionHeader, Legend, useScrollFade } from './ui.jsx'
 
-// Sequentielle Heatmap-Rampe (eine Farbe, hell -> dunkel; siehe dataviz-Skill
-// "Sequential = one hue, light->dark"), aus der bestehenden App-Akzentfarbe
-// (--accent #e11d48 / --accent-strong #c81742) abgeleitet statt einer neuen
-// Chart-Farbfamilie - die App hat kein Dark Mode, daher keine zweite Rampe
-// nötig. Lightness fällt monoton von ~97% (fast surface) auf ~24%; die
-// Textfarbe schaltet je Zelle zwischen dunkel/hell um (siehe heatColor).
-const HEAT_STOPS = [
-  { p: 0.00, rgb: [253, 242, 245] },
-  { p: 0.15, rgb: [251, 220, 228] },
-  { p: 0.35, rgb: [245, 184, 201] },
-  { p: 0.55, rgb: [236, 138, 168] },
-  { p: 0.72, rgb: [225, 86, 131] },
-  { p: 0.88, rgb: [200, 23, 66] },
-  { p: 1.00, rgb: [122, 12, 42] },
-]
+const HEAT_STEPS = [0, 0.15, 0.35, 0.55, 0.72, 0.88, 1]
 
-function heatColor(pct) {
+// Liest die 7 --heat-N-Variablen aus styles.css (Light- ODER Dark-Werte, je
+// nach aktivem Farbschema) - so folgt die Heatmap automatisch dem Dark Mode
+// (prefers-color-scheme), ohne die Rampe hier zu duplizieren. Wird einmal
+// beim Mount gelesen und bei einem Farbschema-Wechsel neu gelesen.
+function useHeatStops() {
+  const [stops, setStops] = useState(null)
+  useEffect(() => {
+    const read = () => {
+      const cs = getComputedStyle(document.documentElement)
+      setStops(HEAT_STEPS.map((p, i) => ({
+        p,
+        rgb: cs.getPropertyValue(`--heat-${i}`).trim().split(',').map((n) => parseInt(n, 10)),
+      })))
+    }
+    read()
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    mq.addEventListener('change', read)
+    return () => mq.removeEventListener('change', read)
+  }, [])
+  return stops
+}
+
+function heatColor(stops, pct) {
   const p = Math.max(0, Math.min(1, pct))
-  let lo = HEAT_STOPS[0]
-  let hi = HEAT_STOPS[HEAT_STOPS.length - 1]
-  for (let i = 0; i < HEAT_STOPS.length - 1; i++) {
-    if (p >= HEAT_STOPS[i].p && p <= HEAT_STOPS[i + 1].p) { lo = HEAT_STOPS[i]; hi = HEAT_STOPS[i + 1]; break }
+  let lo = stops[0]
+  let hi = stops[stops.length - 1]
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (p >= stops[i].p && p <= stops[i + 1].p) { lo = stops[i]; hi = stops[i + 1]; break }
   }
   const span = hi.p - lo.p || 1
   const t = (p - lo.p) / span
   const [r, g, b] = lo.rgb.map((c, i) => Math.round(c + (hi.rgb[i] - c) * t))
   const relLuma = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-  return { bg: `rgb(${r},${g},${b})`, fg: relLuma > 0.6 ? 'var(--text)' : '#fff' }
+  return { bg: `rgb(${r},${g},${b})`, fg: relLuma > 0.55 ? 'var(--text)' : '#fff' }
 }
 
 // Zeilen = Teams, Spalten = Rang 1..14, Zelle = P(finalRank=Spalte). Zwei
@@ -41,6 +49,8 @@ function heatColor(pct) {
 // zusätzliche Δ-Spalte für Ø-Rang.
 export default function PositionMatrix({ rows, runs, compare }) {
   const [mode, setMode] = useState('table')
+  const stops = useHeatStops()
+  const wrapRef = useScrollFade()
   if (!rows.length) return null
 
   const rankCount = Object.keys(rows[0].rankDistribution).length
@@ -50,14 +60,22 @@ export default function PositionMatrix({ rows, runs, compare }) {
 
   return (
     <div className="card mb">
-      <div className="card-pad row spread" style={{ paddingBottom: 10 }}>
-        <div className="section-label" style={{ margin: 0 }}>Positions-Matrix</div>
-        <div className="pill-tabs">
-          <button className={mode === 'table' ? 'active' : ''} onClick={() => setMode('table')}>Tabelle</button>
-          <button className={mode === 'bars' ? 'active' : ''} onClick={() => setMode('bars')}>Bars</button>
-        </div>
+      <div className="card-pad" style={{ paddingBottom: 10 }}>
+        <SectionHeader
+          title="Positions-Matrix"
+          caption="Für jedes Team die Wahrscheinlichkeit, in genau diesem Rang die Saison zu beenden."
+          action={
+            <div className="pill-tabs">
+              <button className={mode === 'table' ? 'active' : ''} onClick={() => setMode('table')}>Tabelle</button>
+              <button className={mode === 'bars' ? 'active' : ''} onClick={() => setMode('bars')}>Bars</button>
+            </div>
+          }
+        />
+        {mode === 'table' && stops && (
+          <Legend scale={{ fromLabel: '0%', toLabel: '100%', stops: stops.map((s) => `rgb(${s.rgb.join(',')})`) }} />
+        )}
       </div>
-      <div className="table-wrap">
+      <div className="table-wrap pin-first" ref={wrapRef}>
         <table className="matrix-table">
           <thead>
             <tr>
@@ -87,7 +105,7 @@ export default function PositionMatrix({ rows, runs, compare }) {
                       </td>
                     )
                   }
-                  const { bg, fg } = heatColor(pct)
+                  const { bg, fg } = stops ? heatColor(stops, pct) : { bg: 'var(--bg-elev-2)', fg: 'var(--text)' }
                   return (
                     <td key={r} className="num matrix-cell" style={{ background: bg, color: fg }} title={`Rang ${r}: ${(pct * 100).toFixed(1)}%`}>
                       {pct > 0.005 ? Math.round(pct * 100) : ''}

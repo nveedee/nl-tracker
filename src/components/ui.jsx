@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 // Team-Badge mit Farbpunkt
@@ -118,11 +118,10 @@ export function MarketValueTrend({ trend }) {
   return null
 }
 
-// Delta-Anzeige ggü. der letzten Baseline (src/baselineStore.js) oder einer
-// anderen Vergleichsprojektion (z.B. What-if ggü. unbedingter Projektion).
-// Bewusst neutral eingefärbt (kein grün/rot) - siehe Kommentar in styles.css.
-// `unit`: "pp" für Prozentpunkte (Standard, Wahrscheinlichkeiten), "" für
-// andere Grössen (z.B. Rang-Differenz).
+// DeltaBadge: ▲ grün / ▼ rot, ggü. der letzten Baseline (src/baselineStore.js)
+// oder einer anderen Vergleichsprojektion (z.B. What-if ggü. unbedingter
+// Projektion). `unit`: "pp" für Prozentpunkte (Standard), "" für andere
+// Grössen (z.B. Rang-Differenz).
 export function Delta({ pp, digits = 1, unit = 'pp' }) {
   if (pp == null) return null
   if (Math.abs(pp) < 0.05) return <span className="delta">±0.0{unit}</span>
@@ -138,4 +137,116 @@ export function Empty({ title, hint, action }) {
       {action && <div style={{ marginTop: 14 }}>{action}</div>}
     </div>
   )
+}
+
+// Titel + einzeilige Erklärung darunter (FMD-Caption-Stil) - jede Auswertung
+// bekommt so eine kurze Einordnung, ohne dass man Vorwissen braucht.
+export function SectionHeader({ title, caption, action }) {
+  return (
+    <div className="section-header row spread" style={{ alignItems: 'flex-start' }}>
+      <div>
+        <div className="title">{title}</div>
+        {caption && <div className="caption">{caption}</div>}
+      </div>
+      {action}
+    </div>
+  )
+}
+
+// Wahrscheinlichkeit als Balken + %-Wert - macht Grössenunterschiede auf
+// einen Blick erfassbar statt nur als Zahl. `max` normiert die Balkenlänge
+// (Default 1 = Anteil von 100%).
+export function ProbBar({ value, max = 1, digits = 1, color }) {
+  const pct = value == null ? 0 : Math.max(0, Math.min(1, value / max)) * 100
+  return (
+    <div className="prob-bar-row">
+      <div className="prob-bar-track">
+        <div className="prob-bar-fill" style={{ width: `${pct}%`, ...(color ? { background: color } : {}) }} />
+      </div>
+      <span className="prob-bar-value">{value == null ? '–' : (value * 100).toFixed(digits) + '%'}</span>
+    </div>
+  )
+}
+
+// Kompakte Kennzahl-Kachel (Ø-Werte, Stat-Übersichten).
+export function StatTile({ label, value, hint, accent = false }) {
+  return (
+    <div className="stat-tile">
+      <div className="label">{label}</div>
+      <div className={'value' + (accent ? ' accent' : '')}>{value}</div>
+      {hint && <div className="hint">{hint}</div>}
+    </div>
+  )
+}
+
+// Farbskala/Kategorie-Legende - z.B. Heatmap-Rampe oder Bracket-Farben.
+// `swatches`: [{ label, color }]. `scale`: { fromLabel, toLabel, stops: [rgbCss,...] } für einen Farbverlauf.
+export function Legend({ swatches, scale }) {
+  return (
+    <div className="legend">
+      {scale && (
+        <span className="scale">
+          <span>{scale.fromLabel}</span>
+          <span className="ramp">{scale.stops.map((c, i) => <span key={i} style={{ background: c }} />)}</span>
+          <span>{scale.toLabel}</span>
+        </span>
+      )}
+      {swatches?.map((s) => (
+        <span className="swatch" key={s.label}>
+          <span className="sq" style={{ background: s.color }} /> {s.label}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+// Zeigt zunächst nur `initialCount` Kinder, darunter ein "Alle N anzeigen"-
+// Trigger (progressive disclosure statt alles auf einmal). `items` optional -
+// wenn übergeben, wird nur die Anzahl fürs Label genutzt (Kinder kommen
+// weiterhin über `children`, bereits auf `initialCount`/alle geschnitten -
+// so bleibt die Slicing-Logik beim Aufrufer, der z.B. auch sortiert).
+export function Expander({ total, initialCount, expanded, onExpand, moreLabel }) {
+  if (expanded || total <= initialCount) return null
+  return (
+    <button className="expander-trigger" onClick={onExpand}>
+      {moreLabel || `Alle ${total} anzeigen`}
+    </button>
+  )
+}
+
+// Horizontal scrollbare, sticky Sub-Tab-Leiste (z.B. Season Projections:
+// Matrix/Brackets/What-if/...). `tabs`: [{ key, label }].
+export function Tabs({ tabs, active, onChange }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    const btn = ref.current?.querySelector(`button[data-key="${active}"]`)
+    btn?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' })
+  }, [active])
+  return (
+    <div className="subtabs" ref={ref}>
+      {tabs.map((t) => (
+        <button key={t.key} data-key={t.key} className={active === t.key ? 'active' : ''} onClick={() => onChange(t.key)}>
+          {t.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// Setzt `.scrollable` auf einen `.table-wrap`, sobald sein Inhalt tatsächlich
+// breiter ist als der sichtbare Container - schaltet den rechten Fade
+// (Scroll-Affordanz, siehe styles.css) nur dann zu, wenn wirklich etwas zu
+// scrollen ist. Ref ans `.table-wrap`-Element hängen.
+export function useScrollFade() {
+  const ref = useRef(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const check = () => el.classList.toggle('scrollable', el.scrollWidth > el.clientWidth + 2)
+    check()
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  return ref
 }

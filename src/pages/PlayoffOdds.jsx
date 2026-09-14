@@ -5,6 +5,10 @@
 // um eine echte Playoff-Bracket-Simulation erweiterte Monte-Carlo-Logik aus
 // src/playoffSim.js (simulatePlayoffOdds -> simulateSeasonProjections).
 // Keine eigene Prognoseformel, keine erfundenen Werte.
+//
+// Mobile: die Auswertungen sitzen hinter Sub-Tabs (Matrix/Brackets/What-if/
+// Swing/Locks/Targets/Verlauf, siehe Tabs-Komponente) statt alle auf einmal
+// untereinander - progressive disclosure statt einer sehr langen Seite.
 // ---------------------------------------------------------------------------
 
 import { useState, useMemo } from 'react'
@@ -13,7 +17,7 @@ import { simulatePlayoffOdds, computeMatchForecasts } from '../playoffSim.js'
 import { usePreseasonElo, computePreseasonRatings } from '../preseasonElo.js'
 import { computeMarketValuePrior, DEFAULT_PRIOR_SPREAD } from '../marketValuePrior.js'
 import { computePowerRankings } from '../powerRankings.js'
-import { TeamBadge, Delta } from '../components/ui.jsx'
+import { TeamBadge, Delta, SectionHeader, StatTile, ProbBar, Tabs, useScrollFade } from '../components/ui.jsx'
 import { getLastBaseline, recordBaselineIfNeeded, computeMovers } from '../baselineStore.js'
 import PositionMatrix from '../components/PositionMatrix.jsx'
 import BracketCards from '../components/BracketCards.jsx'
@@ -27,6 +31,16 @@ import SeasonEvolution from '../components/SeasonEvolution.jsx'
 function fmtPct(v) { return v == null ? '–' : (v * 100).toFixed(1) + '%' }
 
 const RUN_CHOICES = [1000, 2500, 5000, 10000]
+
+const TABS = [
+  { key: 'matrix', label: 'Matrix' },
+  { key: 'brackets', label: 'Brackets' },
+  { key: 'whatif', label: 'What-if' },
+  { key: 'swing', label: 'Swing' },
+  { key: 'locks', label: 'Locks' },
+  { key: 'targets', label: 'Targets' },
+  { key: 'evolution', label: 'Verlauf' },
+]
 
 // Neuer Zufalls-Seed pro manuellem Simulationslauf (Web Crypto API, kryptografisch
 // sicher) - NICHT derselbe hardcodierte Default-Seed wie zuvor. Ändert nichts an
@@ -45,6 +59,8 @@ export default function PlayoffOdds() {
   const [lastSeed, setLastSeed] = useState(null)
   const [expandedTeam, setExpandedTeam] = useState(null)
   const [runsChoice, setRunsChoice] = useState(10000)
+  const [tab, setTab] = useState('matrix')
+  const tableWrapRef = useScrollFade()
   // Beim Laden der Seite EINMAL geladen (nicht nach jedem Simulationslauf neu) -
   // so vergleicht die gesamte Session konsistent gegen denselben Referenzpunkt
   // ("seit dem letzten Checkpoint"), statt bei jedem Klick gegen den gerade
@@ -138,210 +154,179 @@ export default function PlayoffOdds() {
             </span>
           )}
         </div>
-        <div className="row gap-sm">
-          <select value={runsChoice} onChange={(e) => setRunsChoice(Number(e.target.value))} disabled={simulating} style={{ width: 'auto' }} title="Anzahl Saison-Simulationen">
-            {RUN_CHOICES.map((n) => <option key={n} value={n}>{n.toLocaleString('de-CH')} Läufe</option>)}
-          </select>
-          <button onClick={handleSimulate} disabled={simulating} className="btn primary">
-            {simulating ? 'Simuliert…' : `Simulation starten (${scheduledCount} Spiele)`}
-          </button>
-        </div>
+      </div>
+
+      {/* N-Wähler + Simulieren: wichtigste Aktion, bleibt oben griffbereit */}
+      <div className="row gap-sm" style={{ marginBottom: 14 }}>
+        <select value={runsChoice} onChange={(e) => setRunsChoice(Number(e.target.value))} disabled={simulating} style={{ width: 'auto', minHeight: 40 }} title="Anzahl Saison-Simulationen">
+          {RUN_CHOICES.map((n) => <option key={n} value={n}>{n.toLocaleString('de-CH')} Läufe</option>)}
+        </select>
+        <button onClick={handleSimulate} disabled={simulating} className="btn primary" style={{ minHeight: 40, flex: 1 }}>
+          {simulating ? 'Simuliert…' : `Simulation starten (${scheduledCount} Spiele)`}
+        </button>
       </div>
 
       <MatchForecast forecasts={forecasts} />
 
       {results && (
         <>
-          {/* Wer wird Meister - kompakt, keine Hero-Card */}
-          <div className="grid mb" style={{ gridTemplateColumns: '220px 1fr', gap: 14 }}>
-            <div className="card card-pad">
-              <div className="section-label">Meisterschafts-Favorit</div>
-              <div className="row gap-sm" style={{ marginTop: 6 }}>
-                <TeamBadge team={favorite.team} />
-              </div>
-              <div style={{ fontSize: 26, fontWeight: 800, marginTop: 8, fontFamily: 'var(--mono)', color: 'var(--accent)' }}>
-                {fmtPct(favorite.pChampion)}
-              </div>
-              <div className="muted" style={{ fontSize: 11 }}>Meisterchance</div>
-            </div>
-            <div className="card card-pad">
-              <div className="section-label">Top 3 Meisterschaftsfavoriten</div>
-              {top3.map((r, i) => (
-                <div key={r.team.id} className="row spread" style={{ padding: '6px 0', borderBottom: i < top3.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                  <span className="row gap-sm"><span className="rank">{i + 1}</span><TeamBadge team={r.team} /></span>
-                  <strong style={{ fontFamily: 'var(--mono)' }}>{fmtPct(r.pChampion)}</strong>
-                </div>
-              ))}
-            </div>
-          </div>
+          <Tabs tabs={TABS} active={tab} onChange={setTab} />
 
-          {/* Was hat sich bewegt (Playoff-Chance) seit der letzten Baseline */}
-          {baseline && (movers.risers.length > 0 || movers.fallers.length > 0) && (
-            <div className="grid grid-2 mb" style={{ gap: 14 }}>
-              <div className="card card-pad">
-                <div className="section-label">Riser seit {baseline.date} (Playoff-Chance)</div>
-                {movers.risers.length === 0 && <div className="muted" style={{ fontSize: 12 }}>Keine nennenswerte Bewegung</div>}
-                {movers.risers.map((m) => (
-                  <div key={m.row.team.id} className="row spread" style={{ padding: '4px 0' }}>
-                    <TeamBadge team={m.row.team} short />
-                    <Delta pp={m.delta} />
-                  </div>
-                ))}
+          {tab === 'matrix' && (
+            <>
+              <PositionMatrix rows={results.rows} runs={results.runs} />
+
+              {/* Volle Zahlen-Tabelle (alle Kategorien nebeneinander) + Detailansicht je Team */}
+              <SectionHeader title="National League Projektion" caption="Alle Kategorien nebeneinander, antippen für Rangverteilung/ELO-Details." />
+              <div className="card mb">
+                <div className="table-wrap pin-first" ref={tableWrapRef}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th className="left">Team</th>
+                        <th className="num">Playoffs</th>
+                        <th className="num">Top 6</th>
+                        <th className="num">Play-in</th>
+                        <th className="num">Halbfinale</th>
+                        <th className="num">Finale</th>
+                        <th className="num">Meister</th>
+                        <th className="num">Play-out</th>
+                        <th className="num">Ligaqual.</th>
+                        <th className="num">Ø Pkt</th>
+                        <th className="num">Ø Rang</th>
+                        <th className="num">Best</th>
+                        <th className="num">Worst</th>
+                        <th className="num"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {results.rows.map((r) => (
+                        <tr key={r.team.id} className={expandedTeam === r.team.id ? 'active-row' : ''}>
+                          <td className="left"><TeamBadge team={r.team} short /></td>
+                          <td className="num">{fmtPct(r.pPlayoffs)}</td>
+                          <td className="num">{fmtPct(r.pTop6)}</td>
+                          <td className="num">{fmtPct(r.pPlayIn)}</td>
+                          <td className="num">{fmtPct(r.pSemifinal)}</td>
+                          <td className="num">{fmtPct(r.pFinal)}</td>
+                          <td className="num"><strong style={{ color: 'var(--accent)' }}>{fmtPct(r.pChampion)}</strong></td>
+                          <td className="num">{fmtPct(r.pPlayout1314)}</td>
+                          <td className="num">{fmtPct(r.pLigaQualifikation)}</td>
+                          <td className="num">{r.avgPts.toFixed(1)}</td>
+                          <td className="num">{r.avgRank.toFixed(1)}</td>
+                          <td className="num muted" style={{ fontSize: 11.5 }}>{Math.round(r.maxPts)}</td>
+                          <td className="num muted" style={{ fontSize: 11.5 }}>{Math.round(r.minPts)}</td>
+                          <td className="num">
+                            <button
+                              className="btn ghost sm"
+                              onClick={() => setExpandedTeam(expandedTeam === r.team.id ? null : r.team.id)}
+                            >
+                              {expandedTeam === r.team.id ? '▲' : '▼'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-              <div className="card card-pad">
-                <div className="section-label">Faller seit {baseline.date} (Playoff-Chance)</div>
-                {movers.fallers.length === 0 && <div className="muted" style={{ fontSize: 12 }}>Keine nennenswerte Bewegung</div>}
-                {movers.fallers.map((m) => (
-                  <div key={m.row.team.id} className="row spread" style={{ padding: '4px 0' }}>
-                    <TeamBadge team={m.row.team} short />
-                    <Delta pp={m.delta} />
+
+              {expandedTeam && (() => {
+                const r = results.rows.find((row) => row.team.id === expandedTeam)
+                if (!r) return null
+                const power = powerByTeam[r.team.id]
+                const preElo = initialRatings?.[r.team.id]
+                const curElo = derived?.elo?.ratings?.[r.team.id]
+                return (
+                  <div className="card card-pad mb">
+                    <div className="row gap-sm mb"><TeamBadge team={r.team} /><span className="muted" style={{ fontSize: 12.5 }}>– Detaillierte Projektion</span></div>
+
+                    <div className="tiles mb">
+                      <StatTile label="Ø Punkte" value={r.avgPts.toFixed(1)} />
+                      <StatTile label="Median" value={r.medianPts} />
+                      <StatTile label="Best Case" value={Math.round(r.maxPts)} />
+                      <StatTile label="Worst Case" value={Math.round(r.minPts)} />
+                      <StatTile label="Pre-Season-ELO" value={preElo != null ? Math.round(preElo) : '–'} />
+                      <StatTile label="Aktuelles ELO" value={curElo != null ? Math.round(curElo) : '–'} />
+                      <StatTile label="Power Score" value={power?.powerScore ?? '–'} />
+                      <StatTile label="Meisterchance" value={fmtPct(r.pChampion)} accent />
+                    </div>
+
+                    <SectionHeader title="Rangverteilung" caption={`${results.teamCount} Teams, Summe = 100%`} />
+                    {Object.entries(r.rankDistribution)
+                      .sort((a, b) => Number(a[0]) - Number(b[0]))
+                      .map(([rank, count]) => (
+                        <div key={rank} className="row" style={{ fontSize: 12, marginBottom: 4 }}>
+                          <span className="muted" style={{ minWidth: 50, fontWeight: 600, flex: 'none' }}>Rang {rank}</span>
+                          <div style={{ flex: 1 }}><ProbBar value={count / results.runs} /></div>
+                        </div>
+                      ))}
                   </div>
-                ))}
-              </div>
-            </div>
+                )
+              })()}
+            </>
           )}
 
-          {/* Bracket-Karten: % je Ausgang, absteigend, mit Delta zur letzten Baseline */}
-          <div className="section-label">Bracket-Wahrscheinlichkeiten</div>
-          <BracketCards rows={results.rows} compare={baseline} />
+          {tab === 'brackets' && (
+            <>
+              <div className="tiles mb">
+                <StatTile label="Meisterschafts-Favorit" value={<span className="row gap-sm" style={{ fontSize: 14 }}><TeamBadge team={favorite.team} short /></span>} hint={fmtPct(favorite.pChampion) + ' Meisterchance'} accent />
+                {top3.slice(1).map((r) => (
+                  <StatTile key={r.team.id} label="Meisterschaftsfavorit" value={<TeamBadge team={r.team} short />} hint={fmtPct(r.pChampion)} />
+                ))}
+              </div>
 
-          {/* Positions-Matrix: P(Rang k) je Team, Heatmap oder Bars */}
-          <PositionMatrix rows={results.rows} runs={results.runs} />
-
-          {/* Lock Final Standings: Teams auf Rang/Bracket pinnen, bedingte
-              Wahrscheinlichkeiten durch Filtern der bereits gelaufenen Läufe */}
-          <div className="section-label">Lock Final Standings</div>
-          <LockStandings teams={data.teams} baseResults={results} />
-
-          {/* Points-Targets: ab wie vielen Punkten ist ein Ziel "sicher" */}
-          <div className="section-label">Points-Targets</div>
-          <PointsTargets baseResults={results} />
-
-          {/* Season-Evolution: Bracket-Wahrscheinlichkeiten über die Spieltage */}
-          <SeasonEvolution teams={data.teams} />
-
-          {/* What-if-Simulator: einzelne offene Spiele fix vorgeben */}
-          <div className="section-label">What-if-Simulator</div>
-          <WhatIfSimulator
-            teams={data.teams} games={data.games} settings={data.settings}
-            players={data.players || []} initialRatings={initialRatings}
-            baseResults={results} forecasts={forecasts} runs={runsChoice}
-          />
-
-          {/* Swing-Analyse: Einfluss der kommenden Spiele pro Spieltag */}
-          <div className="section-label">Swing-Analyse</div>
-          <SwingAnalysis
-            teams={data.teams} games={data.games} settings={data.settings}
-            players={data.players || []} initialRatings={initialRatings}
-            baseResults={results} forecasts={forecasts}
-          />
-
-          {/* National League Projektion */}
-          <div className="section-label">National League Projektion</div>
-          <div className="card mb">
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th className="left">Team</th>
-                    <th className="num">Playoffs</th>
-                    <th className="num">Direkt Top 6</th>
-                    <th className="num">Play-in</th>
-                    <th className="num">Halbfinale</th>
-                    <th className="num">Finale</th>
-                    <th className="num">Meister</th>
-                    <th className="num">Play-out 13/14</th>
-                    <th className="num">Ligaqualifikation</th>
-                    <th className="num">Ø Punkte</th>
-                    <th className="num">Ø Rang</th>
-                    <th className="num">Best Case</th>
-                    <th className="num">Worst Case</th>
-                    <th className="num"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {results.rows.map((r) => (
-                    <tr key={r.team.id}>
-                      <td className="left"><TeamBadge team={r.team} /></td>
-                      <td className="num">{fmtPct(r.pPlayoffs)}</td>
-                      <td className="num">{fmtPct(r.pTop6)}</td>
-                      <td className="num">{fmtPct(r.pPlayIn)}</td>
-                      <td className="num">{fmtPct(r.pSemifinal)}</td>
-                      <td className="num">{fmtPct(r.pFinal)}</td>
-                      <td className="num"><strong style={{ color: 'var(--accent)' }}>{fmtPct(r.pChampion)}</strong></td>
-                      <td className="num">{fmtPct(r.pPlayout1314)}</td>
-                      <td className="num">{fmtPct(r.pLigaQualifikation)}</td>
-                      <td className="num">{r.avgPts.toFixed(1)}</td>
-                      <td className="num">{r.avgRank.toFixed(1)}</td>
-                      <td className="num muted" style={{ fontSize: 11.5 }}>{Math.round(r.maxPts)}</td>
-                      <td className="num muted" style={{ fontSize: 11.5 }}>{Math.round(r.minPts)}</td>
-                      <td className="num">
-                        <button
-                          className="btn ghost sm"
-                          onClick={() => setExpandedTeam(expandedTeam === r.team.id ? null : r.team.id)}
-                        >
-                          {expandedTeam === r.team.id ? '▲' : '▼'}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Detailansicht: Rangverteilung + ELO/Power-Vergleich */}
-          {expandedTeam && (() => {
-            const r = results.rows.find((row) => row.team.id === expandedTeam)
-            if (!r) return null
-            const power = powerByTeam[r.team.id]
-            const preElo = initialRatings?.[r.team.id]
-            const curElo = derived?.elo?.ratings?.[r.team.id]
-            return (
-              <div className="card card-pad mb">
-                <div className="row gap-sm mb"><TeamBadge team={r.team} /><span className="muted" style={{ fontSize: 12.5 }}>– Detaillierte Projektion</span></div>
-
-                <div className="grid grid-2 mb" style={{ fontSize: 12.5 }}>
+              {baseline && (movers.risers.length > 0 || movers.fallers.length > 0) && (
+                <div className="grid grid-2 mb" style={{ gap: 14 }}>
                   <div className="card card-pad">
-                    <div className="section-label">Punkte-Szenarien</div>
-                    <div className="grid grid-2" style={{ gap: 8 }}>
-                      <div><span className="muted">Ø Punkte:</span> <strong>{r.avgPts.toFixed(1)}</strong></div>
-                      <div><span className="muted">Median:</span> <strong>{r.medianPts}</strong></div>
-                      <div><span className="muted">Best Case:</span> <strong>{Math.round(r.maxPts)}</strong></div>
-                      <div><span className="muted">Worst Case:</span> <strong>{Math.round(r.minPts)}</strong></div>
-                    </div>
+                    <SectionHeader title={`Riser seit ${baseline.date}`} caption="Grösster Zuwachs bei der Playoff-Chance." />
+                    {movers.risers.length === 0 && <div className="muted" style={{ fontSize: 12 }}>Keine nennenswerte Bewegung</div>}
+                    {movers.risers.map((m) => (
+                      <div key={m.row.team.id} className="row spread" style={{ padding: '4px 0' }}>
+                        <TeamBadge team={m.row.team} short />
+                        <Delta pp={m.delta} />
+                      </div>
+                    ))}
                   </div>
                   <div className="card card-pad">
-                    <div className="section-label">ELO / Power / Cup</div>
-                    <div className="grid grid-2" style={{ gap: 8 }}>
-                      <div><span className="muted">Pre-Season-ELO:</span> <strong>{preElo != null ? Math.round(preElo) : '–'}</strong></div>
-                      <div><span className="muted">Aktuelles ELO:</span> <strong>{curElo != null ? Math.round(curElo) : '–'}</strong></div>
-                      <div><span className="muted">Power Score:</span> <strong>{power?.powerScore ?? '–'}</strong></div>
-                      <div><span className="muted">Meisterchance:</span> <strong style={{ color: 'var(--accent)' }}>{fmtPct(r.pChampion)}</strong></div>
-                    </div>
+                    <SectionHeader title={`Faller seit ${baseline.date}`} caption="Grösster Rückgang bei der Playoff-Chance." />
+                    {movers.fallers.length === 0 && <div className="muted" style={{ fontSize: 12 }}>Keine nennenswerte Bewegung</div>}
+                    {movers.fallers.map((m) => (
+                      <div key={m.row.team.id} className="row spread" style={{ padding: '4px 0' }}>
+                        <TeamBadge team={m.row.team} short />
+                        <Delta pp={m.delta} />
+                      </div>
+                    ))}
                   </div>
                 </div>
+              )}
 
-                <div className="section-label">Rangverteilung ({results.teamCount} Teams, Summe = 100%)</div>
-                {Object.entries(r.rankDistribution)
-                  .sort((a, b) => Number(a[0]) - Number(b[0]))
-                  .map(([rank, count]) => {
-                    const pct = count / results.runs
-                    return (
-                      <div key={rank} className="row" style={{ fontSize: 12, marginBottom: 4 }}>
-                        <span className="muted" style={{ minWidth: 58, fontWeight: 600 }}>Rang {rank}</span>
-                        <div className="bar-track" style={{ flex: 1 }}>
-                          <div className="bar-fill" style={{ width: `${Math.min(pct * 100, 100)}%` }} />
-                        </div>
-                        <strong style={{ minWidth: 46, textAlign: 'right', fontFamily: 'var(--mono)' }}>{fmtPct(pct)}</strong>
-                      </div>
-                    )
-                  })}
-              </div>
-            )
-          })()}
+              <BracketCards rows={results.rows} compare={baseline} />
+            </>
+          )}
 
-          {/* Simulationsdetails */}
+          {tab === 'whatif' && (
+            <WhatIfSimulator
+              teams={data.teams} games={data.games} settings={data.settings}
+              players={data.players || []} initialRatings={initialRatings}
+              baseResults={results} forecasts={forecasts} runs={runsChoice}
+            />
+          )}
+
+          {tab === 'swing' && (
+            <SwingAnalysis
+              teams={data.teams} games={data.games} settings={data.settings}
+              players={data.players || []} initialRatings={initialRatings}
+              baseResults={results} forecasts={forecasts}
+            />
+          )}
+
+          {tab === 'locks' && <LockStandings teams={data.teams} baseResults={results} />}
+
+          {tab === 'targets' && <PointsTargets baseResults={results} />}
+
+          {tab === 'evolution' && <SeasonEvolution teams={data.teams} />}
+
+          {/* Simulationsdetails - unabhängig vom aktiven Tab immer sichtbar */}
           <div className="card card-pad">
             <div className="section-label">Simulation</div>
             <div className="stat-strip">
@@ -349,7 +334,7 @@ export default function PlayoffOdds() {
               <div className="stat"><strong>{results.scheduledCount}</strong><span>Offene Spiele</span></div>
               <div className="stat"><strong>{results.teamCount}</strong><span>Teams</span></div>
             </div>
-            <div className="row spread">
+            <div className="row spread wrap" style={{ gap: 10 }}>
               <div className="muted" style={{ fontSize: 12 }}>
                 Seed: <span style={{ fontFamily: 'var(--mono)' }}>{lastSeed ?? results.seed}</span>
                 {' · '}Letzte Simulation: {lastSimAt ? lastSimAt.toLocaleString('de-CH') : '–'}

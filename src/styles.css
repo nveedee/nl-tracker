@@ -7,6 +7,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap');
 
 :root {
+  color-scheme: light;
   --bg: #f4f5f7;
   --bg-elev: #ffffff;
   --bg-elev-2: #eef1f4;
@@ -31,6 +32,31 @@
   --warn: #b45309;
   --info: #5b6672;
 
+  /* Sequentielle Heatmap-Rampe (Positions-Matrix) - aus --accent abgeleitet,
+     hell -> dunkel, 7 Stufen. Siehe dataviz-Skill: "Sequential = eine Farbe,
+     hell->dunkel" - hier auf die App-Akzentfarbe statt eines Skill-Default-
+     Blaus gemappt (keine zweite Chart-Farbfamilie). Als RGB-Tripel (nicht
+     Hex-Strings), damit JS (PositionMatrix.jsx) sie direkt interpolieren kann. */
+  --heat-0: 253, 242, 245;
+  --heat-1: 251, 220, 228;
+  --heat-2: 245, 184, 201;
+  --heat-3: 236, 138, 168;
+  --heat-4: 225, 86, 131;
+  --heat-5: 200, 23, 66;
+  --heat-6: 122, 12, 42;
+
+  /* Semantische Bracket-Farben (Season Projections: Meister/Top6/Playoffs/
+     Play-in/Play-out/Ligaqualifikation) - je Ausgang eine feste, von den
+     Team-Farben unabhängige Kennfarbe, damit Karte <-> Legende <-> Chip
+     überall gleich aussehen. Bewusst nicht Ampel-codiert (kein grün=gut/
+     rot=schlecht) - "Ligaqualifikation" ist z.B. eine negative Kategorie. */
+  --bracket-champion: #a8710a;
+  --bracket-top6: #1a4b9c;
+  --bracket-playoffs: #0f766e;
+  --bracket-playin: #6d28d9;
+  --bracket-playout: #b45309;
+  --bracket-ligaqual: #9f1239;
+
   --radius: 8px;
   --radius-sm: 6px;
   --radius-lg: 10px;
@@ -40,11 +66,86 @@
   --shadow-lg: 0 2px 10px rgba(16, 24, 40, 0.08);
 
   --header-h: 60px;
+  --tap: 44px;
 
   --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
 
   --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* Dark Mode: OS-Einstellung (Media Query) UND späterer manueller Toggle
+   ([data-theme="dark"], aktuell ungenutzt, aber vorbereitet) - dieselben
+   Rollen, andere Werte. Sequenzielle/Bracket-Farben bleiben (sind bereits
+   dunkel genug/markenspezifisch und app-weit als feste Kennfarben gelernt). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0d0f12;
+    --bg-elev: #16191d;
+    --bg-elev-2: #1d2126;
+    --bg-hover: #242830;
+    --border: #262b32;
+    --border-strong: #33393f;
+
+    --text: #eef0f2;
+    --text-dim: #9aa4b0;
+    --text-faint: #6b7480;
+
+    --accent: #fb4570;
+    --accent-strong: #ff6688;
+    --accent-soft: #fb457022;
+    --accent-soft-strong: #fb457038;
+    --accent-contrast: #0d0f12;
+
+    --good: #34d16f;
+    --good-soft: #34d16f1c;
+    --bad: #f2585a;
+    --bad-soft: #f2585a1c;
+    --warn: #e2a33d;
+    --info: #9aa4b0;
+
+    --heat-0: 33, 24, 28;
+    --heat-1: 61, 26, 37;
+    --heat-2: 97, 27, 50;
+    --heat-3: 140, 32, 63;
+    --heat-4: 184, 42, 76;
+    --heat-5: 228, 62, 96;
+    --heat-6: 255, 120, 148;
+
+    --shadow-lg: 0 4px 18px rgba(0, 0, 0, 0.45);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0d0f12;
+  --bg-elev: #16191d;
+  --bg-elev-2: #1d2126;
+  --bg-hover: #242830;
+  --border: #262b32;
+  --border-strong: #33393f;
+  --text: #eef0f2;
+  --text-dim: #9aa4b0;
+  --text-faint: #6b7480;
+  --accent: #fb4570;
+  --accent-strong: #ff6688;
+  --accent-soft: #fb457022;
+  --accent-soft-strong: #fb457038;
+  --accent-contrast: #0d0f12;
+  --good: #34d16f;
+  --good-soft: #34d16f1c;
+  --bad: #f2585a;
+  --bad-soft: #f2585a1c;
+  --warn: #e2a33d;
+  --info: #9aa4b0;
+  --heat-0: 33, 24, 28;
+  --heat-1: 61, 26, 37;
+  --heat-2: 97, 27, 50;
+  --heat-3: 140, 32, 63;
+  --heat-4: 184, 42, 76;
+  --heat-5: 228, 62, 96;
+  --heat-6: 255, 120, 148;
+  --shadow-lg: 0 4px 18px rgba(0, 0, 0, 0.45);
 }
 
 * { box-sizing: border-box; }
@@ -140,16 +241,19 @@ p { margin: 0 0 10px; }
 }
 
 .nav {
-  display: flex; align-items: center; gap: 1px;
+  display: flex; align-items: stretch; gap: 1px;
   flex: 1; min-width: 0;
   overflow-x: auto; scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
 }
 .nav::-webkit-scrollbar { display: none; }
 .nav a {
   display: flex; align-items: center;
-  padding: 8px 6px; white-space: nowrap;
+  padding: 8px 10px; white-space: nowrap; min-height: var(--tap);
   color: var(--text-dim); font-weight: 600; font-size: 12.3px;
   border-bottom: 2px solid transparent;
+  scroll-snap-align: start;
   transition: background 0.12s var(--ease), color 0.12s var(--ease), border-color 0.12s var(--ease);
 }
 .nav a:hover { background: var(--bg-hover); color: var(--text); }
@@ -182,7 +286,12 @@ p { margin: 0 0 10px; }
 .nav-more-menu a:hover { background: var(--bg-hover); }
 .nav-more-menu a.active { color: var(--accent); }
 
-.main { padding: 24px 24px 56px; max-width: 1280px; width: 100%; margin: 0 auto; }
+.main {
+  padding: 24px 24px 56px; max-width: 1280px; width: 100%; margin: 0 auto;
+  padding-bottom: max(56px, calc(24px + env(safe-area-inset-bottom)));
+  padding-left: max(24px, env(safe-area-inset-left));
+  padding-right: max(24px, env(safe-area-inset-right));
+}
 
 .page-head {
   display: flex; align-items: flex-end; justify-content: space-between;
@@ -195,6 +304,11 @@ p { margin: 0 0 10px; }
   font-size: 10.5px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.06em; color: var(--text-faint); margin-bottom: 8px;
 }
+
+/* ---------- SectionHeader (Titel + einzeilige Erklärung, FMD-Caption-Stil) ---------- */
+.section-header { margin-bottom: 10px; }
+.section-header .title { font-size: 14px; font-weight: 800; letter-spacing: -0.01em; color: var(--text); }
+.section-header .caption { font-size: 12px; color: var(--text-dim); margin-top: 2px; line-height: 1.4; }
 
 /* ---------- Cards ---------- */
 .card {
@@ -239,8 +353,18 @@ a.card:hover, .card.hover:hover {
 
 /* ---------- Tables ---------- */
 .table-wrap {
+  position: relative;
   overflow-x: auto; border-radius: var(--radius);
   border: 1px solid var(--border); background: var(--bg-elev);
+  -webkit-overflow-scrolling: touch;
+}
+/* Rechter Fade als Scroll-Affordanz - nur sichtbar, wenn die Tabelle
+   tatsächlich breiter als ihr Container ist (.table-wrap.scrollable, per JS
+   per ResizeObserver in ui.jsx::useScrollFade gesetzt). */
+.table-wrap.scrollable::after {
+  content: ''; position: sticky; float: right; top: 0; right: 0;
+  width: 22px; height: 100%; margin-left: -22px; pointer-events: none;
+  background: linear-gradient(to right, transparent, var(--bg-elev));
 }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 thead th {
@@ -255,8 +379,25 @@ thead th.left, tbody td.left { text-align: left; }
 tbody td { padding: 9px 12px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
 tbody tr:hover td { background: var(--bg-hover); }
 tbody tr:last-child td { border-bottom: none; }
+tbody tr.active-row td { background: var(--accent-soft); }
 td.num, th.num { font-variant-numeric: tabular-nums; font-family: var(--mono); }
 .rank { color: var(--text-dim); font-family: var(--mono); font-weight: 600; }
+
+/* Erste Spalte (Team) gepinnt: bleibt beim horizontalen Scrollen stehen -
+   nur aktiviert über .table-wrap.pin-first (Standings/Rankings/Matrix; nicht
+   überall sinnvoll, z.B. nicht bei schmalen 2-3-Spalten-Tabellen). */
+.table-wrap.pin-first th:first-child, .table-wrap.pin-first td:first-child {
+  position: sticky; left: 0; z-index: 5;
+  background: var(--bg-elev); box-shadow: 1px 0 0 var(--border);
+}
+.table-wrap.pin-first thead th:first-child { z-index: 6; background: var(--bg-elev-2); }
+.table-wrap.pin-first tbody tr:hover td:first-child { background: var(--bg-hover); }
+.table-wrap.pin-first tbody tr.active-row td:first-child { background: var(--accent-soft); }
+
+@media (max-width: 600px) {
+  table { font-size: 12.5px; }
+  thead th, tbody td { padding: 8px 8px; }
+}
 
 /* ---------- Team badge ---------- */
 .team-badge { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
@@ -330,7 +471,7 @@ input[type="checkbox"] { width: auto; accent-color: var(--accent); }
 .empty .title { font-weight: 700; color: var(--text); font-size: 13.5px; }
 .empty .hint { margin-top: 5px; font-size: 12.5px; }
 
-.pill-tabs { display: inline-flex; gap: 3px; background: var(--bg-elev-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 3px; }
+.pill-tabs { display: inline-flex; flex-wrap: wrap; gap: 3px; background: var(--bg-elev-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 3px; }
 .pill-tabs button {
   border: none; background: transparent; color: var(--text-dim);
   padding: 6px 13px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12px; font-family: inherit;
@@ -338,6 +479,8 @@ input[type="checkbox"] { width: auto; accent-color: var(--accent); }
 }
 .pill-tabs button:hover { color: var(--text); }
 .pill-tabs button.active { background: var(--accent); color: #fff; }
+.pill-tabs.full { display: flex; width: 100%; }
+.pill-tabs.full button { flex: 1; padding: 8px 4px; min-height: 36px; }
 
 .toast {
   position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
@@ -374,12 +517,76 @@ input[type="checkbox"] { width: auto; accent-color: var(--accent); }
 .matrix-bar-track { height: 40px; width: 14px; margin: 0 auto; background: var(--bg-elev-2); border-radius: 2px; overflow: hidden; display: flex; align-items: flex-end; border: 1px solid var(--border); }
 .matrix-bar-fill { width: 100%; background: var(--accent); border-radius: 2px 2px 0 0; min-height: 1px; }
 
-/* Delta-Anzeige (▲/▼ ggü. letzter Baseline) - bewusst neutral eingefärbt statt
-   grün/rot: "gestiegen" ist nicht bei jeder Metrik eine gute Nachricht
-   (z.B. P(Ligaqualifikation)). */
-.delta { font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; margin-left: 6px; color: var(--text-dim); }
-.delta.up::before { content: '▲ '; }
-.delta.down::before { content: '▼ '; }
+/* DeltaBadge (▲ grün / ▼ rot) - Prozentpunkte ggü. Baseline/Vergleichslauf. */
+.delta {
+  display: inline-flex; align-items: center; gap: 2px;
+  font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+  margin-left: 6px; padding: 1px 6px; border-radius: 999px;
+  color: var(--text-dim); background: var(--bg-elev-2);
+}
+.delta.up { color: var(--good); background: var(--good-soft); }
+.delta.down { color: var(--bad); background: var(--bad-soft); }
+.delta.up::before { content: '▲'; }
+.delta.down::before { content: '▼'; }
+
+/* ---------- ProbBar (Wahrscheinlichkeit als Balken + %-Wert) ---------- */
+.prob-bar-row { display: flex; align-items: center; gap: 8px; }
+.prob-bar-track {
+  flex: 1; height: 7px; min-width: 34px; background: var(--bg-elev-2);
+  border-radius: 999px; overflow: hidden; border: 1px solid var(--border);
+}
+.prob-bar-fill { height: 100%; border-radius: 999px; background: var(--accent); }
+.prob-bar-value {
+  min-width: 42px; text-align: right; font-family: var(--mono);
+  font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+
+/* ---------- StatTile ---------- */
+.stat-tile {
+  background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.stat-tile .label { font-size: 10.5px; color: var(--text-dim); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.stat-tile .value { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.stat-tile .value.accent { color: var(--accent); }
+.stat-tile .hint { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+
+/* ---------- Legend (Farbskala/Kategorie-Erklärung) ---------- */
+.legend { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 11px; color: var(--text-dim); }
+.legend .swatch { display: inline-flex; align-items: center; gap: 5px; }
+.legend .swatch .sq { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+.legend .scale { display: inline-flex; align-items: center; gap: 6px; }
+.legend .scale .ramp { display: flex; height: 11px; width: 70px; border-radius: 3px; overflow: hidden; border: 1px solid var(--border); }
+.legend .scale .ramp span { flex: 1; }
+
+/* ---------- Expander ("Alle N anzeigen") ---------- */
+.expander-trigger {
+  width: 100%; text-align: center; padding: 10px; min-height: var(--tap);
+  color: var(--accent); font-weight: 700; font-size: 12.5px;
+  background: transparent; border: none; border-top: 1px solid var(--border);
+  cursor: pointer; font-family: inherit;
+}
+.expander-trigger:hover { background: var(--bg-hover); }
+
+/* ---------- Sub-Tabs (z.B. Season Projections: Matrix/Brackets/...) ---------- */
+.subtabs {
+  display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none;
+  -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity;
+  position: sticky; top: var(--header-actual-h, var(--header-h)); z-index: 30;
+  background: var(--bg); padding: 8px 0; margin: 0 0 14px;
+  border-bottom: 1px solid var(--border);
+}
+.subtabs::-webkit-scrollbar { display: none; }
+.subtabs button {
+  flex: none; scroll-snap-align: start; white-space: nowrap;
+  min-height: var(--tap); padding: 0 14px;
+  border: 1px solid var(--border); border-radius: 999px;
+  background: var(--bg-elev); color: var(--text-dim);
+  font-weight: 700; font-size: 12.5px; font-family: inherit; cursor: pointer;
+  transition: background 0.12s var(--ease), color 0.12s var(--ease), border-color 0.12s var(--ease);
+}
+.subtabs button:hover { color: var(--text); }
+.subtabs button.active { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
 
 /* Bracket-Karten */
 .bracket-card-list .row { padding: 5px 0; border-bottom: 1px solid var(--border); }
@@ -391,6 +598,24 @@ input[type="checkbox"] { width: auto; accent-color: var(--accent); }
 .split-bar .away { background: var(--border-strong); }
 .match-row { cursor: pointer; }
 .match-row:hover { background: var(--bg-hover); }
+
+/* Match-Liste als Karten-Zeilen statt Tabelle (kein Team pro Zeile -> kein
+   sinnvolles Sticky-First-Pattern; als Liste vermeidet sie horizontales
+   Scrollen auf dem Handy komplett, siehe Auftrag "kein horizontaler Scroll
+   ausser in Tabellen-Containern"). */
+.match-list .match-item {
+  display: block; width: 100%; text-align: left; font-family: inherit;
+  padding: 11px 14px; border: none; background: transparent; cursor: pointer;
+  border-bottom: 1px solid var(--border); min-height: var(--tap);
+}
+.match-list .match-item:last-child { border-bottom: none; }
+.match-list .match-item:hover { background: var(--bg-hover); }
+.match-item .match-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-faint); margin-bottom: 6px; }
+.match-item .match-teams { display: flex; align-items: center; gap: 8px; }
+.match-item .match-teams .side { flex: none; display: flex; flex-direction: column; gap: 2px; min-width: 58px; }
+.match-item .match-teams .side.away { align-items: flex-end; text-align: right; }
+.match-item .match-teams .pct { font-family: var(--mono); font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-dim); }
+.match-item .match-teams .split-bar { flex: 1; height: 6px; }
 
 /* Sortierindikator */
 .sort-ind { font-size: 9px; margin-left: 4px; color: var(--accent); }
@@ -411,8 +636,30 @@ td.num strong, th.num strong { font-weight: 800; }
 @media (max-width: 900px) {
   .topbar-inner { padding: 0 16px; }
   .brand { padding: 10px 0; flex: 1; }
-  .main { padding: 18px 16px 48px; }
+  .main {
+    padding-top: 18px;
+    padding-bottom: max(48px, calc(18px + env(safe-area-inset-bottom)));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .stat-strip .stat { padding-right: 12px; }
   .stat-strip .stat:not(:first-child) { padding-left: 12px; }
+}
+
+/* Echte Handybreiten (360-480px, s. Auftrag: 360/390/430px testen) */
+@media (max-width: 480px) {
+  .topbar-inner { padding: 0 12px; gap: 10px; }
+  .main {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+  .brand .season { display: none; } /* zweite Zeile spart Höhe auf sehr schmalen Screens */
+  .page-head { gap: 10px; }
+  .page-head h1 { font-size: 17px; }
+  .card-pad { padding: 13px 14px; }
+  .tiles { grid-template-columns: repeat(2, 1fr); }
+  .stat-tile .value { font-size: 19px; }
+  thead th, tbody td { padding: 7px 7px; }
+  .subtabs button { padding: 0 12px; font-size: 12px; }
 }

@@ -89,12 +89,31 @@ function NavMore() {
   )
 }
 
+// Misst die TATSÄCHLICHE Header-Höhe (inkl. iOS-Safe-Area-Padding, das je
+// nach Gerät/Ausrichtung variiert) und legt sie als CSS-Variable ab, damit
+// sticky Sub-Tabs (.subtabs, z.B. Season Projections) exakt darunter andocken
+// statt unter dem festen --header-h zu verschwinden/zu überlappen.
+function useHeaderHeight() {
+  const ref = useRef(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const set = () => document.documentElement.style.setProperty('--header-actual-h', `${el.offsetHeight}px`)
+    set()
+    const ro = new ResizeObserver(set)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  return ref
+}
+
 export default function App() {
   const { loading, error, data } = useData()
+  const headerRef = useHeaderHeight()
 
   return (
     <div className="app">
-      <header className="topbar">
+      <header className="topbar" ref={headerRef}>
         <div className="topbar-inner">
           <div className="brand">
             <span className="mark">NL</span>

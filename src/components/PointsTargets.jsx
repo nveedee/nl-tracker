@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { TeamBadge } from './ui.jsx'
+import { TeamBadge, SectionHeader } from './ui.jsx'
 import { computePointsTargets, POINTS_CONFIDENCE_LEVELS, POINTS_TARGET_CATEGORIES } from '../playoffSim.js'
 
 // "X Punkte = sicher": kleinste Punktzahl, ab der ein Team (bedingt auf einen
@@ -13,8 +13,10 @@ export default function PointsTargets({ baseResults }) {
   return (
     <div className="grid grid-3 mb" style={{ gap: 14 }}>
       {POINTS_TARGET_CATEGORIES.map((cat) => (
-        <div className="card card-pad" key={cat.key}>
-          <div className="section-label">{cat.label}</div>
+        <div className="card" key={cat.key}>
+          <div className="card-pad" style={{ paddingBottom: 8 }}>
+            <SectionHeader title={cat.label} caption="Punktzahl, ab der das Ziel bei diesem Punktestand erreicht wird." />
+          </div>
           <div className="table-wrap">
             <table>
               <thead>

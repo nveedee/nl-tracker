@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { TeamBadge } from './ui.jsx'
+import { TeamBadge, SectionHeader, Expander } from './ui.jsx'
 
 function fmtPct(v) { return (v * 100).toFixed(0) + '%' }
 function fmtDate(iso) {
@@ -14,62 +14,49 @@ const DEFAULT_LIMIT = 10
 // Carlo-Simulation (src/playoffSim.js::computeMatchForecasts), nur
 // geschlossen statt simuliert ausgewertet. Klick öffnet die bereits
 // bestehende Matchup-Detailseite (/matchup/:gameId, MatchupDetail.jsx).
+// Als Karten-Liste statt Tabelle - vermeidet horizontales Scrollen auf dem
+// Handy (kein Team pro Zeile, "sticky first column" passt hier nicht).
 export default function MatchForecast({ forecasts }) {
-  const [showAll, setShowAll] = useState(false)
+  const [expanded, setExpanded] = useState(false)
   const navigate = useNavigate()
   if (!forecasts.length) return null
 
-  const visible = showAll ? forecasts : forecasts.slice(0, DEFAULT_LIMIT)
+  const visible = expanded ? forecasts : forecasts.slice(0, DEFAULT_LIMIT)
 
   return (
     <div className="card mb">
-      <div className="card-pad row spread" style={{ paddingBottom: 10 }}>
-        <div className="section-label" style={{ margin: 0 }}>Per-Match-Forecast</div>
-        <span className="muted" style={{ fontSize: 11.5 }}>{forecasts.length} offene Spiele</span>
+      <div className="card-pad" style={{ paddingBottom: 8 }}>
+        <SectionHeader
+          title="Per-Match-Forecast"
+          caption="Heimsieg-/Auswärtssieg-Chance aus ELO + Heimvorteil für die kommenden Spiele."
+          action={<span className="muted" style={{ fontSize: 11.5 }}>{forecasts.length} offen</span>}
+        />
       </div>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th className="left">Datum</th>
-              <th className="left">Heim</th>
-              <th className="left"></th>
-              <th className="left">Auswärts</th>
-              <th className="left" style={{ minWidth: 160 }}>Heimsieg / Ausw.-Sieg</th>
-              <th className="num">n.V./PS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visible.map((f) => (
-              <tr key={f.gameId} className="match-row" onClick={() => navigate(`/matchup/${f.gameId}`)}>
-                <td className="left muted" style={{ fontSize: 12 }}>{fmtDate(f.date)}</td>
-                <td className="left"><TeamBadge team={f.homeTeam} short /></td>
-                <td className="left muted">–</td>
-                <td className="left"><TeamBadge team={f.awayTeam} short /></td>
-                <td className="left">
-                  <div className="row gap-sm" style={{ alignItems: 'center' }}>
-                    <div className="split-bar" style={{ flex: 1 }}>
-                      <div className="home" style={{ width: `${f.pHomeWin * 100}%` }} />
-                      <div className="away" style={{ width: `${f.pAwayWin * 100}%` }} />
-                    </div>
-                    <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, minWidth: 70, textAlign: 'right' }}>
-                      {fmtPct(f.pHomeWin)} / {fmtPct(f.pAwayWin)}
-                    </span>
-                  </div>
-                </td>
-                <td className="num muted" style={{ fontSize: 11.5 }}>{fmtPct(f.pDecision)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {!showAll && forecasts.length > DEFAULT_LIMIT && (
-        <div className="card-pad" style={{ paddingTop: 10 }}>
-          <button className="btn ghost sm" onClick={() => setShowAll(true)}>
-            Alle {forecasts.length} offenen Spiele anzeigen
+      <div className="match-list">
+        {visible.map((f) => (
+          <button key={f.gameId} className="match-item" onClick={() => navigate(`/matchup/${f.gameId}`)}>
+            <div className="match-meta">
+              <span>{fmtDate(f.date)}</span>
+              <span>n.V./PS {fmtPct(f.pDecision)}</span>
+            </div>
+            <div className="match-teams">
+              <div className="side">
+                <TeamBadge team={f.homeTeam} short />
+                <span className="pct">{fmtPct(f.pHomeWin)}</span>
+              </div>
+              <div className="split-bar">
+                <div className="home" style={{ width: `${f.pHomeWin * 100}%` }} />
+                <div className="away" style={{ width: `${f.pAwayWin * 100}%` }} />
+              </div>
+              <div className="side away">
+                <TeamBadge team={f.awayTeam} short />
+                <span className="pct">{fmtPct(f.pAwayWin)}</span>
+              </div>
+            </div>
           </button>
-        </div>
-      )}
+        ))}
+      </div>
+      <Expander total={forecasts.length} initialCount={DEFAULT_LIMIT} expanded={expanded} onExpand={() => setExpanded(true)} moreLabel={`Alle ${forecasts.length} offenen Spiele anzeigen`} />
     </div>
   )
 }

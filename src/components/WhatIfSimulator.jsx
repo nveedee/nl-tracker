@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { TeamBadge } from './ui.jsx'
+import { TeamBadge, SectionHeader, Expander } from './ui.jsx'
 import PositionMatrix from './PositionMatrix.jsx'
 import BracketCards from './BracketCards.jsx'
 import { toComparisonSnapshot } from '../baselineStore.js'
@@ -27,10 +27,10 @@ export default function WhatIfSimulator({ teams, games, settings, players, initi
   const [overrides, setOverrides] = useState({})
   const [whatIfResults, setWhatIfResults] = useState(null)
   const [simulating, setSimulating] = useState(false)
-  const [showAll, setShowAll] = useState(false)
+  const [expanded, setExpanded] = useState(false)
 
   const overrideCount = Object.keys(overrides).length
-  const visibleForecasts = showAll ? forecasts : forecasts.slice(0, DEFAULT_LIMIT)
+  const visibleForecasts = expanded ? forecasts : forecasts.slice(0, DEFAULT_LIMIT)
 
   const setOverride = (gameId, code) => {
     setOverrides((prev) => {
@@ -68,56 +68,38 @@ export default function WhatIfSimulator({ teams, games, settings, players, initi
 
   return (
     <div className="card mb">
-      <div className="card-pad row spread" style={{ paddingBottom: 10 }}>
-        <div>
-          <div className="section-label" style={{ margin: 0 }}>What-if-Simulator</div>
-          <div className="muted" style={{ fontSize: 11.5 }}>{overrideCount} Spiel(e) vorgegeben</div>
-        </div>
-        <div className="row gap-sm">
-          <button className="btn ghost sm" onClick={handleReset} disabled={overrideCount === 0 && !whatIfResults}>Reset</button>
-          <button className="btn primary sm" onClick={handleSimulate} disabled={overrideCount === 0 || simulating}>
+      <div className="card-pad" style={{ paddingBottom: 10 }}>
+        <SectionHeader
+          title="What-if-Simulator"
+          caption="Ergebnisse einzelner Spiele fix vorgeben, Rest bleibt Monte-Carlo."
+          action={<span className="muted" style={{ fontSize: 11.5 }}>{overrideCount} vorgegeben</span>}
+        />
+        <div className="row gap-sm" style={{ marginTop: 10 }}>
+          <button className="btn primary sm" onClick={handleSimulate} disabled={overrideCount === 0 || simulating} style={{ flex: 1, minHeight: 40 }}>
             {simulating ? 'Simuliert…' : 'Simulieren'}
           </button>
+          <button className="btn ghost sm" onClick={handleReset} disabled={overrideCount === 0 && !whatIfResults} style={{ minHeight: 40 }}>Reset</button>
         </div>
       </div>
 
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th className="left">Datum</th>
-              <th className="left">Heim</th>
-              <th className="left">Auswärts</th>
-              <th className="left" style={{ minWidth: 260 }}>Vorgabe</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visibleForecasts.map((f) => (
-              <tr key={f.gameId}>
-                <td className="left muted" style={{ fontSize: 12 }}>{fmtDate(f.date)}</td>
-                <td className="left"><TeamBadge team={f.homeTeam} short /></td>
-                <td className="left"><TeamBadge team={f.awayTeam} short /></td>
-                <td className="left">
-                  <div className="pill-tabs">
-                    {OVERRIDE_RESULTS.map((code) => (
-                      <button key={code} className={overrides[f.gameId] === code ? 'active' : ''} onClick={() => setOverride(f.gameId, code)}>
-                        {RESULT_LABELS[code]}
-                      </button>
-                    ))}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="match-list">
+        {visibleForecasts.map((f) => (
+          <div key={f.gameId} className="match-item" style={{ cursor: 'default' }}>
+            <div className="match-meta"><span>{fmtDate(f.date)}</span></div>
+            <div className="match-teams" style={{ marginBottom: 8 }}>
+              <TeamBadge team={f.homeTeam} short /> <span className="muted">–</span> <TeamBadge team={f.awayTeam} short />
+            </div>
+            <div className="pill-tabs full">
+              {OVERRIDE_RESULTS.map((code) => (
+                <button key={code} className={overrides[f.gameId] === code ? 'active' : ''} onClick={() => setOverride(f.gameId, code)}>
+                  {RESULT_LABELS[code]}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
-      {!showAll && forecasts.length > DEFAULT_LIMIT && (
-        <div className="card-pad" style={{ paddingTop: 10 }}>
-          <button className="btn ghost sm" onClick={() => setShowAll(true)}>
-            Alle {forecasts.length} offenen Spiele anzeigen
-          </button>
-        </div>
-      )}
+      <Expander total={forecasts.length} initialCount={DEFAULT_LIMIT} expanded={expanded} onExpand={() => setExpanded(true)} moreLabel={`Alle ${forecasts.length} offenen Spiele anzeigen`} />
 
       {whatIfResults && (
         <div className="card-pad" style={{ paddingTop: 4 }}>

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { TeamBadge } from './ui.jsx'
+import { TeamBadge, SectionHeader, ProbBar, useScrollFade } from './ui.jsx'
 import { computeSwingAnalysisForMatchday, SWING_CATEGORIES, SWING_RUNS } from '../playoffSim.js'
 
 function fmtPct(v) { return (v * 100).toFixed(1) + '%' }
@@ -62,6 +62,7 @@ export default function SwingAnalysis({ teams, games, settings, players, initial
 
   const expandedGame = rankedGames.find((g) => g.gameId === expandedGameId)
   const categoriesToShow = category === 'all' ? SWING_CATEGORIES : SWING_CATEGORIES.filter((c) => c.key === category)
+  const breakdownWrapRef = useScrollFade()
 
   if (!matchdays.length) return null
 
@@ -77,22 +78,19 @@ export default function SwingAnalysis({ teams, games, settings, players, initial
 
   return (
     <div className="card mb">
-      <div className="card-pad row spread wrap" style={{ paddingBottom: 10, gap: 10 }}>
-        <div>
-          <div className="section-label" style={{ margin: 0 }}>Swing-Analyse – Was steht auf dem Spiel?</div>
-          <div className="muted" style={{ fontSize: 11.5 }}>Einfluss je Spiel auf Meister/Top6/Playoffs/Play-out/Ligaqualifikation</div>
-        </div>
-        <div className="row gap-sm">
+      <div className="card-pad" style={{ paddingBottom: 10 }}>
+        <SectionHeader title="Swing-Analyse" caption="Welches Spiel eines Spieltags beeinflusst die Endtabelle am meisten?" />
+        <div className="row gap-sm wrap" style={{ marginTop: 10 }}>
           <select
             value={selectedDate}
             onChange={(e) => { setSelectedDate(e.target.value); setSwing(null); setExpandedGameId(null) }}
-            style={{ width: 'auto' }}
+            style={{ width: 'auto', minHeight: 40 }}
           >
             {matchdays.map((m) => (
               <option key={m.date} value={m.date}>{fmtDate(m.date)} ({m.gameIds.length} Spiele)</option>
             ))}
           </select>
-          <button className="btn primary sm" onClick={handleAnalyze} disabled={loading}>
+          <button className="btn primary sm" onClick={handleAnalyze} disabled={loading} style={{ minHeight: 40, flex: 1 }}>
             {loading ? 'Analysiert…' : 'Spieltag analysieren'}
           </button>
         </div>
@@ -107,33 +105,26 @@ export default function SwingAnalysis({ teams, games, settings, players, initial
             ))}
           </div>
 
-          <div className="table-wrap mb">
-            <table>
-              <thead>
-                <tr>
-                  <th className="left">Spiel</th>
-                  <th className="num">Heimsieg-%</th>
-                  <th className="num">Einfluss (Expected Swing, max.)</th>
-                  <th className="num"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {rankedGames.map((g) => (
-                  <tr key={g.gameId} className="match-row" onClick={() => setExpandedGameId(expandedGameId === g.gameId ? null : g.gameId)}>
-                    <td className="left">
-                      <TeamBadge team={g.homeTeam} short /> <span className="muted">–</span> <TeamBadge team={g.awayTeam} short />
-                    </td>
-                    <td className="num">{fmtPct(g.pHomeWin)}</td>
-                    <td className="num"><strong style={{ fontFamily: 'var(--mono)' }}>{fmtPp(g.influence)}</strong></td>
-                    <td className="num muted">{expandedGameId === g.gameId ? '▲' : '▼'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="match-list mb" style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+            {rankedGames.map((g) => (
+              <button key={g.gameId} className="match-item" onClick={() => setExpandedGameId(expandedGameId === g.gameId ? null : g.gameId)}>
+                <div className="match-meta">
+                  <span>Heimsieg {fmtPct(g.pHomeWin)}</span>
+                  <span>{expandedGameId === g.gameId ? '▲ weniger' : '▼ Details'}</span>
+                </div>
+                <div className="row spread" style={{ marginBottom: 6 }}>
+                  <span className="row gap-sm"><TeamBadge team={g.homeTeam} short /> <span className="muted">–</span> <TeamBadge team={g.awayTeam} short /></span>
+                </div>
+                <div className="row gap-sm">
+                  <span className="muted" style={{ fontSize: 11, flex: 'none' }}>Einfluss</span>
+                  <div style={{ flex: 1 }}><ProbBar value={g.influence} digits={1} /></div>
+                </div>
+              </button>
+            ))}
           </div>
 
           {expandedGame && (
-            <div className="table-wrap">
+            <div className="table-wrap pin-first" ref={breakdownWrapRef}>
               <table>
                 <thead>
                   <tr>

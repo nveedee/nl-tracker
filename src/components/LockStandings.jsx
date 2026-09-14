@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { TeamBadge } from './ui.jsx'
+import { SectionHeader } from './ui.jsx'
 import PositionMatrix from './PositionMatrix.jsx'
 import BracketCards from './BracketCards.jsx'
 import { filterLockedRuns, LOCK_MIN_SAMPLE, LOCK_BRACKET_KINDS } from '../playoffSim.js'
@@ -39,25 +39,25 @@ export default function LockStandings({ teams, baseResults }) {
   return (
     <div className="card mb">
       <div className="card-pad" style={{ paddingBottom: 10 }}>
-        <div className="section-label" style={{ margin: 0 }}>Lock Final Standings</div>
-        <div className="muted" style={{ fontSize: 11.5, marginTop: 2 }}>
-          Bedingte Wahrscheinlichkeiten ohne Neuberechnung - filtert die {baseResults.runs.toLocaleString('de-CH')} bereits gelaufenen Läufe.
-        </div>
+        <SectionHeader
+          title="Lock Final Standings"
+          caption={`Bedingte Wahrscheinlichkeiten ohne Neuberechnung - filtert die ${baseResults.runs.toLocaleString('de-CH')} bereits gelaufenen Läufe.`}
+        />
 
         <div className="row gap-sm wrap" style={{ marginTop: 10, alignItems: 'center' }}>
-          <select value={formTeamId} onChange={(e) => setFormTeamId(e.target.value)} style={{ width: 'auto' }}>
+          <select value={formTeamId} onChange={(e) => setFormTeamId(e.target.value)} style={{ width: 'auto', minHeight: 40 }}>
             {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
-          <select value={formKind} onChange={(e) => setFormKind(e.target.value)} style={{ width: 'auto' }}>
+          <select value={formKind} onChange={(e) => setFormKind(e.target.value)} style={{ width: 'auto', minHeight: 40 }}>
             <option value="rank">Endrang</option>
             {LOCK_BRACKET_KINDS.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
           </select>
           {formKind === 'rank' && (
-            <select value={formRank} onChange={(e) => setFormRank(e.target.value)} style={{ width: 'auto' }}>
+            <select value={formRank} onChange={(e) => setFormRank(e.target.value)} style={{ width: 'auto', minHeight: 40 }}>
               {RANKS.map((r) => <option key={r} value={r}>Rang {r}</option>)}
             </select>
           )}
-          <button className="btn ghost sm" onClick={addLock}>Pin hinzufügen</button>
+          <button className="btn ghost sm" onClick={addLock} style={{ minHeight: 40 }}>Pin hinzufügen</button>
         </div>
 
         {locks.length > 0 && (
