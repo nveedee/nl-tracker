@@ -553,12 +553,31 @@ input[type="checkbox"] { width: auto; accent-color: var(--accent); }
 .wheel-wrap { display: flex; justify-content: center; margin: 8px 0 2px; }
 .wheel-svg { width: min(100%, 420px); height: auto; display: block; }
 
+/* Die Ring-Skala liegt jetzt ÜBER den (durchgehend gefüllten) Team-
+   Trackflächen - braucht deshalb mehr Kontrast als zuvor, als sie noch auf
+   leerem Kartenhintergrund lag. pointer-events:none, damit sie Klicks auf
+   die darunterliegenden Sektoren nicht abfängt. */
 .wheel-rings circle {
-  fill: none; stroke: var(--border); stroke-dasharray: 2 4; opacity: 0.9;
+  fill: none; stroke: var(--bg-elev); stroke-opacity: 0.55; stroke-width: 0.9;
+  stroke-dasharray: 2 3; pointer-events: none;
 }
 .wheel-ring-labels text {
-  font-size: 6.6px; font-family: var(--mono); fill: var(--text-faint); pointer-events: none;
+  font-size: 6.6px; font-weight: 700; font-family: var(--mono);
+  fill: var(--text-dim); paint-order: stroke; stroke: var(--bg-elev);
+  stroke-width: 2.5px; pointer-events: none;
 }
+
+/* Neutrale Trackfläche (0 bis maxRadius) - macht aus jedem Sektor immer ein
+   VOLLSTÄNDIGES Zielscheiben-Segment statt eines kurzen "Balkens", der im
+   Leeren endet. Dünne Kartenhintergrund-Trennlinie an den Sektorkanten für
+   eine saubere Ring-Optik. */
+.wheel-sector-track {
+  fill: var(--bg-elev-2); stroke: var(--bg-elev); stroke-width: 0.6;
+}
+/* Trennlinie ZWISCHEN den vier Playoff-Stufen (Kartenhintergrundfarbe) -
+   macht sie zu eigenständigen konzentrischen Bändern statt einem weichen
+   Opazitäts-Verlauf. */
+.wheel-sector-stage { stroke: var(--bg-elev); stroke-width: 0.6; }
 
 .wheel-sector { cursor: pointer; }
 .wheel-sector path { transition: opacity 0.15s ease; }
@@ -569,7 +588,15 @@ input[type="checkbox"] { width: auto; accent-color: var(--accent); }
    dieselbe Pfadstruktur (M/L/A/Z), wodurch `d` browserseitig interpolierbar
    bleibt statt hart zu springen. */
 @media (prefers-reduced-motion: no-preference) {
-  .wheel-sector path { transition: d 0.5s cubic-bezier(.4, 0, .2, 1), opacity 0.15s ease; }
+  .wheel-sector-stage { transition: d 0.5s cubic-bezier(.4, 0, .2, 1), opacity 0.15s ease; }
+}
+
+/* Zentraler Meister-/Cup-Hub - neutrale Nabe der Grafik, keine Teamfarbe. */
+.wheel-hub circle {
+  fill: var(--bg-elev-2); stroke: var(--border-strong); stroke-width: 1.2;
+}
+.wheel-hub text {
+  font-size: 12px; text-anchor: middle; dominant-baseline: central;
 }
 
 .wheel-logo { cursor: pointer; transition: opacity 0.15s ease; }

@@ -7,21 +7,28 @@ import { buildWheelLayout, sectorPath, polarToCartesian, RING_LEVELS } from '../
 // EIN gemeinsamer Kreis statt Balkentabelle - jedes Team bekommt einen
 // eigenen radialen Sektor, dessen WINKELBREITE proportional zu seiner
 // P(Viertelfinal) ist (stärkere Teams = breiterer Sektor, normalisiert auf
-// 360° über alle Teams - siehe wheelGeometry.js/buildWheelLayout()). Die
-// vier kumulativen Playoff-Stufen (Viertelfinal/Halbfinal/Final/Meister)
-// sind zusätzlich kürzere, stärker gesättigte RADIALE Zonen DERSELBEN
-// Teamfarbe innerhalb desselben Sektors übereinandergelegt - das Zentrum
-// repräsentiert so die Meister-Chance, der äussere Rand die Viertelfinal-
-// Chance. Zwei unabhängige Kodierungen derselben Daten: WINKEL = normierte
-// P(QF) relativ zu allen Teams, RADIUS = direkte P(je Runde) dieses Teams
-// (siehe wheelGeometry.js/.test.js für die Herleitung/Invarianten). Reine
-// Geometrie liegt in src/wheelGeometry.js (getestet, DOM-unabhängig) -
-// diese Komponente ist nur noch Rendering + Hover/Tap-Interaktion.
+// 360° über alle Teams - siehe wheelGeometry.js/buildWheelLayout()).
+//
+// WICHTIG (Rendering, nicht Geometrie): jeder Teamsektor zeichnet ZUERST
+// eine durchgehende neutrale Hintergrundfläche bis zum ÄUSSEREN Rand
+// (maxRadius) - dadurch bleibt der GESAMTE Kreis immer vollständig
+// (wie eine Zielscheibe), statt dass ein Team mit niedriger Wahrschein-
+// lichkeit wie ein kurzer, aus dem Zentrum "herausragender Balken" wirkt.
+// Erst darüber liegen die vier kumulativen Playoff-Stufen (Viertelfinal/
+// Halbfinal/Final/Meister) als klar getrennte, zunehmend gesättigtere
+// RINGE derselben Teamfarbe (mit dünner Trennlinie zwischen den Stufen,
+// damit sie wie eigenständige konzentrische Bänder wirken statt wie ein
+// weicher Farbverlauf). Das Zentrum trägt zusätzlich einen neutralen
+// "Meister"-Hub (Pokal-Symbol) als visuellen Nabe der ganzen Grafik.
+// WINKEL = normierte P(QF) relativ zu allen Teams, RADIUS = direkte
+// P(je Runde) dieses Teams (siehe wheelGeometry.js/.test.js für die
+// Herleitung/Invarianten - hier unverändert, nur das Rendering ist neu).
 const SIZE = 340
 const CENTER = SIZE / 2
 const MAX_RADIUS = 106
 const LOGO_RADIUS = MAX_RADIUS + 27
 const LOGO_R_MAX = 15.5
+const HUB_R = 11
 // Untere Grenze, mit MIN_VISUAL_ANGLE_DEG (wheelGeometry.js) abgestimmt:
 // im ungünstigsten Fall (zwei Mindestwinkel-Teams direkt nebeneinander,
 // Abstand = MIN_VISUAL_ANGLE_DEG) berechnet logoR unten von selbst einen
@@ -34,11 +41,13 @@ const LOGO_FONT_MAX = 8.2
 
 // Vier kumulative Stufen, aussen -> innen (grösster -> kleinster Radius).
 // Deckkraft steigt nach innen (Meister am kräftigsten/dunkelsten) - dieselbe
-// Teamfarbe für alle vier Stufen, nur die Opazität unterscheidet sie.
+// Teamfarbe für alle vier Stufen, nur die Opazität unterscheidet sie. Bewusst
+// grössere Sprünge zwischen den Stufen (statt einer weichen Rampe) - jede
+// Stufe soll als eigenständiges Ring-Band erkennbar sein, kein Verlauf.
 const STAGES = [
-  { key: 'pPlayoffs', label: 'Viertelfinal', short: 'VF', opacity: 0.22 },
-  { key: 'pSemifinal', label: 'Halbfinal', short: 'HF', opacity: 0.48 },
-  { key: 'pFinal', label: 'Final', short: 'F', opacity: 0.74 },
+  { key: 'pPlayoffs', label: 'Viertelfinal', short: 'VF', opacity: 0.28 },
+  { key: 'pSemifinal', label: 'Halbfinal', short: 'HF', opacity: 0.55 },
+  { key: 'pFinal', label: 'Final', short: 'F', opacity: 0.8 },
   { key: 'pChampion', label: 'Meister', short: 'M', opacity: 1 },
 ]
 const RADIUS_KEY = { pPlayoffs: 'rQF', pSemifinal: 'rSF', pFinal: 'rFinal', pChampion: 'rCup' }
@@ -110,12 +119,6 @@ export default function PlayoffWheel({ rows, updatedLabel }) {
           aria-label="Playoff-Wahrscheinlichkeiten aller Teams als radiales Diagramm"
           onMouseLeave={() => setActiveId(null)}
         >
-          <g className="wheel-rings">
-            {RING_LEVELS.map((lvl) => (
-              <circle key={lvl} cx={CENTER} cy={CENTER} r={lvl * MAX_RADIUS} />
-            ))}
-          </g>
-
           {layout.map((entry) => {
             const dim = activeId && entry.team.id !== activeId
             return (
@@ -128,9 +131,19 @@ export default function PlayoffWheel({ rows, updatedLabel }) {
                 <title>
                   {`${entry.team.name} — ${STAGES.map((s) => `${s.label} ${fmtPct(entry[s.key])}`).join(', ')}`}
                 </title>
+                {/* Durchgehende neutrale Trackfläche bis zum äusseren Rand -
+                    der Sektor wirkt dadurch immer als VOLLSTÄNDIGES
+                    Ziel-scheiben-Segment, nie als kurzer, im Nichts
+                    endender "Balken". Die vier Stufen darüber sind reine
+                    Datenschicht, die Trackfläche nur die neutrale Basis. */}
+                <path
+                  className="wheel-sector-track"
+                  d={sectorPath(CENTER, CENTER, MAX_RADIUS, entry.startAngle, entry.endAngle)}
+                />
                 {STAGES.map((s) => (
                   <path
                     key={s.key}
+                    className="wheel-sector-stage"
                     d={sectorPath(CENTER, CENTER, entry[RADIUS_KEY[s.key]], entry.startAngle, entry.endAngle)}
                     fill={entry.team.color}
                     opacity={s.opacity}
@@ -140,6 +153,13 @@ export default function PlayoffWheel({ rows, updatedLabel }) {
             )
           })}
 
+          {/* Dezente Prozent-Skala (25/50/75/100%) - über den Teamflächen,
+              damit sie auf der jetzt durchgehend gefüllten Fläche sichtbar bleibt. */}
+          <g className="wheel-rings">
+            {RING_LEVELS.map((lvl) => (
+              <circle key={lvl} cx={CENTER} cy={CENTER} r={lvl * MAX_RADIUS} />
+            ))}
+          </g>
           <g className="wheel-ring-labels">
             {RING_LEVELS.map((lvl) => (
               <text key={lvl} x={CENTER + 3} y={CENTER - lvl * MAX_RADIUS + 2.5}>{Math.round(lvl * 100)}%</text>
@@ -168,6 +188,15 @@ export default function PlayoffWheel({ rows, updatedLabel }) {
               </g>
             )
           })}
+
+          {/* Zentraler Meister-/Cup-Hub - die visuelle Nabe des Wheels
+              (MoneyPuck-artig: Zentrum = Meister). Rein dekorativ/neutral
+              (nicht teamfarbig), liegt über der Konvergenzstelle aller
+              Sektoren im Zentrum. */}
+          <g className="wheel-hub" aria-hidden="true">
+            <circle cx={CENTER} cy={CENTER} r={HUB_R} />
+            <text x={CENTER} y={CENTER} dy={1}>🏆</text>
+          </g>
         </svg>
       </div>
 
