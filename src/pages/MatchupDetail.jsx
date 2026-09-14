@@ -16,6 +16,8 @@ import { isFinalGame, computeStandings, computeHomeSplits } from '../stats.js'
 import { computePowerRankings } from '../powerRankings.js'
 import { homeWinProbability, ELO_CONFIG } from '../elo.js'
 import { computeFixtures, simulateGameResult, SeededRandom } from '../playoffSim.js'
+import { buildScorelineMatrix } from '../scorelineMatrix.js'
+import ScorelineMatrix from '../components/ScorelineMatrix.jsx'
 import { usePreseasonElo, computePreseasonRatings } from '../preseasonElo.js'
 import { computeMarketValuePrior, DEFAULT_PRIOR_SPREAD } from '../marketValuePrior.js'
 import { applyRestAdjustment, computeRestAdjustment, DEFAULT_BACK_TO_BACK_PENALTY } from '../restDays.js'
@@ -90,6 +92,11 @@ function resultCode(won, decision) {
 // simulateGameResult() dieselbe Poisson-/OT-SO-Logik wie die Playoff-
 // Simulation. Keine neue Formel - nur eine andere Aggregation (pro Spiel
 // statt pro Saison, inkl. Endresultat-Häufigkeit) derselben Bausteine.
+// `homeGoals`/`awayGoals` je Lauf sind das FINALE Ergebnis (inkl. OT/SO-
+// Entscheidungstor, siehe simulateGameResult()) - dieselbe Definition, die
+// bereits für pHomeWin/topScores unten verwendet wird. Die Scoreline-Matrix
+// (src/scorelineMatrix.js) nutzt exakt dieselben `runs` Läufe wie
+// topScores/pHomeWin - keine zweite/separate Simulation nur für die Matrix.
 function simulateSingleGame(teams, allGames, settings, players, homeTeamId, awayTeamId, initialRatings, runs = 10000, seed = 424242) {
   const finalGames = allGames.filter(isFinalGame)
   const targetGame = { id: '__matchup_sim__', homeTeamId, awayTeamId, status: 'scheduled', date: '2999-01-01' }
@@ -100,8 +107,10 @@ function simulateSingleGame(teams, allGames, settings, players, homeTeamId, away
   const rng = new SeededRandom(seed)
   let homeWins = 0, awayWins = 0, ot = 0, so = 0, sumHome = 0, sumAway = 0
   const scoreCounts = new Map()
+  const results = new Array(runs)
   for (let i = 0; i < runs; i++) {
     const r = simulateGameResult(rng, fixture)
+    results[i] = r
     sumHome += r.homeGoals
     sumAway += r.awayGoals
     if (r.homeGoals > r.awayGoals) homeWins++
@@ -111,6 +120,7 @@ function simulateSingleGame(teams, allGames, settings, players, homeTeamId, away
     const key = `${r.homeGoals}:${r.awayGoals}`
     scoreCounts.set(key, (scoreCounts.get(key) || 0) + 1)
   }
+  const scoreline = buildScorelineMatrix(results)
   const topScores = [...scoreCounts.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
@@ -125,6 +135,7 @@ function simulateSingleGame(teams, allGames, settings, players, homeTeamId, away
     avgHomeGoals: sumHome / runs,
     avgAwayGoals: sumAway / runs,
     topScores,
+    scoreline,
   }
 }
 
@@ -543,6 +554,13 @@ export default function MatchupDetail() {
                 </table>
               </div>
             </div>
+          )}
+
+          {/* 5a. Scoreline Probabilities (nur zukünftige Spiele) - dieselben
+              10'000 Läufe wie "Simulationsergebnisse" oben, nur anders
+              aggregiert (volle Heim-x-Auswärtstore-Matrix statt Top-5-Liste). */}
+          {!played && mc && (
+            <ScorelineMatrix homeTeam={homeTeam} awayTeam={awayTeam} scorelineProbabilities={mc.scoreline} />
           )}
 
           {/* 5c. Pre-Game Prediction (nur bereits gespielte Spiele mit vorhandenem

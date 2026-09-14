@@ -516,6 +516,56 @@ input[type="checkbox"] { width: auto; accent-color: var(--accent); }
 .matrix-bar-track { height: 40px; width: 14px; margin: 0 auto; background: var(--bg-elev-2); border-radius: 2px; overflow: hidden; display: flex; align-items: flex-end; border: 1px solid var(--border); }
 .matrix-bar-fill { width: 100%; background: var(--accent); border-radius: 2px 2px 0 0; min-height: 1px; }
 
+/* ---------- Scoreline Probabilities (Match-Detailseite) ----------
+   Heim-x-Auswärtstore-Heatmap für ein einzelnes Spiel (src/components/
+   ScorelineMatrix.jsx) - Football-MD-artig, aber an die App-Kartenoptik
+   angepasst: abgerundete Zellen, dezente Achsenbeschriftung, kontinuierliche
+   Opacity-Skala in der Heimteamfarbe statt fixer Heatmap-Stufen. Die äussere
+   Karte nutzt bewusst die bestehenden .card.card-pad-Klassen (kein eigenes
+   Karten-Styling) - siehe MatchupDetail.jsx. */
+.scoreline-body { display: flex; gap: 6px; align-items: stretch; margin-top: 8px; }
+.scoreline-vaxis {
+  display: flex; align-items: center; justify-content: center; flex: none;
+  writing-mode: vertical-rl; transform: rotate(180deg);
+  font-size: 10.5px; font-weight: 700; color: var(--text-faint);
+  letter-spacing: 0.02em; white-space: nowrap; padding: 4px 0;
+}
+/* max-width verhindert, dass die (quadratischen) Zellen auf breiten Desktop-
+   Karten riesig werden (Grid-Spalten sind `1fr` und würden sonst die volle
+   Kartenbreite ausfüllen -> absurd hohe Card, siehe Auftrag "keine unnötige
+   Höhe"). margin:auto zentriert die dadurch schmalere Matrix innerhalb der
+   Karte; Achsen-Label und Grid bleiben zueinander ausgerichtet, da beide
+   Kinder desselben begrenzten Containers sind. */
+.scoreline-content { flex: 1; min-width: 0; max-width: 380px; margin: 0 auto; }
+.scoreline-haxis {
+  text-align: right; font-size: 10.5px; font-weight: 700; color: var(--text-faint);
+  letter-spacing: 0.02em; margin-bottom: 4px; padding-right: 2px;
+}
+.scoreline-grid {
+  display: grid; grid-template-columns: minmax(20px, 26px) repeat(6, minmax(0, 1fr));
+  gap: 3px;
+}
+.scoreline-cell {
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; font-family: var(--mono); font-variant-numeric: tabular-nums;
+  aspect-ratio: 1 / 1;
+}
+.scoreline-corner { background: transparent; }
+.scoreline-colhead, .scoreline-rowhead { font-size: 10.5px; font-weight: 800; color: var(--text-dim); }
+.scoreline-data {
+  font-size: 10px; font-weight: 700; cursor: default;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.scoreline-data:hover {
+  transform: scale(1.1); box-shadow: 0 0 0 1.5px var(--border-strong); position: relative; z-index: 1;
+}
+@media (max-width: 480px) {
+  .scoreline-grid { gap: 2px; grid-template-columns: minmax(16px, 20px) repeat(6, minmax(0, 1fr)); }
+  .scoreline-data { font-size: 8.5px; }
+  .scoreline-colhead, .scoreline-rowhead { font-size: 9px; }
+  .scoreline-vaxis, .scoreline-haxis { font-size: 9px; }
+}
+
 /* DeltaBadge (▲ grün / ▼ rot) - Prozentpunkte ggü. Baseline/Vergleichslauf. */
 .delta {
   display: inline-flex; align-items: center; gap: 2px;
