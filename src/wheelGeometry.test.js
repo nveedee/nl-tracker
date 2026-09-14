@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------------------
 // Sanity-Checks für die Geometrie des Playoff Probability Wheel
 // (src/wheelGeometry.js): alle Teams vorhanden, Sektorlänge entspricht der
-// Wahrscheinlichkeit, QF/SF/Final korrekt ineinander verschachtelt (nutzt
-// dafür einen echten Simulationslauf aus playoffSim.js, unverändert).
+// Wahrscheinlichkeit, QF/SF/Final/Meister korrekt ineinander verschachtelt
+// (nutzt dafür einen echten Simulationslauf aus playoffSim.js, unverändert).
 // ---------------------------------------------------------------------------
 
 import { test } from 'node:test'
@@ -29,22 +29,24 @@ test('alle Teams sind im Wheel-Layout vorhanden, in Eingabe-Reihenfolge', () => 
   layout.forEach((entry, i) => assert.equal(entry.team.id, teams[i].id))
 })
 
-test('Sektorlänge (rQF/rSF/rFinal) entspricht exakt der Wahrscheinlichkeit * maxRadius', () => {
+test('Sektorlänge (rQF/rSF/rFinal/rCup) entspricht exakt der Wahrscheinlichkeit * maxRadius', () => {
   const sim = simulateSeasonProjections(teams, games, settings, { runs: 1000, seed: 1, players })
   const layout = buildWheelLayout(teams, toProbsMap(sim), { maxRadius: 100 })
   for (const entry of layout) {
     assert.ok(Math.abs(entry.rQF - entry.pPlayoffs * 100) < 1e-9)
     assert.ok(Math.abs(entry.rSF - entry.pSemifinal * 100) < 1e-9)
     assert.ok(Math.abs(entry.rFinal - entry.pFinal * 100) < 1e-9)
+    assert.ok(Math.abs(entry.rCup - entry.pChampion * 100) < 1e-9)
   }
 })
 
-test('QF/SF/Final korrekt ineinander verschachtelt: rQF >= rSF >= rFinal für jedes Team', () => {
+test('QF/SF/Final/Cup korrekt ineinander verschachtelt: rQF >= rSF >= rFinal >= rCup für jedes Team', () => {
   const sim = simulateSeasonProjections(teams, games, settings, { runs: 2000, seed: 777, players })
   const layout = buildWheelLayout(teams, toProbsMap(sim))
   for (const entry of layout) {
     assert.ok(entry.rQF >= entry.rSF - 1e-9, `${entry.team.name}: QF (${entry.rQF}) < SF (${entry.rSF})`)
     assert.ok(entry.rSF >= entry.rFinal - 1e-9, `${entry.team.name}: SF (${entry.rSF}) < Final (${entry.rFinal})`)
+    assert.ok(entry.rFinal >= entry.rCup - 1e-9, `${entry.team.name}: Final (${entry.rFinal}) < Cup (${entry.rCup})`)
   }
 })
 
@@ -60,32 +62,48 @@ test('Team-Sektoren teilen 360° gleichmässig auf und überlappen nicht (Lücke
   assert.ok(Math.abs(layout[0].startAngle - (-90 + 2)) < 1e-9)
 })
 
-test('Winkelbreite ist für JEDES Team identisch und UNABHÄNGIG von der Wahrscheinlichkeit (Probability = ausschliesslich radiale Distanz, niemals Winkel/Fläche)', () => {
-  // Bewusst extreme, frei erfundene Wahrscheinlichkeiten (0%, 100%, gemischt) -
-  // unabhängig von einem echten Simulationslauf, um die Geometrie-Invariante
-  // isoliert zu prüfen: die Winkelbreite darf sich NIE aus der Wahrscheinlichkeit
-  // ableiten, nur der Radius.
+test('Winkelbreite ist für JEDES Team identisch und UNABHÄNGIG von der Wahrscheinlichkeit (Probability = ausschliesslich radiale Distanz, niemals Winkel/Fläche) - verbindliches A/B/C-Beispiel', () => {
+  // Exaktes Beispiel aus dem Auftrag: Team A (100/100/100/100), Team B
+  // (50/30/15/5), Team C (0/0/0/0) - bewusst frei erfunden, unabhängig von
+  // einem echten Simulationslauf, um die Geometrie-Invariante isoliert zu
+  // prüfen: die Winkelbreite darf sich NIEMALS aus der Wahrscheinlichkeit
+  // ableiten (angleWidth(A) === angleWidth(B) === angleWidth(C)), nur der
+  // Radius unterscheidet sich - und zwar für alle VIER Stufen einzeln.
   const probs = new Map([
-    [teams[0].id, { pPlayoffs: 1, pSemifinal: 1, pFinal: 1 }],
-    [teams[1].id, { pPlayoffs: 0, pSemifinal: 0, pFinal: 0 }],
-    [teams[2].id, { pPlayoffs: 0.5, pSemifinal: 0.3, pFinal: 0.1 }],
+    [teams[0].id, { pPlayoffs: 1, pSemifinal: 1, pFinal: 1, pChampion: 1 }],
+    [teams[1].id, { pPlayoffs: 0.5, pSemifinal: 0.3, pFinal: 0.15, pChampion: 0.05 }],
+    [teams[2].id, { pPlayoffs: 0, pSemifinal: 0, pFinal: 0, pChampion: 0 }],
   ])
-  const layout = buildWheelLayout(teams, probs, { gapDeg: 4 })
-  const widths = layout.map((e) => e.endAngle - e.startAngle)
+  const layout = buildWheelLayout(teams, probs, { maxRadius: 100, gapDeg: 4 })
+  const [a, b, c] = layout
+  const angleWidth = (e) => e.endAngle - e.startAngle
+
   const expectedWidth = 360 / teams.length - 4
-  for (let i = 0; i < layout.length; i++) {
+  for (const entry of layout) {
     assert.ok(
-      Math.abs(widths[i] - expectedWidth) < 1e-9,
-      `${layout[i].team.name}: Winkelbreite ${widths[i]}° weicht ab (erwartet ${expectedWidth}°, unabhängig von P=${layout[i].pPlayoffs})`
+      Math.abs(angleWidth(entry) - expectedWidth) < 1e-9,
+      `${entry.team.name}: Winkelbreite ${angleWidth(entry)}° weicht ab (erwartet ${expectedWidth}°, unabhängig von P=${entry.pPlayoffs})`
     )
   }
-  // Team 0 (100%) und Team 1 (0%) müssen trotz radikal unterschiedlicher
-  // Wahrscheinlichkeit exakt dieselbe Winkelbreite haben wie Team 2 (50%).
-  assert.ok(Math.abs(widths[0] - widths[1]) < 1e-9)
-  assert.ok(Math.abs(widths[1] - widths[2]) < 1e-9)
-  // Radius hingegen MUSS sich unterscheiden - das ist die einzige erlaubte Kodierung.
-  assert.ok(layout[0].rQF > layout[2].rQF)
-  assert.ok(layout[2].rQF > layout[1].rQF)
+  // angleWidth(A) === angleWidth(B) === angleWidth(C), trotz 100% / 50% / 0%.
+  assert.ok(Math.abs(angleWidth(a) - angleWidth(b)) < 1e-9)
+  assert.ok(Math.abs(angleWidth(a) - angleWidth(c)) < 1e-9)
+
+  // Team A: alle vier Radien = 100% des maximalen Radius.
+  assert.ok(Math.abs(a.rQF - 100) < 1e-9)
+  assert.ok(Math.abs(a.rSF - 100) < 1e-9)
+  assert.ok(Math.abs(a.rFinal - 100) < 1e-9)
+  assert.ok(Math.abs(a.rCup - 100) < 1e-9)
+  // Team B: 50% / 30% / 15% / 5% des maximalen Radius.
+  assert.ok(Math.abs(b.rQF - 50) < 1e-9)
+  assert.ok(Math.abs(b.rSF - 30) < 1e-9)
+  assert.ok(Math.abs(b.rFinal - 15) < 1e-9)
+  assert.ok(Math.abs(b.rCup - 5) < 1e-9)
+  // Team C: alle vier Radien = 0.
+  assert.equal(c.rQF, 0)
+  assert.equal(c.rSF, 0)
+  assert.equal(c.rFinal, 0)
+  assert.equal(c.rCup, 0)
 })
 
 test('fehlende Wahrscheinlichkeiten (Team ohne Eintrag in probsByTeamId) ergeben 0-Radius statt Absturz', () => {
@@ -94,6 +112,7 @@ test('fehlende Wahrscheinlichkeiten (Team ohne Eintrag in probsByTeamId) ergeben
     assert.equal(entry.rQF, 0)
     assert.equal(entry.rSF, 0)
     assert.equal(entry.rFinal, 0)
+    assert.equal(entry.rCup, 0)
   }
 })
 

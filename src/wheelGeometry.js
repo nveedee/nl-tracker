@@ -37,10 +37,14 @@ export function sectorPath(cx, cy, r, startAngle, endAngle) {
 }
 
 // Verteilt `teams` gleichmässig über 360° (Start oben, im Uhrzeigersinn) und
-// berechnet je Team die drei radialen Reichweiten (Viertelfinal/Halbfinal/
-// Final) proportional zur jeweiligen Wahrscheinlichkeit - JEDE Runde auf
-// ihrer eigenen 0-100%-Skala (nicht Teile eines 100%-Kuchens, siehe Auftrag).
-// `probsByTeamId`: Map<teamId, { pPlayoffs, pSemifinal, pFinal }>.
+// berechnet je Team die VIER radialen Reichweiten der kumulativen Playoff-
+// Stufen (Viertelfinal/Halbfinal/Final/Meister-Cup) proportional zur
+// jeweiligen Wahrscheinlichkeit - JEDE Stufe auf DERSELBEN gemeinsamen
+// 0-100%-Radialskala (nicht Teile eines 100%-Kuchens, siehe Auftrag).
+// TEAM = WINKEL (identisch für alle, unabhängig von jeder Wahrscheinlichkeit),
+// PROBABILITY = RADIUS (ausschliesslich) - siehe wheelGeometry.test.js für
+// die Invariante, die das dauerhaft absichert.
+// `probsByTeamId`: Map<teamId, { pPlayoffs, pSemifinal, pFinal, pChampion }>.
 export function buildWheelLayout(teams, probsByTeamId, { maxRadius = 100, gapDeg = 4 } = {}) {
   const n = teams.length
   if (n === 0) return []
@@ -51,6 +55,7 @@ export function buildWheelLayout(teams, probsByTeamId, { maxRadius = 100, gapDeg
     const pPlayoffs = clamp01(row.pPlayoffs)
     const pSemifinal = clamp01(row.pSemifinal)
     const pFinal = clamp01(row.pFinal)
+    const pChampion = clamp01(row.pChampion)
     const startAngle = -90 + i * slice + gapDeg / 2
     const endAngle = -90 + (i + 1) * slice - gapDeg / 2
 
@@ -62,9 +67,11 @@ export function buildWheelLayout(teams, probsByTeamId, { maxRadius = 100, gapDeg
       pPlayoffs,
       pSemifinal,
       pFinal,
+      pChampion,
       rQF: pPlayoffs * maxRadius,
       rSF: pSemifinal * maxRadius,
       rFinal: pFinal * maxRadius,
+      rCup: pChampion * maxRadius,
     }
   })
 }

@@ -5,19 +5,30 @@ import { buildWheelLayout, sectorPath, polarToCartesian, RING_LEVELS } from '../
 
 // Playoff Probability Wheel (MoneyPuck-artige radiale Visualisierung):
 // EIN gemeinsamer Kreis statt Balkentabelle - jedes Team bekommt einen
-// eigenen radialen Sektor (Tortenstück), dessen Reichweite die
-// Viertelfinal-Wahrscheinlichkeit abbildet. Halbfinal/Final sind als
-// zusätzliche, kürzere Zonen DERSELBEN Teamfarbe innerhalb desselben
-// Sektors übereinandergelegt (höhere Deckkraft je weiter innen) - das
-// Zentrum repräsentiert so die Final-Chance, der äussere Rand die
-// Viertelfinal-Chance. Reine Geometrie liegt in src/wheelGeometry.js
-// (getestet, DOM-unabhängig) - diese Komponente ist nur noch Rendering +
-// Hover/Tap-Interaktion.
+// eigenen radialen Sektor (Tortenstück) MIT IDENTISCHER WINKELBREITE. Die
+// vier kumulativen Playoff-Stufen (Viertelfinal/Halbfinal/Final/Meister)
+// sind kürzere, stärker gesättigte Zonen DERSELBEN Teamfarbe innerhalb
+// desselben Sektors übereinandergelegt - das Zentrum repräsentiert so die
+// Meister-Chance, der äussere Rand die Viertelfinal-Chance. TEAM = WINKEL,
+// PROBABILITY = AUSSCHLIESSLICH RADIUS (siehe wheelGeometry.js/.test.js).
+// Reine Geometrie liegt in src/wheelGeometry.js (getestet, DOM-unabhängig) -
+// diese Komponente ist nur noch Rendering + Hover/Tap-Interaktion.
 const SIZE = 340
 const CENTER = SIZE / 2
 const MAX_RADIUS = 106
 const LOGO_RADIUS = MAX_RADIUS + 27
 const LOGO_R = 15.5
+
+// Vier kumulative Stufen, aussen -> innen (grösster -> kleinster Radius).
+// Deckkraft steigt nach innen (Meister am kräftigsten/dunkelsten) - dieselbe
+// Teamfarbe für alle vier Stufen, nur die Opazität unterscheidet sie.
+const STAGES = [
+  { key: 'pPlayoffs', label: 'Viertelfinal', short: 'VF', opacity: 0.22 },
+  { key: 'pSemifinal', label: 'Halbfinal', short: 'HF', opacity: 0.48 },
+  { key: 'pFinal', label: 'Final', short: 'F', opacity: 0.74 },
+  { key: 'pChampion', label: 'Meister', short: 'M', opacity: 1 },
+]
+const RADIUS_KEY = { pPlayoffs: 'rQF', pSemifinal: 'rSF', pFinal: 'rFinal', pChampion: 'rCup' }
 
 function fmtPct(v) {
   if (v == null) return '–'
@@ -80,11 +91,16 @@ export default function PlayoffWheel({ rows, updatedLabel }) {
                 onClick={() => select(entry.team.id)}
               >
                 <title>
-                  {`${entry.team.name} — Viertelfinal ${fmtPct(entry.pPlayoffs)}, Halbfinal ${fmtPct(entry.pSemifinal)}, Final ${fmtPct(entry.pFinal)}`}
+                  {`${entry.team.name} — ${STAGES.map((s) => `${s.label} ${fmtPct(entry[s.key])}`).join(', ')}`}
                 </title>
-                <path d={sectorPath(CENTER, CENTER, entry.rQF, entry.startAngle, entry.endAngle)} fill={entry.team.color} opacity={0.3} />
-                <path d={sectorPath(CENTER, CENTER, entry.rSF, entry.startAngle, entry.endAngle)} fill={entry.team.color} opacity={0.62} />
-                <path d={sectorPath(CENTER, CENTER, entry.rFinal, entry.startAngle, entry.endAngle)} fill={entry.team.color} opacity={1} />
+                {STAGES.map((s) => (
+                  <path
+                    key={s.key}
+                    d={sectorPath(CENTER, CENTER, entry[RADIUS_KEY[s.key]], entry.startAngle, entry.endAngle)}
+                    fill={entry.team.color}
+                    opacity={s.opacity}
+                  />
+                ))}
               </g>
             )
           })}
@@ -120,9 +136,9 @@ export default function PlayoffWheel({ rows, updatedLabel }) {
       </div>
 
       <div className="wheel-legend">
-        <span><i className="wheel-legend-dot" style={{ opacity: 0.3 }} />Viertelfinal</span>
-        <span><i className="wheel-legend-dot" style={{ opacity: 0.62 }} />Halbfinal</span>
-        <span><i className="wheel-legend-dot" style={{ opacity: 1 }} />Final</span>
+        {STAGES.map((s) => (
+          <span key={s.key}><i className="wheel-legend-dot" style={{ opacity: s.opacity }} />{s.label}</span>
+        ))}
       </div>
 
       <div className="wheel-info">
@@ -133,9 +149,9 @@ export default function PlayoffWheel({ rows, updatedLabel }) {
               <strong>{active.team.name}</strong>
             </div>
             <div className="wheel-info-rows">
-              <span>Viertelfinal <b>{fmtPct(active.pPlayoffs)}</b></span>
-              <span>Halbfinal <b>{fmtPct(active.pSemifinal)}</b></span>
-              <span>Final <b>{fmtPct(active.pFinal)}</b></span>
+              {STAGES.map((s) => (
+                <span key={s.key}>{s.label} <b>{fmtPct(active[s.key])}</b></span>
+              ))}
             </div>
             <Link className="btn ghost sm" to="/playoff-odds">Details →</Link>
           </>
@@ -143,6 +159,27 @@ export default function PlayoffWheel({ rows, updatedLabel }) {
           <span className="muted">Team antippen oder hovern für Details.</span>
         )}
       </div>
+
+      {/* Barrierefreiheit: dieselben Daten als Text-Tabelle, permanent im DOM -
+          Hover/Tap ist bewusst NICHT der einzige Weg an die Werte zu kommen
+          (Screenreader/Tastatur-Nutzung ohne Zeiger). Visuell versteckt. */}
+      <table className="sr-only">
+        <caption>Playoff-Wahrscheinlichkeiten je Team und Runde</caption>
+        <thead>
+          <tr>
+            <th scope="col">Team</th>
+            {STAGES.map((s) => <th key={s.key} scope="col">{s.label}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {layout.map((entry) => (
+            <tr key={entry.team.id}>
+              <th scope="row">{entry.team.name}</th>
+              {STAGES.map((s) => <td key={s.key}>{fmtPct(entry[s.key])}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

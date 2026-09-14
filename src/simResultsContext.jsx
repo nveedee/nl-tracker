@@ -28,6 +28,7 @@ function toProbsRow(row) {
     pPlayoffs: row.pPlayoffs,
     pSemifinal: row.pSemifinal,
     pFinal: row.pFinal,
+    pChampion: row.pChampion,
   }
 }
 

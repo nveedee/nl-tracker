@@ -563,6 +563,14 @@ input[type="checkbox"] { width: auto; accent-color: var(--accent); }
 .wheel-sector { cursor: pointer; }
 .wheel-sector path { transition: opacity 0.15s ease; }
 .wheel-sector.dim { opacity: 0.28; }
+/* Radien animieren sanft auf neue Simulationswerte (z.B. 50% -> 63% nach
+   einem neuen Lauf) - nur wenn der Nutzer keine reduzierte Bewegung
+   bevorzugt. sectorPath() liefert bei gleichem Start-/Endwinkel immer
+   dieselbe Pfadstruktur (M/L/A/Z), wodurch `d` browserseitig interpolierbar
+   bleibt statt hart zu springen. */
+@media (prefers-reduced-motion: no-preference) {
+  .wheel-sector path { transition: d 0.5s cubic-bezier(.4, 0, .2, 1), opacity 0.15s ease; }
+}
 
 .wheel-logo { cursor: pointer; transition: opacity 0.15s ease; }
 .wheel-logo circle {
@@ -595,6 +603,20 @@ input[type="checkbox"] { width: auto; accent-color: var(--accent); }
   color: var(--text-dim); font-family: var(--mono);
 }
 .wheel-info-rows b { color: var(--text); }
+
+/* Visuell versteckt, aber für Screenreader/Tastatur-Nutzung vorhanden -
+   nie die einzige Quelle für Wheel-Daten sein (siehe .sr-only-Tabelle in
+   PlayoffWheel.jsx: Hover/Tap ist ein Komfort-Zugang, kein Pflichtpfad). */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+/* table-layout:auto ignoriert bei langen Zellinhalten (z.B. "Genève-Servette
+   HC") die explizite width:1px oben (Browser sichern eine Mindest-Content-
+   Breite) - das bläht trotz visueller Unsichtbarkeit die scrollWidth des
+   Dokuments auf (horizontaler Overflow auf Mobile). table-layout:fixed
+   erzwingt die 1px-Breite unabhängig vom Zellinhalt. */
+table.sr-only { table-layout: fixed; }
 
 /* ---------- StatTile ---------- */
 .stat-tile {

@@ -56,11 +56,12 @@ test('Bracket-Summen über alle Teams entsprechen dem Turnierformat (14 Teams)',
   assert.equal(sumRuns('pLigaQualifikation'), 1 * sim.runs, 'Ligaqualifikation muss über alle Teams 1 ergeben')
 })
 
-test('Playoff Wheel: P(Viertelfinal) >= P(Halbfinal) >= P(Final) für jedes Team', () => {
+test('Playoff Wheel: P(Viertelfinal) >= P(Halbfinal) >= P(Final) >= P(Meister/Cup) für jedes Team', () => {
   const sim = simulateSeasonProjections(teams, games, settings, { runs: 2000, seed: 777, players })
   for (const row of sim.rows) {
     assert.ok(row.pPlayoffs >= row.pSemifinal, `${row.team.name}: P(VF) ${row.pPlayoffs} < P(HF) ${row.pSemifinal}`)
     assert.ok(row.pSemifinal >= row.pFinal, `${row.team.name}: P(HF) ${row.pSemifinal} < P(Final) ${row.pFinal}`)
+    assert.ok(row.pFinal >= row.pChampion, `${row.team.name}: P(Final) ${row.pFinal} < P(Cup) ${row.pChampion}`)
   }
 })
 

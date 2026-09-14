@@ -38,7 +38,7 @@ export default function Dashboard() {
     return data.teams
       .map((team) => {
         const row = getProbsRow(simRows, team.id)
-        return row ? { team, pPlayoffs: row.pPlayoffs, pSemifinal: row.pSemifinal, pFinal: row.pFinal } : null
+        return row ? { team, pPlayoffs: row.pPlayoffs, pSemifinal: row.pSemifinal, pFinal: row.pFinal, pChampion: row.pChampion } : null
       })
       .filter(Boolean)
   }, [simRows, data.teams])
