@@ -60,6 +60,34 @@ test('Team-Sektoren teilen 360° gleichmässig auf und überlappen nicht (Lücke
   assert.ok(Math.abs(layout[0].startAngle - (-90 + 2)) < 1e-9)
 })
 
+test('Winkelbreite ist für JEDES Team identisch und UNABHÄNGIG von der Wahrscheinlichkeit (Probability = ausschliesslich radiale Distanz, niemals Winkel/Fläche)', () => {
+  // Bewusst extreme, frei erfundene Wahrscheinlichkeiten (0%, 100%, gemischt) -
+  // unabhängig von einem echten Simulationslauf, um die Geometrie-Invariante
+  // isoliert zu prüfen: die Winkelbreite darf sich NIE aus der Wahrscheinlichkeit
+  // ableiten, nur der Radius.
+  const probs = new Map([
+    [teams[0].id, { pPlayoffs: 1, pSemifinal: 1, pFinal: 1 }],
+    [teams[1].id, { pPlayoffs: 0, pSemifinal: 0, pFinal: 0 }],
+    [teams[2].id, { pPlayoffs: 0.5, pSemifinal: 0.3, pFinal: 0.1 }],
+  ])
+  const layout = buildWheelLayout(teams, probs, { gapDeg: 4 })
+  const widths = layout.map((e) => e.endAngle - e.startAngle)
+  const expectedWidth = 360 / teams.length - 4
+  for (let i = 0; i < layout.length; i++) {
+    assert.ok(
+      Math.abs(widths[i] - expectedWidth) < 1e-9,
+      `${layout[i].team.name}: Winkelbreite ${widths[i]}° weicht ab (erwartet ${expectedWidth}°, unabhängig von P=${layout[i].pPlayoffs})`
+    )
+  }
+  // Team 0 (100%) und Team 1 (0%) müssen trotz radikal unterschiedlicher
+  // Wahrscheinlichkeit exakt dieselbe Winkelbreite haben wie Team 2 (50%).
+  assert.ok(Math.abs(widths[0] - widths[1]) < 1e-9)
+  assert.ok(Math.abs(widths[1] - widths[2]) < 1e-9)
+  // Radius hingegen MUSS sich unterscheiden - das ist die einzige erlaubte Kodierung.
+  assert.ok(layout[0].rQF > layout[2].rQF)
+  assert.ok(layout[2].rQF > layout[1].rQF)
+})
+
 test('fehlende Wahrscheinlichkeiten (Team ohne Eintrag in probsByTeamId) ergeben 0-Radius statt Absturz', () => {
   const layout = buildWheelLayout(teams, new Map())
   for (const entry of layout) {
