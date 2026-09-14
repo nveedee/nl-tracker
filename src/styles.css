@@ -540,35 +540,61 @@ input[type="checkbox"] { width: auto; accent-color: var(--accent); }
   font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums;
 }
 
-/* ---------- Playoff-Chancen-Karte (MoneyPuck-Stil: runde Karte, pill-
-   shaped Balken, Team x Runde als Balken statt Tabelle) ---------- */
-.playoff-chances-card {
+/* ---------- Playoff Probability Wheel (radiale MoneyPuck-artige
+   Visualisierung: ein Kreis, ein Sektor pro Team statt Balkentabelle -
+   siehe src/components/PlayoffWheel.jsx + src/wheelGeometry.js) ---------- */
+.playoff-wheel-card {
   background: var(--bg-elev);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
-  padding: 18px 18px 8px;
+  padding: 18px 18px 14px;
 }
-.pc-head { display: grid; grid-template-columns: minmax(64px, 1fr) repeat(3, minmax(58px, 1.3fr)); gap: 6px 10px; margin-bottom: 4px; }
-.pc-head span {
-  font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
-  color: var(--text-faint); text-align: center; white-space: nowrap;
+.wheel-wrap { display: flex; justify-content: center; margin: 8px 0 2px; }
+.wheel-svg { width: min(100%, 420px); height: auto; display: block; }
+
+.wheel-rings circle {
+  fill: none; stroke: var(--border); stroke-dasharray: 2 4; opacity: 0.9;
 }
-.pc-head span:first-child { text-align: left; }
-.pc-divider { height: 1px; background: var(--border); margin-bottom: 6px; }
-.pc-row {
-  display: grid; grid-template-columns: minmax(64px, 1fr) repeat(3, minmax(58px, 1.3fr));
-  gap: 6px 10px; align-items: center; padding: 9px 0;
+.wheel-ring-labels text {
+  font-size: 6.6px; font-family: var(--mono); fill: var(--text-faint); pointer-events: none;
 }
-.pc-cell { display: flex; flex-direction: column; gap: 3px; align-items: stretch; }
-.pc-bar-track {
-  height: 9px; background: var(--bg-elev-2); border-radius: 999px; overflow: hidden;
+
+.wheel-sector { cursor: pointer; }
+.wheel-sector path { transition: opacity 0.15s ease; }
+.wheel-sector.dim { opacity: 0.28; }
+
+.wheel-logo { cursor: pointer; transition: opacity 0.15s ease; }
+.wheel-logo circle {
+  fill: var(--bg-elev); stroke-width: 2.4; transition: stroke-width 0.15s ease;
 }
-.pc-bar-fill { height: 100%; border-radius: 999px; min-width: 3px; }
-.pc-cell .pc-value {
-  font-size: 10.5px; font-weight: 700; font-family: var(--mono); font-variant-numeric: tabular-nums;
-  color: var(--text-dim); text-align: center;
+.wheel-logo text {
+  font-size: 8.2px; font-weight: 800; font-family: var(--mono);
+  fill: var(--text); text-anchor: middle; pointer-events: none;
 }
+.wheel-logo.active circle { stroke-width: 4; }
+.wheel-logo.dim { opacity: 0.4; }
+
+.wheel-legend {
+  display: flex; justify-content: center; flex-wrap: wrap; gap: 14px;
+  font-size: 10.5px; color: var(--text-dim); margin: 2px 0 12px;
+}
+.wheel-legend-dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  margin-right: 5px; vertical-align: middle; background: var(--accent);
+}
+
+.wheel-info {
+  min-height: 56px; border-top: 1px solid var(--border); padding-top: 10px;
+  display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
+}
+.wheel-info-head { display: flex; align-items: center; gap: 7px; font-size: 13px; }
+.wheel-info-head .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.wheel-info-rows {
+  display: flex; gap: 14px; flex-wrap: wrap; font-size: 11.5px;
+  color: var(--text-dim); font-family: var(--mono);
+}
+.wheel-info-rows b { color: var(--text); }
 
 /* ---------- StatTile ---------- */
 .stat-tile {

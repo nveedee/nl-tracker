@@ -1,9 +1,10 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useData } from '../DataContext.jsx'
 import { TeamBadge, Empty, StatTile, SectionHeader } from '../components/ui.jsx'
 import { isFinalGame } from '../stats.js'
-import { getLastBaseline, getBaselineRow } from '../baselineStore.js'
-import PlayoffChancesCard from '../components/PlayoffChancesCard.jsx'
+import { useSimResults, getProbsRow } from '../simResultsContext.jsx'
+import PlayoffWheel from '../components/PlayoffWheel.jsx'
 
 export default function Dashboard() {
   const { data, derived } = useData()
@@ -23,24 +24,26 @@ export default function Dashboard() {
     : [...playedGames].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 6)
   const scheduledCount = games.filter((g) => g.status === 'scheduled').length
 
-  // Playoff-Chancen-Karte: aus der letzten Tages-Baseline (src/baselineStore.js) -
-  // kein Live-Simulationslauf auf dem Dashboard (10'000 Läufe würden das
-  // sonst sofortige Laden blockieren). Baseline entsteht beim ersten
-  // Simulationslauf des Tages auf /playoff-odds; ohne bisherigen Lauf bleibt
-  // die Karte aus (kein erfundener/leerer Balken).
-  const baseline = getLastBaseline()
-  const playoffChancesRows = baseline
-    ? data.teams
+  // Playoff Probability Wheel: aus dem zentralen Live-Ergebnis-Store
+  // (src/simResultsContext.jsx) - kein eigener Simulationslauf auf dem
+  // Dashboard (10'000 Läufe würden das sonst sofortige Laden blockieren).
+  // Der Store wird beim ersten Simulationslauf auf /playoff-odds befüllt
+  // (danach bei jedem weiteren Lauf SOFORT aktualisiert, ohne Reload) - ohne
+  // bisherigen Lauf in dieser Session zeigt er die letzte Tages-Baseline,
+  // ohne jegliche vorherige Baseline bleibt das Wheel aus (kein erfundener/
+  // leerer Sektor). Dieselbe Datenquelle wie die Detailansicht PlayoffOdds.jsx.
+  const { rows: simRows, updatedAt: simUpdatedAt } = useSimResults()
+  const playoffWheelRows = useMemo(() => {
+    if (!simRows) return []
+    return data.teams
       .map((team) => {
-        const row = getBaselineRow(baseline, team.id)
+        const row = getProbsRow(simRows, team.id)
         return row ? { team, pPlayoffs: row.pPlayoffs, pSemifinal: row.pSemifinal, pFinal: row.pFinal } : null
       })
       .filter(Boolean)
-      .sort((a, b) => b.pPlayoffs - a.pPlayoffs)
-      .slice(0, 8)
-    : []
-  const baselineUpdatedLabel = baseline
-    ? new Date(baseline.createdAt).toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit' }).replace(/\.$/, '')
+  }, [simRows, data.teams])
+  const simUpdatedLabel = simUpdatedAt
+    ? new Date(simUpdatedAt).toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit' }).replace(/\.$/, '')
     : null
 
   return (
@@ -65,10 +68,10 @@ export default function Dashboard() {
         />
       ) : (
         <>
-          {playoffChancesRows.length > 0 ? (
-            <PlayoffChancesCard rows={playoffChancesRows} updatedLabel={`Stand ${baselineUpdatedLabel}`} />
+          {playoffWheelRows.length > 0 ? (
+            <PlayoffWheel rows={playoffWheelRows} updatedLabel={`Stand ${simUpdatedLabel}`} />
           ) : (
-            <div className="playoff-chances-card mb">
+            <div className="playoff-wheel-card mb">
               <SectionHeader
                 title="Playoff-Chancen"
                 caption="Noch keine Simulation gelaufen."

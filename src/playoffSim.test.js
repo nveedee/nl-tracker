@@ -49,9 +49,19 @@ test('Bracket-Summen über alle Teams entsprechen dem Turnierformat (14 Teams)',
   assert.equal(sumRuns('pTop6'), 6 * sim.runs, 'Top6 muss über alle Teams 6 ergeben')
   assert.equal(sumRuns('pPlayoffs'), 8 * sim.runs, 'Playoffs (VF-Teilnehmer) muss über alle Teams 8 ergeben')
   assert.equal(sumRuns('pPlayIn'), 4 * sim.runs, 'Play-in muss über alle Teams 4 ergeben')
+  assert.equal(sumRuns('pSemifinal'), 4 * sim.runs, 'Halbfinal-Teilnehmer müssen über alle Teams 4 ergeben (Playoff Wheel: Σ P(SF) ≈ 4)')
+  assert.equal(sumRuns('pFinal'), 2 * sim.runs, 'Finalisten müssen über alle Teams 2 ergeben (Playoff Wheel: Σ P(Final) ≈ 2)')
   assert.equal(sumRuns('pChampion'), 1 * sim.runs, 'Meister muss über alle Teams 1 ergeben')
   assert.equal(sumRuns('pPlayout1314'), 2 * sim.runs, 'Play-out 13/14 muss über alle Teams 2 ergeben')
   assert.equal(sumRuns('pLigaQualifikation'), 1 * sim.runs, 'Ligaqualifikation muss über alle Teams 1 ergeben')
+})
+
+test('Playoff Wheel: P(Viertelfinal) >= P(Halbfinal) >= P(Final) für jedes Team', () => {
+  const sim = simulateSeasonProjections(teams, games, settings, { runs: 2000, seed: 777, players })
+  for (const row of sim.rows) {
+    assert.ok(row.pPlayoffs >= row.pSemifinal, `${row.team.name}: P(VF) ${row.pPlayoffs} < P(HF) ${row.pSemifinal}`)
+    assert.ok(row.pSemifinal >= row.pFinal, `${row.team.name}: P(HF) ${row.pSemifinal} < P(Final) ${row.pFinal}`)
+  }
 })
 
 test('Determinismus: gleicher Seed -> identisches Ergebnis (Aggregate + Median/σ)', () => {

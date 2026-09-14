@@ -13,7 +13,8 @@
     "serve": "vite build && node server/index.js",
     "backtest": "node server/scripts/backtesting/run.js",
     "test:backtest": "node --test server/scripts/backtesting/run.test.js",
-    "test:sim": "node --test src/playoffSim.test.js"
+    "test:sim": "node --test src/playoffSim.test.js",
+    "test:wheel": "node --test src/wheelGeometry.test.js"
   },
   "dependencies": {
     "express": "^4.19.2",

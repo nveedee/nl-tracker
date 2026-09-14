@@ -19,6 +19,7 @@ import { computeMarketValuePrior, DEFAULT_PRIOR_SPREAD } from '../marketValuePri
 import { computePowerRankings } from '../powerRankings.js'
 import { TeamBadge, Delta, SectionHeader, StatTile, ProbBar, Tabs, useScrollFade } from '../components/ui.jsx'
 import { getLastBaseline, recordBaselineIfNeeded, computeMovers } from '../baselineStore.js'
+import { useSimResults } from '../simResultsContext.jsx'
 import PositionMatrix from '../components/PositionMatrix.jsx'
 import BracketCards from '../components/BracketCards.jsx'
 import MatchForecast from '../components/MatchForecast.jsx'
@@ -66,6 +67,7 @@ export default function PlayoffOdds() {
   // ("seit dem letzten Checkpoint"), statt bei jedem Klick gegen den gerade
   // selbst erzeugten Lauf. Siehe src/baselineStore.js für die genaue Regel.
   const [baseline] = useState(() => getLastBaseline())
+  const { setLiveResults } = useSimResults()
   const preseasonSeasonEnd = usePreseasonElo()
 
   const scheduledCount = useMemo(() => {
@@ -110,6 +112,10 @@ export default function PlayoffOdds() {
         setLastSeed(seed)
         setExpandedTeam(null)
         recordBaselineIfNeeded(sim)
+        // Zentraler Live-Store (src/simResultsContext.jsx): macht das neue
+        // Ergebnis SOFORT auch dem Playoff Wheel auf dem Dashboard verfügbar -
+        // ganz ohne Page Reload, unabhängig von der Tages-Baseline oben.
+        setLiveResults(sim)
       } catch (err) {
         console.error('Simulation error:', err)
       } finally {
