@@ -5,19 +5,32 @@ import { buildWheelLayout, sectorPath, polarToCartesian, RING_LEVELS } from '../
 
 // Playoff Probability Wheel (MoneyPuck-artige radiale Visualisierung):
 // EIN gemeinsamer Kreis statt Balkentabelle - jedes Team bekommt einen
-// eigenen radialen Sektor (Tortenstück) MIT IDENTISCHER WINKELBREITE. Die
+// eigenen radialen Sektor, dessen WINKELBREITE proportional zu seiner
+// P(Viertelfinal) ist (stärkere Teams = breiterer Sektor, normalisiert auf
+// 360° über alle Teams - siehe wheelGeometry.js/buildWheelLayout()). Die
 // vier kumulativen Playoff-Stufen (Viertelfinal/Halbfinal/Final/Meister)
-// sind kürzere, stärker gesättigte Zonen DERSELBEN Teamfarbe innerhalb
-// desselben Sektors übereinandergelegt - das Zentrum repräsentiert so die
-// Meister-Chance, der äussere Rand die Viertelfinal-Chance. TEAM = WINKEL,
-// PROBABILITY = AUSSCHLIESSLICH RADIUS (siehe wheelGeometry.js/.test.js).
-// Reine Geometrie liegt in src/wheelGeometry.js (getestet, DOM-unabhängig) -
+// sind zusätzlich kürzere, stärker gesättigte RADIALE Zonen DERSELBEN
+// Teamfarbe innerhalb desselben Sektors übereinandergelegt - das Zentrum
+// repräsentiert so die Meister-Chance, der äussere Rand die Viertelfinal-
+// Chance. Zwei unabhängige Kodierungen derselben Daten: WINKEL = normierte
+// P(QF) relativ zu allen Teams, RADIUS = direkte P(je Runde) dieses Teams
+// (siehe wheelGeometry.js/.test.js für die Herleitung/Invarianten). Reine
+// Geometrie liegt in src/wheelGeometry.js (getestet, DOM-unabhängig) -
 // diese Komponente ist nur noch Rendering + Hover/Tap-Interaktion.
 const SIZE = 340
 const CENTER = SIZE / 2
 const MAX_RADIUS = 106
 const LOGO_RADIUS = MAX_RADIUS + 27
-const LOGO_R = 15.5
+const LOGO_R_MAX = 15.5
+// Untere Grenze, mit MIN_VISUAL_ANGLE_DEG (wheelGeometry.js) abgestimmt:
+// im ungünstigsten Fall (zwei Mindestwinkel-Teams direkt nebeneinander,
+// Abstand = MIN_VISUAL_ANGLE_DEG) berechnet logoR unten von selbst einen
+// Wert nahe diesem Minimum - LOGO_R_MIN dient nur als Absicherung nach
+// unten, damit auch bei noch dichteren Konstellationen kein Text
+// unleserlich klein wird (Logos dürfen sich dafür in extremen Rand-
+// fällen minimal berühren, statt komplett zu verschwinden).
+const LOGO_R_MIN = 9
+const LOGO_FONT_MAX = 8.2
 
 // Vier kumulative Stufen, aussen -> innen (grösster -> kleinster Radius).
 // Deckkraft steigt nach innen (Meister am kräftigsten/dunkelsten) - dieselbe
@@ -41,13 +54,35 @@ export default function PlayoffWheel({ rows, updatedLabel }) {
 
   const teams = useMemo(() => rows.map((r) => r.team), [rows])
   const probsByTeamId = useMemo(() => new Map(rows.map((r) => [r.team.id, r])), [rows])
-  // Bei vielen Teams (aktuell 14) etwas schmalere Lücke, damit jeder Sektor
-  // trotzdem breit genug für eine gut lesbare Fläche bleibt.
-  const gapDeg = teams.length > 10 ? 3 : 5
+  // Winkelbreite je Team ist proportional zu P(QF) (normalisiert auf 360°
+  // über alle Teams) - siehe wheelGeometry.js/buildWheelLayout(). Die
+  // Sektor-Lücke wird dort automatisch pro Sektor berechnet.
   const layout = useMemo(
-    () => buildWheelLayout(teams, probsByTeamId, { maxRadius: MAX_RADIUS, gapDeg }),
-    [teams, probsByTeamId, gapDeg]
+    () => buildWheelLayout(teams, probsByTeamId, { maxRadius: MAX_RADIUS }),
+    [teams, probsByTeamId]
   )
+
+  // Da die Sektorbreite jetzt proportional zur Wahrscheinlichkeit ist
+  // (statt fix), können mehrere schwache Teams mit sehr kleinem Winkel
+  // nebeneinander liegen - ihre Logos (fixer Radius am äusseren Rand)
+  // würden sich sonst überlappen. Deshalb: Logogrösse an den ENGSTEN
+  // tatsächlichen Winkelabstand zwischen zwei benachbarten Team-Mittelpunkten
+  // anpassen (nie grösser als der gestalterische Standard, nie kleiner als
+  // eine noch lesbare Mindestgrösse) - Schrift skaliert proportional mit.
+  const logoR = useMemo(() => {
+    if (layout.length < 2) return LOGO_R_MAX
+    let minGapDeg = 360
+    for (let i = 0; i < layout.length; i++) {
+      const next = layout[(i + 1) % layout.length]
+      let diff = next.midAngle - layout[i].midAngle
+      if (diff <= 0) diff += 360
+      minGapDeg = Math.min(minGapDeg, diff)
+    }
+    const minArcDistance = LOGO_RADIUS * (minGapDeg * Math.PI / 180)
+    const maxDiameterFit = minArcDistance * 0.82 // etwas Luft zwischen benachbarten Logos
+    return Math.max(LOGO_R_MIN, Math.min(LOGO_R_MAX, maxDiameterFit / 2))
+  }, [layout])
+  const logoFontSize = LOGO_FONT_MAX * (logoR / LOGO_R_MAX)
 
   const active = layout.find((e) => e.team.id === activeId) || null
   // Hover (Desktop) UND Tap (Mobile) setzen denselben State - bewusst kein
@@ -125,10 +160,11 @@ export default function PlayoffWheel({ rows, updatedLabel }) {
               >
                 {/* Grösserer, unsichtbarer Trefferbereich - das sichtbare
                     Badge bleibt kompakt, der Tap-Bereich ist trotzdem
-                    komfortabel (~44px Kantenlänge, Apple-HIG-Richtwert). */}
-                <circle r={LOGO_R + 6} fill="transparent" />
-                <circle r={LOGO_R} style={{ stroke: entry.team.color }} />
-                <text dy={3}>{entry.team.short}</text>
+                    komfortabel (~44px Kantenlänge, Apple-HIG-Richtwert),
+                    solange der verfügbare Winkelabstand das zulässt. */}
+                <circle r={logoR + 6} fill="transparent" />
+                <circle r={logoR} style={{ stroke: entry.team.color }} />
+                <text dy={3} style={{ fontSize: logoFontSize }}>{entry.team.short}</text>
               </g>
             )
           })}
