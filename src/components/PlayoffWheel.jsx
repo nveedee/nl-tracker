@@ -51,6 +51,14 @@ const STAGES = [
   { key: 'pChampion', label: 'Meister', short: 'M', opacity: 1 },
 ]
 const RADIUS_KEY = { pPlayoffs: 'rQF', pSemifinal: 'rSF', pFinal: 'rFinal', pChampion: 'rCup' }
+// Position der vier Runden-Labels IN der Grafik (nicht nur in der HTML-
+// Legende darunter) - die leere Ecke des quadratischen viewBox ausserhalb
+// des Kreises (Kreis reicht bis ~148 vom Zentrum, Ecke liegt bei ~240) bietet
+// dafür genug Platz, ohne mit Sektoren/Logos zu kollidieren, unabhängig
+// davon wie schmal einzelne Team-Lücken gerade sind.
+const RING_LABEL_X = 10
+const RING_LABEL_Y0 = 14
+const RING_LABEL_STEP = 13
 
 function fmtPct(v) {
   if (v == null) return '–'
@@ -163,6 +171,19 @@ export default function PlayoffWheel({ rows, updatedLabel }) {
           <g className="wheel-ring-labels">
             {RING_LEVELS.map((lvl) => (
               <text key={lvl} x={CENTER + 3} y={CENTER - lvl * MAX_RADIUS + 2.5}>{Math.round(lvl * 100)}%</text>
+            ))}
+          </g>
+
+          {/* Runden-Labels ALS TEIL DER GRAFIK (nicht nur als HTML-Legende
+              darunter) - in der leeren Ecke ausserhalb des Kreises, in
+              derselben Reihenfolge/Deckkraft wie die Ringe selbst (aussen
+              hell/Viertelfinal -> innen kräftig/Meister). */}
+          <g className="wheel-round-labels">
+            {STAGES.map((s, i) => (
+              <g key={s.key} transform={`translate(${RING_LABEL_X}, ${RING_LABEL_Y0 + i * RING_LABEL_STEP})`}>
+                <rect width={9} height={9} rx={2} fill="currentColor" opacity={s.opacity} />
+                <text x={13} y={7.5}>{s.label}</text>
+              </g>
             ))}
           </g>
 

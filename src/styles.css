@@ -567,6 +567,16 @@ input[type="checkbox"] { width: auto; accent-color: var(--accent); }
   stroke-width: 2.5px; pointer-events: none;
 }
 
+/* Runden-Labels in der leeren Ecke des quadratischen viewBox (ausserhalb
+   des Kreises) - Teil der Grafik selbst, nicht nur der HTML-Legende
+   darunter. currentColor auf dem Swatch nimmt die color-Deklaration hier
+   an (neutral, nicht teamfarbig - die vier Stufen sind ja generisch). */
+.wheel-round-labels { color: var(--text-dim); pointer-events: none; }
+.wheel-round-labels text {
+  font-size: 7.5px; font-weight: 700; font-family: var(--mono);
+  fill: var(--text-dim);
+}
+
 /* Neutrale Trackfläche (0 bis maxRadius) - macht aus jedem Sektor immer ein
    VOLLSTÄNDIGES Zielscheiben-Segment statt eines kurzen "Balkens", der im
    Leeren endet. Dünne Kartenhintergrund-Trennlinie an den Sektorkanten für
