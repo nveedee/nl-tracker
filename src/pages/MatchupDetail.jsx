@@ -16,8 +16,10 @@ import { isFinalGame, computeStandings, computeHomeSplits } from '../stats.js'
 import { computePowerRankings } from '../powerRankings.js'
 import { homeWinProbability, ELO_CONFIG } from '../elo.js'
 import { computeFixtures, simulateGameResult, SeededRandom } from '../playoffSim.js'
-import { buildScorelineMatrix } from '../scorelineMatrix.js'
+import { buildScorelineMatrix, buildGoalDistribution, expectedGoals } from '../scorelineMatrix.js'
 import ScorelineMatrix from '../components/ScorelineMatrix.jsx'
+import ExpectedGoals from '../components/ExpectedGoals.jsx'
+import GoalProbabilities from '../components/GoalProbabilities.jsx'
 import { usePreseasonElo, computePreseasonRatings } from '../preseasonElo.js'
 import { computeMarketValuePrior, DEFAULT_PRIOR_SPREAD } from '../marketValuePrior.js'
 import { applyRestAdjustment, computeRestAdjustment, DEFAULT_BACK_TO_BACK_PENALTY } from '../restDays.js'
@@ -105,14 +107,12 @@ function simulateSingleGame(teams, allGames, settings, players, homeTeamId, away
   if (!fixture) return null
 
   const rng = new SeededRandom(seed)
-  let homeWins = 0, awayWins = 0, ot = 0, so = 0, sumHome = 0, sumAway = 0
+  let homeWins = 0, awayWins = 0, ot = 0, so = 0
   const scoreCounts = new Map()
   const results = new Array(runs)
   for (let i = 0; i < runs; i++) {
     const r = simulateGameResult(rng, fixture)
     results[i] = r
-    sumHome += r.homeGoals
-    sumAway += r.awayGoals
     if (r.homeGoals > r.awayGoals) homeWins++
     else awayWins++
     if (r.decision === 'OT') ot++
@@ -120,7 +120,18 @@ function simulateSingleGame(teams, allGames, settings, players, homeTeamId, away
     const key = `${r.homeGoals}:${r.awayGoals}`
     scoreCounts.set(key, (scoreCounts.get(key) || 0) + 1)
   }
+  // Scoreline-Matrix, Goal-Distribution (Expected Goals + Goal Probabilities
+  // by Team, src/components/ExpectedGoals.jsx + GoalProbabilities.jsx) und
+  // topScores nutzen alle exakt dieselben `results` - eine Datenquelle,
+  // drei Aggregationen (siehe scorelineMatrix.js für die Begründung der
+  // unterschiedlichen Bucket-Caps: 5+ für die Matrix, 6+ für die reine
+  // Team-Torverteilung).
   const scoreline = buildScorelineMatrix(results)
+  const goalDist = {
+    home: buildGoalDistribution(results, 'homeGoals'),
+    away: buildGoalDistribution(results, 'awayGoals'),
+  }
+  const xg = expectedGoals(results)
   const topScores = [...scoreCounts.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
@@ -132,8 +143,10 @@ function simulateSingleGame(teams, allGames, settings, players, homeTeamId, away
     pAwayWin: awayWins / runs,
     pOT: ot / runs,
     pSO: so / runs,
-    avgHomeGoals: sumHome / runs,
-    avgAwayGoals: sumAway / runs,
+    avgHomeGoals: xg.homeXG,
+    avgAwayGoals: xg.awayXG,
+    xg,
+    goalDist,
     topScores,
     scoreline,
   }
@@ -556,11 +569,20 @@ export default function MatchupDetail() {
             </div>
           )}
 
-          {/* 5a. Scoreline Probabilities (nur zukünftige Spiele) - dieselben
-              10'000 Läufe wie "Simulationsergebnisse" oben, nur anders
-              aggregiert (volle Heim-x-Auswärtstore-Matrix statt Top-5-Liste). */}
+          {/* 5a. Expected Goals + Goal Probabilities by Team + Scoreline
+              Probabilities (nur zukünftige Spiele) - alle drei aus denselben
+              10'000 Läufen wie "Simulationsergebnisse" oben, nur anders
+              aggregiert (Ø/Torverteilung je Team/volle Heim-x-Auswärtstore-
+              Matrix statt Top-5-Liste). Eine Datenquelle (mc), drei Ansichten. */}
           {!played && mc && (
-            <ScorelineMatrix homeTeam={homeTeam} awayTeam={awayTeam} scorelineProbabilities={mc.scoreline} />
+            <>
+              <ExpectedGoals homeTeam={homeTeam} awayTeam={awayTeam} xg={mc.xg} />
+              <GoalProbabilities
+                homeTeam={homeTeam} awayTeam={awayTeam}
+                homeDistribution={mc.goalDist.home} awayDistribution={mc.goalDist.away}
+              />
+              <ScorelineMatrix homeTeam={homeTeam} awayTeam={awayTeam} scorelineProbabilities={mc.scoreline} />
+            </>
           )}
 
           {/* 5c. Pre-Game Prediction (nur bereits gespielte Spiele mit vorhandenem

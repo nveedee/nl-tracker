@@ -566,6 +566,65 @@ input[type="checkbox"] { width: auto; accent-color: var(--accent); }
   .scoreline-vaxis, .scoreline-haxis { font-size: 9px; }
 }
 
+/* ---------- Expected Goals (Match-Detailseite, src/components/
+   ExpectedGoals.jsx) ---------- */
+.xg-teams {
+  display: flex; align-items: center; justify-content: center;
+  gap: 22px; margin: 10px 0 16px;
+}
+.xg-team { text-align: center; min-width: 74px; }
+.xg-label {
+  font-size: 9.5px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.05em; margin-bottom: 2px;
+}
+.xg-team-name { font-size: 12.5px; font-weight: 700; color: var(--text-dim); margin-bottom: 2px; }
+.xg-value { font-size: 30px; font-weight: 800; font-family: var(--mono); letter-spacing: -0.01em; }
+.xg-divider { width: 1px; align-self: stretch; background: var(--border); margin: 2px 0; }
+.xg-total {
+  display: flex; align-items: baseline; justify-content: center; gap: 8px;
+  padding-top: 12px; border-top: 1px solid var(--border);
+  font-size: 11.5px; color: var(--text-dim); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.xg-total strong { font-size: 16px; color: var(--text); font-family: var(--mono); letter-spacing: 0; text-transform: none; }
+@media (max-width: 480px) {
+  .xg-teams { gap: 14px; }
+  .xg-team { min-width: 62px; }
+  .xg-value { font-size: 24px; }
+}
+
+/* ---------- Goal Probabilities by Team (Match-Detailseite, src/components/
+   GoalProbabilities.jsx) - kompakte horizontale Bars statt Tabellenzahlen,
+   je Team in dessen eigener Farbe, kontinuierliche Intensität wie die
+   Scoreline-Matrix (dieselbe cellIntensity()-Funktion). ---------- */
+.gp-head, .gp-row {
+  display: grid; grid-template-columns: 26px 1fr 1fr; gap: 10px; align-items: center;
+}
+.gp-head { margin: 8px 0 6px; }
+.gp-head-team {
+  font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.gp-row { padding: 3px 0; }
+.gp-bucket {
+  font-size: 11px; font-weight: 700; color: var(--text-dim);
+  font-family: var(--mono); text-align: center;
+}
+.gp-bar-cell { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.gp-bar-track {
+  flex: 1; height: 8px; background: var(--bg-elev-2); border-radius: 999px;
+  overflow: hidden; min-width: 24px;
+}
+.gp-bar-fill { display: block; height: 100%; border-radius: 999px; min-width: 2px; }
+.gp-pct {
+  flex: none; width: 42px; text-align: right; font-size: 11px; font-weight: 700;
+  font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--text-dim);
+}
+@media (max-width: 480px) {
+  .gp-head, .gp-row { grid-template-columns: 20px 1fr 1fr; gap: 6px; }
+  .gp-pct { width: 34px; font-size: 10px; }
+  .gp-head-team { font-size: 9.5px; }
+}
+
 /* DeltaBadge (▲ grün / ▼ rot) - Prozentpunkte ggü. Baseline/Vergleichslauf. */
 .delta {
   display: inline-flex; align-items: center; gap: 2px;
