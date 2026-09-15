@@ -931,6 +931,34 @@ td.num strong, th.num strong { font-weight: 800; }
 .live-chart-goal-marker { stroke: var(--bg-elev); stroke-width: 1.2; }
 .live-chart-now-line { stroke: var(--text-dim); stroke-width: 1; stroke-dasharray: 1 2; }
 .live-chart-now-dot { stroke: var(--bg-elev); stroke-width: 1.2; }
+
+/* LIVE-Marker am vorderen Ende der Home-Win-Linie (letzter echter Snapshot,
+   niemals eine fixe Minute - siehe LiveWinProbabilityPanel.jsx). Kern bleibt
+   stabil, nur der äussere Ring pulsiert (~1.8s/Zyklus, ruhig statt hektisch).
+   Ohne `isLive` (Spiel beendet) wird nur der statische Kern gerendert - kein
+   Puls, kein LIVE-Label (siehe Komponente). */
+.live-now-core { stroke: var(--bg-elev); stroke-width: 1.4; }
+.live-now-pulse-ring {
+  fill: none; stroke-width: 1.6; opacity: 0.7;
+  transform-box: fill-box; transform-origin: center;
+}
+.live-now-label {
+  font-size: 7px; font-weight: 800; letter-spacing: 0.06em;
+  fill: var(--accent); text-anchor: start;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .live-pulsing .live-now-pulse-ring { animation: live-now-pulse-ring 1.8s ease-out infinite; }
+}
+@keyframes live-now-pulse-ring {
+  0% { transform: scale(1); opacity: 0.7; }
+  70% { transform: scale(2.6); opacity: 0; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+/* prefers-reduced-motion: reduce -> statischer, dezenter Ring statt Animation
+   (kein `animation`, aber der Ring bleibt als ruhiges Live-Signal sichtbar). */
+@media (prefers-reduced-motion: reduce) {
+  .live-now-pulse-ring { opacity: 0.35; }
+}
 .live-chart-now-tag {
   position: absolute; top: 0; transform: translateX(-50%);
   display: flex; flex-direction: column; align-items: center; line-height: 1.15;
@@ -942,11 +970,48 @@ td.num strong, th.num strong { font-weight: 800; }
 }
 .live-chart-now-tag-value { font-size: 9.5px; font-weight: 800; font-family: var(--mono); color: var(--text); }
 .live-chart-legend { margin-top: 0; font-size: 10px; }
+
+/* Interaktiver Hover/Tap: Crosshair + Tooltip auf echten historischen
+   Snapshots (siehe LiveWinProbabilityPanel.jsx::nearestSnapshotIndex - keine
+   Interpolation). `cursor:crosshair` signalisiert die Interaktivität ohne
+   zusätzlichen Text. */
+.live-chart-wrap { cursor: crosshair; touch-action: pan-y; }
+.live-chart-crosshair line { stroke: var(--text); stroke-width: 1; stroke-dasharray: 2 2; opacity: 0.55; }
+.live-chart-crosshair circle { stroke: var(--bg-elev); stroke-width: 1.3; }
+
+.live-chart-tooltip {
+  position: absolute; top: 2px; z-index: 5; pointer-events: none;
+  background: var(--bg-elev); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm); box-shadow: var(--shadow-lg);
+  padding: 7px 10px; min-width: 128px; font-size: 11.5px;
+}
+.live-chart-tooltip-time {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  font-family: var(--mono); font-weight: 800; font-size: 12.5px; color: var(--text);
+  margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px solid var(--border);
+}
+.live-chart-tooltip-event { font-family: var(--font); font-weight: 700; font-size: 10.5px; color: var(--text-dim); }
+.live-chart-tooltip-row {
+  display: flex; align-items: center; gap: 6px; font-weight: 600;
+  color: var(--text-dim); padding: 1.5px 0;
+}
+.live-chart-tooltip-row .dot { width: 7px; height: 7px; flex: none; }
+.live-chart-tooltip-row b {
+  margin-left: auto; font-family: var(--mono); font-weight: 800; color: var(--text);
+}
+.live-chart-tooltip-score {
+  margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--border);
+  font-size: 11px; color: var(--text-dim); font-weight: 600;
+}
+.live-chart-tooltip-score b { font-family: var(--mono); color: var(--text); }
+
 @media (max-width: 480px) {
   .live-prob-panel { padding: 8px 8px 4px; }
   .live-prob-inline { gap: 9px; font-size: 11.5px; }
   .live-prob-inline-item b { font-size: 14px; }
   .live-chart { height: 165px; }
+  .live-chart-tooltip { font-size: 10.5px; padding: 6px 8px; min-width: 108px; }
+  .live-chart-tooltip-time { font-size: 11px; }
 }
 
 /* Sektions-Cards (Events/Stats) - kompaktes Padding statt grosser Cards. */

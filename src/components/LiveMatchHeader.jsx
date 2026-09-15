@@ -18,7 +18,7 @@ export default function LiveMatchHeader({ homeTeam, awayTeam, live }) {
   return (
     <div className="card live-header">
       <div className="live-header-top">
-        <span className="live-badge"><span className="live-dot" />LIVE</span>
+        <span className="live-badge"><span className="live-dot" />{live.isDemo ? 'LIVE DEMO' : 'LIVE'}</span>
         <span className="live-period-text">{status.periodLabel}</span>
         {status.clock && <span className="live-clock">{status.clock}</span>}
       </div>

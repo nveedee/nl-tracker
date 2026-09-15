@@ -345,10 +345,11 @@ export default function MatchupDetail() {
               <LiveWinProbabilityPanel
                 homeTeam={homeTeam} awayTeam={awayTeam}
                 probability={liveDemo.probability}
-                probabilityTimeline={liveDemo.probabilityTimeline}
+                probabilityHistory={liveDemo.probabilityHistory}
                 events={liveDemo.events}
                 periodMarkers={DEMO_PERIOD_MARKERS}
                 maxMinute={DEMO_MAX_MINUTE}
+                isLive={liveDemo.isLive}
               />
               <LiveGameTimeline homeTeam={homeTeam} awayTeam={awayTeam} events={liveDemo.events} />
               <LiveStatistics homeTeam={homeTeam} awayTeam={awayTeam} stats={liveDemo.stats} />

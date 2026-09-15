@@ -1,12 +1,21 @@
 // ---------------------------------------------------------------------------
-// UI-KONZEPT: Live Win/Draw/Loss Probability - Chart-first statt "3 grosse
-// Prozentkarten". Kompakte inline Prozentzeile oben, darunter ein grosser,
-// breiter Probability-Chart als zentrales Element (dünne Linien, dezentes
-// Grid, Perioden-Achse, Tor-Marker direkt im Chart, aktuelle Spielposition
-// markiert) - orientiert an dichten Sport-Analytics-Charts, nicht an
-// Dashboard-Kacheln. Rein präsentational, bekommt fertige Daten als Props
-// (siehe src/liveDemoData.js). Enthält KEINE Berechnungslogik.
+// UI-KONZEPT: Live Win/Draw/Loss Probability - Chart-first mit interaktivem
+// Hover/Crosshair. Zeigt beim Bewegen der Maus (Desktop) bzw. per Tap
+// (Touch) den NÄCHSTGELEGENEN echten historischen Probability-Snapshot aus
+// `probabilityHistory` - niemals eine interpolierte oder erfundene Zahl, und
+// niemals die aktuelle ("Jetzt") Probability anstelle des historischen Werts
+// (siehe LIVE_PROBABILITY_ANALYSIS.md, Abschnitt "Live Probability Timeline").
+//
+// `probabilityHistory`: [{ elapsedSeconds, gameTime, homeGoals, awayGoals,
+// homeWin, drawAfter60, awayWin, eventType, event? }, ...] - identische
+// Struktur, die eine künftige echte SIHF-Live-Anbindung liefern würde (siehe
+// src/liveDemoData.js) - keine UI-spezifische Sonderstruktur.
+//
+// Lokaler Hover-State (useState in dieser Komponente) - Mousemove löst KEIN
+// Re-Render der übrigen Seite aus, nur dieser Komponente selbst.
 // ---------------------------------------------------------------------------
+import { useCallback, useRef, useState } from 'react'
+
 const CHART_W = 800
 const CHART_H = 220
 const PAD_L = 30
@@ -23,22 +32,66 @@ function yForPct(pct) {
   const usable = CHART_H - PAD_TOP - PAD_BOTTOM
   return PAD_TOP + (1 - Math.max(0, Math.min(1, pct))) * usable
 }
-function buildPolyline(timeline, key, maxMinute) {
-  return timeline.map((p) => `${xForMinute(p.minute, maxMinute).toFixed(1)},${yForPct(p[key]).toFixed(1)}`).join(' ')
+function buildPolyline(history, key, maxMinute) {
+  return history.map((p) => `${xForMinute(p.elapsedSeconds / 60, maxMinute).toFixed(1)},${yForPct(p[key]).toFixed(1)}`).join(' ')
 }
-function valueAt(timeline, minute, key) {
-  const exact = timeline.find((p) => p.minute === minute)
-  if (exact) return exact[key]
-  // Letzter bekannter Wert vor diesem Zeitpunkt (Treppenfunktion) - reicht für
-  // die Marker-Positionierung im Demo-Chart.
-  const before = [...timeline].reverse().find((p) => p.minute <= minute)
-  return before ? before[key] : timeline[0][key]
+// Nächstgelegenen historischen Snapshot zu einer Ziel-Spielminute finden -
+// KEINE Interpolation (Abschnitt 5 der Aufgabenstellung).
+function nearestSnapshotIndex(history, minute) {
+  const targetSeconds = minute * 60
+  let best = 0
+  let bestDiff = Infinity
+  for (let i = 0; i < history.length; i++) {
+    const diff = Math.abs(history[i].elapsedSeconds - targetSeconds)
+    if (diff < bestDiff) { bestDiff = diff; best = i }
+  }
+  return best
 }
 
-export default function LiveWinProbabilityPanel({ homeTeam, awayTeam, probability, probabilityTimeline, events, periodMarkers, maxMinute }) {
+function ProbTile({ label, value, color }) {
+  return (
+    <div className="live-prob-tile">
+      <div className="live-prob-tile-label" style={{ color }}>{label}</div>
+      <div className="live-prob-tile-value">{Math.round(value * 100)}%</div>
+    </div>
+  )
+}
+
+const EVENT_ICON = { GOAL: '⚪', PENALTY: '⏱' }
+
+export default function LiveWinProbabilityPanel({ homeTeam, awayTeam, probability, probabilityHistory, events, periodMarkers, maxMinute, isLive = true }) {
   const drawColor = 'var(--text-faint)'
   const goals = events.filter((e) => e.type === 'goal')
-  const currentMinute = probabilityTimeline[probabilityTimeline.length - 1].minute
+  const currentMinute = probabilityHistory[probabilityHistory.length - 1].elapsedSeconds / 60
+
+  const wrapRef = useRef(null)
+  const [hoverIdx, setHoverIdx] = useState(null) // folgt der Maus (Desktop), löscht sich bei mouseleave
+  const [pinnedIdx, setPinnedIdx] = useState(null) // per Klick/Tap gesetzt, bleibt bestehen (Touch: einziger Zugang zum Tooltip)
+  const activeIdx = hoverIdx ?? pinnedIdx
+
+  const minuteFromClientX = useCallback((clientX) => {
+    const el = wrapRef.current
+    if (!el) return 0
+    const rect = el.getBoundingClientRect()
+    const relX = Math.max(0, Math.min(rect.width, clientX - rect.left))
+    const xViewBox = (relX / rect.width) * CHART_W
+    const usable = CHART_W - PAD_L - PAD_R
+    return ((xViewBox - PAD_L) / usable) * maxMinute
+  }, [maxMinute])
+
+  const handleMove = useCallback((e) => {
+    const idx = nearestSnapshotIndex(probabilityHistory, minuteFromClientX(e.clientX))
+    setHoverIdx((cur) => (cur === idx ? cur : idx))
+  }, [probabilityHistory, minuteFromClientX])
+  const handleLeave = useCallback(() => setHoverIdx(null), [])
+  const handleClick = useCallback((e) => {
+    const idx = nearestSnapshotIndex(probabilityHistory, minuteFromClientX(e.clientX))
+    setPinnedIdx(idx)
+  }, [probabilityHistory, minuteFromClientX])
+
+  const active = activeIdx != null ? probabilityHistory[activeIdx] : null
+  const activeMinute = active ? active.elapsedSeconds / 60 : null
+  const activeX = active ? (xForMinute(activeMinute, maxMinute) / CHART_W) * 100 : null
 
   return (
     <div className="card live-prob-panel">
@@ -47,8 +100,7 @@ export default function LiveWinProbabilityPanel({ homeTeam, awayTeam, probabilit
         <span className="chip" style={{ color: 'var(--text-dim)', fontSize: 10 }}>UI-Konzept · Demo-Daten</span>
       </div>
 
-      {/* Kompakte inline Prozentzeile statt grosser Kacheln - Wert bleibt
-          prominent (grössere Zahl), aber ohne eigene Box/Hintergrundfläche. */}
+      {/* "Jetzt" - IMMER der letzte Snapshot, unabhängig vom Hover/Pin. */}
       <div className="live-prob-inline">
         <span className="live-prob-inline-item" style={{ color: homeTeam.color }}>
           <b>{Math.round(probability.pHome * 100)}%</b> {homeTeam.short}
@@ -61,9 +113,14 @@ export default function LiveWinProbabilityPanel({ homeTeam, awayTeam, probabilit
         </span>
       </div>
 
-      <div className="live-chart-wrap">
+      <div
+        className="live-chart-wrap"
+        ref={wrapRef}
+        onMouseMove={handleMove}
+        onMouseLeave={handleLeave}
+        onClick={handleClick}
+      >
         <svg className="live-chart" viewBox={`0 0 ${CHART_W} ${CHART_H}`} preserveAspectRatio="none">
-          {/* Y-Grid + Achsenbeschriftung */}
           {Y_TICKS.map((t) => (
             <g key={t}>
               <line x1={PAD_L} x2={CHART_W - PAD_R} y1={yForPct(t / 100)} y2={yForPct(t / 100)} className="live-chart-grid-line" />
@@ -71,7 +128,6 @@ export default function LiveWinProbabilityPanel({ homeTeam, awayTeam, probabilit
             </g>
           ))}
 
-          {/* Perioden-Trennlinien + Labels (3x20' + OT, kein 90'-Raster) */}
           {periodMarkers.map((m) => (
             <line key={m} x1={xForMinute(m, maxMinute)} x2={xForMinute(m, maxMinute)} y1={PAD_TOP} y2={CHART_H - PAD_BOTTOM} className="live-chart-period-line" />
           ))}
@@ -81,8 +137,6 @@ export default function LiveWinProbabilityPanel({ homeTeam, awayTeam, probabilit
             return <text key={'lbl' + m} x={mid} y={CHART_H - 6} className="live-chart-period-label">{i < 3 ? `${i + 1}. Drittel` : 'OT'}</text>
           })}
 
-          {/* Tor-Marker: vertikale Linie durch den ganzen Chart + kurzes
-              Label - macht den Probability-Sprung direkt sichtbar. */}
           {goals.map((e, i) => {
             const x = xForMinute(e.minute, maxMinute)
             const color = e.side === 'home' ? homeTeam.color : awayTeam.color
@@ -95,42 +149,103 @@ export default function LiveWinProbabilityPanel({ homeTeam, awayTeam, probabilit
             )
           })}
 
-          {/* Aktuelle Spielposition */}
           <line x1={xForMinute(currentMinute, maxMinute)} x2={xForMinute(currentMinute, maxMinute)} y1={PAD_TOP} y2={CHART_H - PAD_BOTTOM} className="live-chart-now-line" />
 
-          {/* Probability-Linien - dünn, keine grossen Flächen */}
-          <polyline points={buildPolyline(probabilityTimeline, 'pDraw', maxMinute)} className="live-chart-line draw" />
-          <polyline points={buildPolyline(probabilityTimeline, 'pAway', maxMinute)} className="live-chart-line" style={{ stroke: awayTeam.color }} />
-          <polyline points={buildPolyline(probabilityTimeline, 'pHome', maxMinute)} className="live-chart-line" style={{ stroke: homeTeam.color }} />
+          <polyline points={buildPolyline(probabilityHistory, 'drawAfter60', maxMinute)} className="live-chart-line draw" />
+          <polyline points={buildPolyline(probabilityHistory, 'awayWin', maxMinute)} className="live-chart-line" style={{ stroke: awayTeam.color }} />
+          <polyline points={buildPolyline(probabilityHistory, 'homeWin', maxMinute)} className="live-chart-line" style={{ stroke: homeTeam.color }} />
 
-          {/* Punkt "jetzt" auf jeder Linie */}
-          {['pHome', 'pDraw', 'pAway'].map((key) => (
+          {/* Statische "Jetzt"-Punkte auf Draw/Away - der Home-Punkt (unten)
+              trägt zusätzlich den pulsierenden LIVE-Marker (Abschnitt 9 der
+              Aufgabenstellung: gemeinsamer vertikaler NOW-Marker über alle
+              drei Linien + ein hervorgehobener Punkt für den aktuellen
+              Zustand). Position IMMER aus dem letzten echten Snapshot
+              (probabilityHistory[length-1]), nie an eine feste Minute
+              gebunden - wandert bei jedem neuen Snapshot automatisch mit. */}
+          {['drawAfter60', 'awayWin'].map((key) => (
             <circle
               key={key}
               cx={xForMinute(currentMinute, maxMinute)}
-              cy={yForPct(valueAt(probabilityTimeline, currentMinute, key))}
-              r={key === 'pDraw' ? 2 : 3}
+              cy={yForPct(probabilityHistory[probabilityHistory.length - 1][key])}
+              r={key === 'drawAfter60' ? 2 : 3}
               className="live-chart-now-dot"
-              style={{ fill: key === 'pHome' ? homeTeam.color : key === 'pAway' ? awayTeam.color : drawColor }}
+              style={{ fill: key === 'awayWin' ? awayTeam.color : drawColor }}
             />
           ))}
 
-          {/* Tor-Marker-Punkte auf der jeweiligen Linie */}
-          {goals.map((e, i) => (
-            <circle
-              key={'gm' + i}
-              cx={xForMinute(e.minute, maxMinute)}
-              cy={yForPct(valueAt(probabilityTimeline, e.minute, e.side === 'home' ? 'pHome' : 'pAway'))}
-              r={3}
-              className="live-chart-goal-marker"
-              style={{ fill: e.side === 'home' ? homeTeam.color : awayTeam.color }}
-            />
-          ))}
+          {(() => {
+            const nowX = xForMinute(currentMinute, maxMinute)
+            const nowY = yForPct(probabilityHistory[probabilityHistory.length - 1].homeWin)
+            return (
+              <g className={isLive ? 'live-now-marker live-pulsing' : 'live-now-marker'}>
+                {isLive && <circle cx={nowX} cy={nowY} r={4} className="live-now-pulse-ring" style={{ stroke: homeTeam.color }} />}
+                <circle cx={nowX} cy={nowY} r={3.5} className="live-now-core" style={{ fill: homeTeam.color }} />
+                {isLive && (
+                  <text x={nowX + 7} y={nowY - 7} className="live-now-label">LIVE</text>
+                )}
+              </g>
+            )
+          })()}
+
+          {goals.map((e, i) => {
+            const snap = probabilityHistory[nearestSnapshotIndex(probabilityHistory, e.minute)]
+            return (
+              <circle
+                key={'gm' + i}
+                cx={xForMinute(e.minute, maxMinute)}
+                cy={yForPct(snap[e.side === 'home' ? 'homeWin' : 'awayWin'])}
+                r={5}
+                className="live-chart-goal-marker"
+                style={{ fill: e.side === 'home' ? homeTeam.color : awayTeam.color }}
+              />
+            )
+          })}
+
+          {/* Hover-/Tap-Crosshair - zeigt den nächstgelegenen ECHTEN Snapshot,
+              nie eine interpolierte Zahl (siehe nearestSnapshotIndex()). */}
+          {active && (
+            <g className="live-chart-crosshair">
+              <line x1={xForMinute(activeMinute, maxMinute)} x2={xForMinute(activeMinute, maxMinute)} y1={PAD_TOP} y2={CHART_H - PAD_BOTTOM} />
+              {['homeWin', 'drawAfter60', 'awayWin'].map((key) => (
+                <circle
+                  key={'hover-' + key}
+                  cx={xForMinute(activeMinute, maxMinute)}
+                  cy={yForPct(active[key])}
+                  r={key === 'drawAfter60' ? 3 : 4}
+                  style={{ fill: key === 'homeWin' ? homeTeam.color : key === 'awayWin' ? awayTeam.color : drawColor }}
+                />
+              ))}
+            </g>
+          )}
         </svg>
+
         <div className="live-chart-now-tag" style={{ left: `${(xForMinute(currentMinute, maxMinute) / CHART_W) * 100}%` }}>
           <span className="live-chart-now-tag-label">Jetzt</span>
-          <span className="live-chart-now-tag-value">{currentMinute}′</span>
+          <span className="live-chart-now-tag-value">{Math.round(currentMinute)}′</span>
         </div>
+
+        {active && (
+          <div
+            className="live-chart-tooltip"
+            style={{
+              left: `${activeX}%`,
+              transform: activeX > 65 ? 'translateX(-100%)' : activeX < 8 ? 'translateX(0)' : 'translateX(-50%)',
+            }}
+          >
+            <div className="live-chart-tooltip-time">
+              {active.gameTime}
+              {active.event && (
+                <span className="live-chart-tooltip-event">
+                  {EVENT_ICON[active.eventType] || ''} {active.event.side === 'home' ? homeTeam.short : awayTeam.short}
+                </span>
+              )}
+            </div>
+            <div className="live-chart-tooltip-row"><span className="dot" style={{ background: homeTeam.color }} />{homeTeam.short}<b>{(active.homeWin * 100).toFixed(1)}%</b></div>
+            <div className="live-chart-tooltip-row"><span className="dot" style={{ background: drawColor }} />Unentschieden<b>{(active.drawAfter60 * 100).toFixed(1)}%</b></div>
+            <div className="live-chart-tooltip-row"><span className="dot" style={{ background: awayTeam.color }} />{awayTeam.short}<b>{(active.awayWin * 100).toFixed(1)}%</b></div>
+            <div className="live-chart-tooltip-score">Score <b>{active.homeGoals} : {active.awayGoals}</b></div>
+          </div>
+        )}
       </div>
 
       <div className="legend live-chart-legend">
