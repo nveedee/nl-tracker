@@ -240,4 +240,116 @@ Ergänzend gilt: Die grundsätzliche Datenverfügbarkeit der SIHF-API wurde anha
 
 ---
 
-**Hinweis:** Dies ist ausschliesslich eine Machbarkeitsanalyse. Es wurde nichts implementiert, keine Dependencies installiert, keine anderen Dateien verändert.
+## 25. Mathematisches Audit & Implementierung der Live-Probability-Engine
+
+Anlass: Die Demo zeigte bei „2:1 in der 58. Minute" die Werte 83% / 6% / 11% (Home/Draw/Away). Der Away-Wert von 11% wurde zu Recht als verdächtig gemeldet.
+
+### 25.1 Root Cause
+
+Es gab **keine Berechnung**. `src/liveDemoData.js` enthielt ein fest verdrahtetes Beispiel-Array (`DEMO_PROBABILITY_TIMELINE`) mit frei gewählten Illustrationszahlen für jeden Zeitpunkt der Demo-Kurve - inklusive des letzten Punkts (58', 83/6/11%), der nie aus ELO, Expected Goals oder einer Restzeit-Formel abgeleitet wurde. Es existierte zu diesem Zeitpunkt schlicht kein Live-Probability-Modell im Projekt, nur ein UI-Konzept mit Platzhalterwerten.
+
+### 25.2 Implementierte Lösung
+
+Neues, unabhängig testbares Modul **`src/liveProbability.js`** (`computeLiveWinProbability()`), reine Funktion ohne Zufallszahlen (geschlossene Poisson-Doppelsumme statt Monte-Carlo):
+
+1. **Wiederverwendung des bestehenden Pre-Game-Modells**: `expHomeFull`/`expAwayFull` (erwartete Tore über 60 Minuten) und `pHomePreGame` kommen unverändert aus `src/playoffSim.js` (`computeFixtures()`/`buildFixture()` → ELO + Heimvorteil + SOG-Faktor). Die Engine erfindet keine eigene Teamstärke-Formel.
+2. **Restzeit-Skalierung**: `remLambda = fullLambda * remainingFraction(elapsedMinutes)`, mit `remainingFraction(m) = (60 - clamp(m, 0, 60)) / 60`. Bereits gespielte Zeit wird nicht erneut simuliert.
+3. **Score als fixer Offset**: Der aktuelle Torunterschied (`homeGoals - awayGoals`) plus die noch zu erzielenden Resttore (zwei unabhängige Poisson-Verteilungen) bestimmen das Regulationsergebnis über eine geschlossene Doppelsumme (identisches Prinzip wie `computeDecisionProbability()` in `playoffSim.js`, nur zusätzlich mit Score-Offset statt nur "Unentschieden ja/nein").
+4. **OT/SO-Auflösung**: Ein Unentschieden nach 60 Minuten (`drawAfter60`) ist in der National League nie das Endergebnis. Es wird über `pHomePreGame` aufgelöst - exakt dieselbe Logik wie die bestehende OT/SO-Auslosung in `simulateGameResult()` (`rng.next() < fixture.pHome`, für OT und SO identisch). Diese bestehende Vereinfachung (kein separates OT- vs. SO-Sieger-Modell) wird bewusst **nicht** "verbessert" (keine erfundene Zusatzkalibrierung), sondern unverändert übernommen und dokumentiert.
+
+### 25.3 Definition Home/Draw/Away (Korrektur der Inkonsistenz)
+
+Die alte Demo behandelte "Draw" als dritten, in die 100%-Aufteilung eingerechneten Endzustand - das ist in einem Sport ohne echtes Unentschieden (NL entscheidet immer per OT/SO) mathematisch inkonsistent.
+
+**Korrigierte, jetzt verwendete Definition:**
+- **HOME / AWAY** (die prominenten Prozentwerte, z.B. "AJO 96% / AMB 3%") = `homeFinal`/`awayFinal` = Wahrscheinlichkeit, dass dieses Team das Spiel **endgültig** gewinnt, inkl. OT/SO. `homeFinal + awayFinal = 1` (exakt, garantiert).
+- **„Unentschieden nach 60 Minuten"** (`drawAfter60`) ist **kein** Teil dieser 100%-Aufteilung, sondern ein separater, klar beschrifteter Zusatzwert - identisches Muster wie die bereits bestehende Pre-Game-Sektion in `MatchupDetail.jsx` (dort: "OT-Wahrscheinlichkeit"/"SO-Wahrscheinlichkeit" als eigene Kacheln neben dem Home/Away-Split, nicht eingerechnet).
+
+### 25.4 Zeitmodell
+
+`remainingFraction()` bildet exakt die in der Aufgabenstellung geforderten Beispielwerte ab (0'→100%, 30'→50%, 58'→3.33%, 60'→0%), getestet in `src/liveProbability.test.js`. Zusätzlich: `elapsedMinutesFromPeriodClock(period, remainingSeconds)` wandelt eine drittel-basierte Countdown-Uhr (wie SIHF sie führt) in absolute verstrichene Minuten um - vorbereitet für eine künftige echte Anbindung, von der Demo aktuell nicht benötigt.
+
+### 25.5 Event-Handling (Tore/Strafen)
+
+Ein Tor verursacht automatisch einen Sprung, weil die Engine bei jedem Aufruf den **aktuellen** Score als Eingabe erhält - es gibt keine separat gepflegte Kurve, die "angepasst" werden müsste. `src/liveDemoData.js` demonstriert das: `scoreAt(minute)` leitet den Spielstand direkt aus den Torereignissen ab, `buildProbabilityTimeline()` ruft `computeLiveWinProbability()` für jede Minute erneut auf. Strafen/Powerplay fliessen aktuell **nicht** in die Torerwartung ein (siehe 25.7).
+
+### 25.6 SIHF-Live-Daten - was tatsächlich verwendet wird
+
+Es besteht weiterhin **keine echte SIHF-Live-Anbindung** (kein Backend-Polling, kein neuer Endpoint, keine `liveState`-Struktur - das war für dieses Audit explizit nicht im Scope, siehe 25.9). Die Engine ist so gebaut, dass sie unabhängig von der Datenquelle funktioniert: Score, `elapsedMinutes` und Phase (`REG`/`OT`/`SO`) sind reine Eingabeparameter. Die bereits verifizierte SIHF-Struktur (Abschnitt 16) bleibt die Referenz für eine künftige Anbindung: `result.homeTeam`/`result.awayTeam`, `summary.periods[].goals[]` (Zeitstempel), `summary.periods[].fouls[]`, `summary.shootout.shoots[]`.
+
+**Bugfix in diesem Zug:** `server/scripts/sync-sihf.cjs` suchte Shootout-Einträge unter `entries`/`attempts`/`rounds` - die echte SIHF-Antwort liefert das Array unter `shoots` (siehe Abschnitt 16/17). Dadurch wurde `decision: 'SO'` bisher **nie** korrekt erkannt (immer Fallback auf `'OT'`). Feldname korrigiert; betrifft nur den bestehenden Final-Sync-Pfad, keine Live-Logik.
+
+### 25.7 Bekannte Einschränkungen (bewusst nicht "gelöst", um keine Fake-Präzision vorzutäuschen)
+
+- **Kein Powerplay-/Penalty-Effekt auf die Torerwartung.** SIHF liefert Strafen mit Zeitstempel (verifiziert), aber ein belastbarer Powerplay-Torraten-Multiplikator wäre eine neue, unkalibrierte Modellannahme. Nicht eingebaut - Architektur (reine Parameter-Eingabe in `computeLiveWinProbability`) lässt das später zu, ohne die Engine umzubauen.
+- **Kein Empty-Net-Effekt.** Ob SIHF "Goalie pulled" zuverlässig liefert, ist unverifiziert (nie an einem echten Spätphasen-Live-Spiel getestet). Nicht eingebaut.
+- **OT/SO ohne Tor-für-Tor-Dynamik.** Sudden Death wird als einmalige, kalibrierte Auslosung behandelt (`pHomePreGame`), nicht als eigene Poisson-Rechnung - identisch zum bestehenden Saison-Simulationsmodell.
+- **OT- und SO-Sieger-Wahrscheinlichkeit sind identisch** (beide = `pHomePreGame`) - eine bestehende Modell-Vereinfachung, keine neue.
+- **Kein echtes Live-Backend/Polling.** `server/live/*` (Poller, 20-30s-Intervall, `liveState`-Persistenz) wurde in diesem Zug **nicht** gebaut - das würde produktives Polling gegen die SIHF-API während eines echten Spiels erfordern, was ohne Verifikation an einem tatsächlich laufenden Spiel unverantwortlich zu implementieren wäre (siehe Abschnitt 6 zur Update-Latenz, weiterhin ungeklärt). Die Engine ist bewusst so geschnitten (reine Funktion, Score/Zeit/Phase als Eingabe), dass ein künftiger Poller sie ohne Änderung aufrufen kann.
+
+### 25.8 Beispiel 2:1 bei 58' (siehe `src/liveProbability.test.js`, Testfall 7)
+
+Mit repräsentativen Pre-Game-Werten `expHomeFull=3.0`, `expAwayFull=2.6`, `pHomePreGame=0.56`:
+
+```
+remainingFraction = 0.0333  (2 von 60 Minuten übrig)
+remHomeLambda = 0.10, remAwayLambda = 0.087
+
+homeRegWin   = 0.9246
+drawAfter60  = 0.0722
+awayRegWin   = 0.0032
+
+homeFinal = 0.9246 + 0.0722 * 0.56 = 0.9650  (96.5%)
+awayFinal = 0.0032 + 0.0722 * 0.44 = 0.0350  (3.5%)
+```
+
+Der alte Demo-Wert von 11% Away hatte keinerlei Bezug zu dieser Rechnung. Der Test erzwingt `awayFinal < 8%` für dieses Szenario.
+
+### 25.9 Testresultate
+
+`npm run test:live` (`src/liveProbability.test.js`, 19 Tests, alle grün): Normierung (Summe = 1 in beiden Partitionen), Wertebereich [0,1], Monotonie (mehr Heimtore ⇒ homeFinal steigt; mehr Auswärtstore ⇒ awayFinal steigt; weniger Restzeit stärkt den Führenden), OT-/SO-Sonderfälle, Zeitmodell-Referenzwerte, Grid-Test über 11×5×5 Score-/Zeit-Kombinationen ohne NaN/negative Werte, sowie der 2:1-bei-58'-Debug-Fall. Bestehende Suiten (`test:sim`, `test:wheel`, `test:scoreline`) weiterhin grün, keine Regression an Pre-Game-Logik/Monte-Carlo/Scoreline-Matrix/Expected-Goals.
+
+### 25.10 Scope-Entscheidung: nur Engine + Demo-Integration, kein Backend
+
+Gemäss der in der Aufgabenstellung selbst genannten Priorität ("1. mathematische Korrektheit" vor "2. echte Live-Daten") wurde in diesem Zug ausschliesslich die Wahrscheinlichkeits-Engine implementiert und in die bestehende Demo integriert (`liveDemoData.js` berechnet die Timeline jetzt über `computeLiveWinProbability()` statt über ein Zahlen-Array). Ein echtes SIHF-Live-Backend (`server/live/*`, 20-30s-Polling, `liveState`-Persistenz, neuer API-Endpoint) wurde **nicht** gebaut - das ist ein separates, grösseres Vorhaben (bereits als "Aufwand: gross" in Abschnitt 12 eingeschätzt) und würde eine Verifikation an einem echten laufenden Spiel voraussetzen, die in dieser Session nicht stattfinden konnte. Die UI zeigt weiterhin klar **„LIVE DEMO"** (nicht „LIVE") im Header-Badge, solange keine echte Datenquelle angebunden ist.
+
+---
+
+## 26. SOG-Impact-Test (Ergebnis: NICHT implementiert)
+
+Gemäss Auftrag zunächst rein empirisch geprüft, **ob** Live-SOG überhaupt einen sinnvollen zusätzlichen Informationswert liefert, bevor irgendetwas implementiert wird. `liveProbability.js` wurde dafür **nicht verändert** - der Test lief über ein temporäres, nicht ins Repo aufgenommenes Analyse-Script, das ausschliesslich die bestehende, unveränderte `computeLiveWinProbability()`-API aufruft (ein hypothetisches SOG-Modell wurde simuliert, indem `expHomeFull`/`expAwayFull` vor dem Aufruf mit einem Shot-Share-Faktor reskaliert wurden - architektonisch identisch zu Abschnitt 12 der Aufgabenstellung: Wirkung auf die verbleibende λ, nicht auf die fertige Prozentzahl).
+
+**A) Hatten SOG bisher einen Einfluss?** Nein. `computeLiveWinProbability()` kennt exakt sechs Inputs: `expHomeFull`, `expAwayFull`, `pHomePreGame`, `homeGoals`, `awayGoals`, `elapsedMinutes` (+`phase`). Kein SOG-Feld, live oder aggregiert. Die einzige SOG-Verwendung im gesamten Projekt ist die bereits bestehende **Pre-Game**-Anpassung in `playoffSim.js`/`powerRankings.js` (`SOG_ADJUSTMENT`): eine Saison-**Durchschnitts**-Kennzahl "zugelassene Schüsse/Spiel" pro Team, z-normalisiert über die ganze Liga, mit Konfidenzrampe ab 10 Spielen - das ist eine völlig andere Grösse als das Live-In-Game-SOG eines einzelnen laufenden Spiels und bleibt unverändert.
+
+**B) Wie gross ist der gemessene Unterschied?** Mit einem bewusst **grosszügigen, nicht kalibrierten** Testkoeffizienten (K=0.3, volle Konfidenz ab 20 kumulierten Schüssen) und extremen Szenarien:
+
+| Situation | SOG | Baseline (AJO/DRAW/AMB) | SOG-adjusted | Delta AJO |
+|---|---|---|---|---|
+| 34:00, 1:2 | 13:15 (nahe real) | 31.7 / 22.5 / 68.3 % | 31.1 / 22.4 / 68.9 % | −0.6pp |
+| 34:00, 1:2 | 30:10 (extrem) | 31.7 / 22.5 / 68.3 % | 35.7 / 23.8 / 64.3 % | +4.1pp |
+| 34:00, 1:2 | 10:30 (extrem) | 31.7 / 22.5 / 68.3 % | 27.8 / 21.1 / 72.2 % | −3.9pp |
+| **58:00, 2:1** | 10:30 (AMB dominiert Schüsse) | 96.6 / 7.1 / 3.4 % | 96.3 / 7.6 / 3.7 % | **−0.3pp** |
+| **58:00, 2:1** | 30:10 (AJO dominiert Schüsse) | 96.6 / 7.1 / 3.4 % | 96.9 / 6.5 / 3.1 % | **+0.3pp** |
+| 5:00, 0:0 | 4:1 (kleine Stichprobe) | 58.9 / 17.8 / 41.1 % | 60.8 / 17.6 / 39.2 % | +1.9pp |
+| 31:00, 1:1→1:2 (Tor) | 12:14→12:15 | 57.1%→33.1% AJO (Tor-Sprung: **−24pp**) | 56.4%→32.2% AJO | Tor-Effekt bleibt dominant, SOG-Effekt <1pp |
+
+**C) Welcher Ansatz wurde getestet?** Shot-Share (`homeSOG/(homeSOG+awaySOG)`) statt absoluter SOG-Differenz - vermeidet, dass spät im Spiel automatisch grössere Zahlen einen grösseren Effekt hätten, ohne dass die Spielzeit das schon über `remainingFraction` regelt. Multiplikative Reskalierung von `expHomeFull`/`expAwayFull` (wirkt nur auf die noch zu erwartenden Resttore, nicht direkt auf die fertige Prozentzahl - exakt die in Abschnitt 12 geforderte Architektur). Konfidenzrampe über die kumulierte Schusszahl (min. 20 für volle Wirkung) verhindert Overreaction bei sehr wenigen Schüssen früh im Spiel.
+
+**D) Konkrete Deltas:** Selbst mit dem grosszügig gewählten Test-Koeffizienten bleiben die Effekte bei realistischen SOG-Differenzen (34') im Bereich von 3-4 Prozentpunkten, bei extremer Führung spät im Spiel (58') unter 0.5 Prozentpunkten - die Restzeit-Skalierung (`remainingFraction`) macht SOG-Einflüsse in der Schlussphase automatisch bedeutungslos, weil dort ohnehin fast keine Tore mehr erwartet werden. Der Score-Sprung durch ein Tor (~24pp im Test) bleibt um eine Grössenordnung dominanter als jeder getestete SOG-Effekt.
+
+**E) Gibt es historische Evidenz für zusätzlichen Informationswert?** **Nein, nicht überprüfbar.** `server/data/db.json` enthält für die laufende Saison 2026/27 **0 finale Spiele** (Saisonstart war erst am Tag der vorherigen Analyse-Session) - keine einzige abgeschlossene Partie mit periodenweisem SOG-Verlauf zum Validieren. Der `server/data/historical/`-Ordner (frühere Saisons, von `server/scripts/backtesting/` genutzt) existiert lokal **nicht** (gitignored, nie generiert - bereits beim Testlauf von `test:backtest` in einer früheren Session mit `ENOENT` aufgefallen). Eine Brier-Score-/Log-Loss-/Calibration-Auswertung "Base Model vs. Base+SOG" war deshalb **nicht möglich** - es wird hier ausdrücklich **nicht vorgetäuscht**, dass eine solche Validierung stattgefunden hätte.
+
+**F) Sollte SOG implementiert werden?** **Nein, aktuell nicht.** Entscheidung nach dem im Auftrag vorgegebenen Kriterium **B) "SOG verändert die Probability zwar, aber ohne ausreichende Evidenz → NICHT implementieren, als optionalen zukünftigen Faktor dokumentieren"**: Der gemessene Effekt ist real, klein und architektonisch stabil (kein Kaputtgehen von Score-Dominanz/Tor-Sprüngen, keine Overreaction früh im Spiel) - aber es gibt **keine Datenbasis**, um den Koeffizienten `K` oder die Konfidenz-Schwelle `MIN_SAMPLE_SOG` seriös zu kalibrieren, und **keine historische Validierung**, dass die Anpassung die tatsächliche Vorhersagegüte verbessert statt nur Rauschen hinzuzufügen.
+
+**G) Falls ja - Gewichtung/Begründung:** Entfällt (siehe F).
+
+**H) Falls nein - warum nicht:**
+1. Keine Kalibrierungsdaten für `K`/`MIN_SAMPLE_SOG` (frei gewählt für den Test, exakt das in Abschnitt 4 der Aufgabenstellung verbotene "Prozente erfinden").
+2. Keine historischen Spieldaten (0 finale Spiele in db.json, kein `historical/`-Ordner lokal vorhanden) zur Validierung von zusätzlicher Vorhersagekraft.
+3. Der gemessene Effekt ist selbst im günstigsten Testfall klein (3-4pp) - ein Implementieren würde Komplexität/Fehleroberfläche hinzufügen, ohne nachweisbaren Nutzen.
+
+**Konsequenz:** `liveProbability.js`, `liveDemoData.js` und alle bestehenden Tests bleiben **unverändert**. SOG bleibt ein reines Anzeige-/Statistikfeld in `LiveStatistics.jsx` (SOG, Schüsse, Bullys, Powerplay) - dort korrekt nicht als "beeinflusst die Probability" beschriftet. Dieser Abschnitt dient als Referenz, falls später (a) eine echte Live-Datenhistorie mit Ergebnissen vorliegt und (b) daraus ein kalibrierter Koeffizient abgeleitet werden kann - erst dann wäre eine Neubewertung sinnvoll.
+
+---
+
+**Hinweis:** Dies ist ausschliesslich eine Machbarkeitsanalyse plus (ab Abschnitt 25) die tatsächliche Implementierung der Probability-Engine. Backend/SIHF-Sync wurde nur um den in 25.6 genannten Bugfix ergänzt, sonst nicht verändert. Keine neuen Dependencies, keine `liveState`-Struktur, kein Live-Polling. Abschnitt 26 dokumentiert einen durchgeführten, aber NICHT umgesetzten SOG-Sensitivitätstest.
