@@ -225,12 +225,13 @@ function parseSihfGame(raw, localPlayers) {
   const awayGoals = Number(raw.result && raw.result.awayTeam)
 
   // Entscheidung: >3 Perioden = OT/SO. Shootout-Einträge (falls von SIHF
-  // geliefert) unterscheiden SO von reinem OT. Die exakte Feldform für
-  // Shootout-Einzelschüsse ist an einem echten SO-Spiel dieser Saison noch zu
-  // verifizieren (siehe Bericht) - hier defensiv mehrere bekannte
-  // Feldnamen-Varianten geprüft, mit Fallback auf die Perioden-Anzahl.
+  // geliefert) unterscheiden SO von reinem OT. Feldname gegen die echte SIHF-
+  // API verifiziert (siehe LIVE_PROBABILITY_ANALYSIS.md Abschnitt 16/17):
+  // `summary.shootout.shoots[]` - die zuvor geprüften Namen (entries/
+  // attempts/rounds) existieren in der echten Antwort NICHT, wodurch SO-Spiele
+  // bisher immer fälschlich über den Perioden-Fallback als 'OT' erkannt wurden.
   const shootoutBlock = raw.summary && raw.summary.shootout
-  const shootoutEntries = (shootoutBlock && (shootoutBlock.entries || shootoutBlock.attempts || shootoutBlock.rounds)) || []
+  const shootoutEntries = (shootoutBlock && shootoutBlock.shoots) || []
   let decision = 'REG'
   if (shootoutEntries.length > 0) decision = 'SO'
   else if (scores.length > 3) decision = 'OT'
