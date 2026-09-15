@@ -309,7 +309,31 @@ export default function MatchupDetail() {
   }
 
   const mc = analysis?.monteCarlo
-  const leadIsHome = mc ? mc.pHomeWin >= mc.pAwayWin : null
+  // Kopfzahlen der "Model Forecast"-Karte: existiert bereits ein eingefrorener
+  // Prediction-Snapshot (server/scripts/predictions.js) für dieses Spiel,
+  // MUSS dessen Wert angezeigt werden - identisch zum Spielplan
+  // (Schedule.jsx) und zur späteren "Pre-Game Prediction"-Sektion nach
+  // Spielende. Sonst würden zwei unterschiedliche Live-Neuberechnungen
+  // (Schedule: geschlossene ELO-Formel, hier: 10'000-Lauf-Monte-Carlo mit
+  // SOG/Marktwert-Prior) für dasselbe Spiel abweichende Prozentwerte zeigen.
+  // Ohne Snapshot bleibt der bisherige Live-mc-Fallback unverändert. Die
+  // übrigen mc-basierten Sektionen (Simulationsergebnisse, Expected Goals,
+  // Goal Probabilities, Scoreline-Matrix) bleiben bewusst unverändert live -
+  // der Snapshot speichert keine Torverteilung/Scoreline, nur die
+  // aggregierten Kennzahlen unten.
+  const displayForecast = mc
+    ? (predictionSnapshot
+      ? {
+          pHomeWin: predictionSnapshot.homeWinProbability,
+          pAwayWin: predictionSnapshot.awayWinProbability,
+          avgHomeGoals: predictionSnapshot.expectedHomeGoals,
+          avgAwayGoals: predictionSnapshot.expectedAwayGoals,
+          pOT: predictionSnapshot.otProbability,
+          pSO: predictionSnapshot.soProbability,
+        }
+      : mc)
+    : null
+  const leadIsHome = displayForecast ? displayForecast.pHomeWin >= displayForecast.pAwayWin : null
   const leadTeam = leadIsHome == null ? null : (leadIsHome ? homeTeam : awayTeam)
   const otherTeam = leadIsHome == null ? null : (leadIsHome ? awayTeam : homeTeam)
 
@@ -412,9 +436,14 @@ export default function MatchupDetail() {
         <div className="muted" style={{ padding: '20px 0' }}>Lädt…</div>
       ) : (
         <>
-          {/* 1b. Model Forecast (nur für zukünftige Spiele, ausschliesslich aus der
-              bestehenden Monte-Carlo-Simulation - keine separate Berechnung) */}
-          {!played && mc && (
+          {/* 1b. Model Forecast (nur für zukünftige Spiele). Existiert bereits ein
+              eingefrorener Prediction-Snapshot, zeigt diese Karte GENAU dessen
+              Werte (identisch zum Spielplan/Schedule.jsx und zur späteren
+              "Pre-Game Prediction" nach Spielende) - keine zweite,
+              abweichende Live-Neuberechnung mehr für dieselbe Kopfzahl. Ohne
+              Snapshot bleibt der bisherige Live-mc-Fallback (10'000-Lauf-
+              Monte-Carlo) unverändert. Siehe displayForecast oben. */}
+          {!played && displayForecast && (
             <div className="card card-pad mb">
               <div className="row spread" style={{ alignItems: 'baseline', flexWrap: 'wrap', rowGap: 4 }}>
                 <div className="section-label">Model Forecast</div>
@@ -438,19 +467,19 @@ export default function MatchupDetail() {
               </div>
               <div className="row spread" style={{ marginBottom: 10 }}>
                 <div style={{ fontSize: 20, fontWeight: 800 }}>
-                  <span style={{ color: leadIsHome ? 'var(--accent)' : 'inherit' }}>{homeTeam.short} {fmtPct0(mc.pHomeWin)}</span>
+                  <span style={{ color: leadIsHome ? 'var(--accent)' : 'inherit' }}>{homeTeam.short} {fmtPct0(displayForecast.pHomeWin)}</span>
                   <span className="muted" style={{ margin: '0 8px', fontWeight: 600 }}>—</span>
-                  <span style={{ color: !leadIsHome ? 'var(--accent)' : 'inherit' }}>{fmtPct0(mc.pAwayWin)} {awayTeam.short}</span>
+                  <span style={{ color: !leadIsHome ? 'var(--accent)' : 'inherit' }}>{fmtPct0(displayForecast.pAwayWin)} {awayTeam.short}</span>
                 </div>
               </div>
               <div className="bar-track" style={{ height: 8, marginBottom: 18 }}>
-                <div className="bar-fill" style={{ width: `${Math.round(mc.pHomeWin * 100)}%` }} />
+                <div className="bar-fill" style={{ width: `${Math.round(displayForecast.pHomeWin * 100)}%` }} />
               </div>
               <div className="tiles" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                <StatTile label={`Erwartete Tore ${homeTeam.short}`} value={fmt2(mc.avgHomeGoals)} />
-                <StatTile label={`Erwartete Tore ${awayTeam.short}`} value={fmt2(mc.avgAwayGoals)} />
-                <StatTile label="OT-Wahrscheinlichkeit" value={fmtPct(mc.pOT)} />
-                <StatTile label="SO-Wahrscheinlichkeit" value={fmtPct(mc.pSO)} />
+                <StatTile label={`Erwartete Tore ${homeTeam.short}`} value={fmt2(displayForecast.avgHomeGoals)} />
+                <StatTile label={`Erwartete Tore ${awayTeam.short}`} value={fmt2(displayForecast.avgAwayGoals)} />
+                <StatTile label="OT-Wahrscheinlichkeit" value={fmtPct(displayForecast.pOT)} />
+                <StatTile label="SO-Wahrscheinlichkeit" value={fmtPct(displayForecast.pSO)} />
               </div>
             </div>
           )}
