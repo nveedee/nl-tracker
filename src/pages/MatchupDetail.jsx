@@ -8,7 +8,7 @@
 // Rein lesend, speichert nichts.
 // ---------------------------------------------------------------------------
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useData } from '../DataContext.jsx'
 import { TeamBadge } from '../components/ui.jsx'
@@ -20,6 +20,11 @@ import { buildScorelineMatrix, buildGoalDistribution, expectedGoals } from '../s
 import ScorelineMatrix from '../components/ScorelineMatrix.jsx'
 import ExpectedGoals from '../components/ExpectedGoals.jsx'
 import GoalProbabilities from '../components/GoalProbabilities.jsx'
+import LiveMatchHeader from '../components/LiveMatchHeader.jsx'
+import LiveWinProbabilityPanel from '../components/LiveWinProbabilityPanel.jsx'
+import LiveGameTimeline from '../components/LiveGameTimeline.jsx'
+import LiveStatistics from '../components/LiveStatistics.jsx'
+import { buildDemoLiveMatch, DEMO_PERIOD_MARKERS, DEMO_MAX_MINUTE } from '../liveDemoData.js'
 import { usePreseasonElo, computePreseasonRatings } from '../preseasonElo.js'
 import { computeMarketValuePrior, DEFAULT_PRIOR_SPREAD } from '../marketValuePrior.js'
 import { applyRestAdjustment, computeRestAdjustment, DEFAULT_BACK_TO_BACK_PENALTY } from '../restDays.js'
@@ -211,6 +216,7 @@ export default function MatchupDetail() {
   const historical = useHistoricalH2H()
   const preseasonSeasonEnd = usePreseasonElo()
   const loadingHistorical = historical === null
+  const [showLiveDemo, setShowLiveDemo] = useState(false)
 
   const game = data?.games?.find((g) => g.id === gameId)
   const homeTeam = game && data.teams.find((t) => t.id === game.homeTeamId)
@@ -309,46 +315,97 @@ export default function MatchupDetail() {
 
   return (
     <div>
-      <div className="row gap-sm mb">
+      <div className="row gap-sm mb wrap">
         <Link className="btn ghost sm" to="/schedule">← Zurück zum Spielplan</Link>
         <Link className="btn ghost sm" to={`/head-to-head?team1=${homeTeam.id}&team2=${awayTeam.id}`}>Head-to-Head öffnen</Link>
+        <button className="btn ghost sm" onClick={() => setShowLiveDemo((v) => !v)}>
+          {showLiveDemo ? 'Live-Ansicht (Demo) ausblenden' : '🔴 Live-Ansicht (Demo) anzeigen'}
+        </button>
       </div>
 
-      {/* 1. Header */}
-      <div className="card card-pad mb" style={{ textAlign: 'center' }}>
-        <div className="muted" style={{ fontSize: 13, marginBottom: 14 }}>
-          {new Date(game.date).toLocaleDateString('de-CH', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
-          {game.time ? ` · ${game.time} Uhr` : ''}
-          {' · '}
-          <span className="chip">{played ? 'Beendet' : 'Geplant'}</span>
-        </div>
-        <div className="row spread" style={{ alignItems: 'center', gap: 20 }}>
-          <div style={{ flex: 1, textAlign: 'right' }}>
-            <div className="muted" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', marginBottom: 8 }}>HEIM</div>
-            <div className="row gap-sm" style={{ justifyContent: 'flex-end' }}>
-              <h1 style={{ fontSize: 20 }}>
-                <Link to={`/teams/${homeTeam.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{homeTeam.name}</Link>
-              </h1>
-              <span className="dot" style={{ background: homeTeam.color, width: 18, height: 18 }} />
+      {/* Live-Match-Ansicht: reines UI-Konzept mit statischen Demo-Daten
+          (src/liveDemoData.js), unabhängig von echten Spieldaten/Status.
+          Keine SIHF-Anbindung, kein Polling, keine liveState-Struktur im
+          Backend - siehe LIVE_PROBABILITY_ANALYSIS.md. Standardmässig
+          ausgeblendet, damit die reguläre Seite unverändert bleibt. */}
+      {showLiveDemo && homeTeam && awayTeam && (() => {
+        const liveDemo = buildDemoLiveMatch(homeTeam, awayTeam)
+        return (
+          <div className="mb">
+            <div className="live-demo-banner">
+              <strong style={{ color: 'var(--text)' }}>UI-Konzept:</strong>
+              Live-Win/Draw/Loss-Probability. Alle Werte unten sind erfundene Demo-Daten zur Veranschaulichung des Designs - keine echte Live-Verbindung, nichts wird gespeichert.
+            </div>
+            {/* Header/Chart/Events/Stats als EIN zusammenhängender Live-Bereich
+                (.live-section-group entfernt die Zwischenabstände/Radien
+                zwischen den einzelnen .card-Blöcken) statt vier separater
+                Dashboard-Kacheln. */}
+            <div className="live-section-group">
+              <LiveMatchHeader homeTeam={homeTeam} awayTeam={awayTeam} live={liveDemo} />
+              <LiveWinProbabilityPanel
+                homeTeam={homeTeam} awayTeam={awayTeam}
+                probability={liveDemo.probability}
+                probabilityTimeline={liveDemo.probabilityTimeline}
+                events={liveDemo.events}
+                periodMarkers={DEMO_PERIOD_MARKERS}
+                maxMinute={DEMO_MAX_MINUTE}
+              />
+              <LiveGameTimeline homeTeam={homeTeam} awayTeam={awayTeam} events={liveDemo.events} />
+              <LiveStatistics homeTeam={homeTeam} awayTeam={awayTeam} stats={liveDemo.stats} />
             </div>
           </div>
-          <div style={{ fontSize: played ? 30 : 18, fontWeight: 800, minWidth: 110, fontFamily: 'var(--mono)' }}>
-            {played ? `${game.homeGoals} : ${game.awayGoals}` : 'vs.'}
-            {played && game.decision !== 'REG' && (
-              <div className="muted" style={{ fontSize: 12, fontWeight: 600, marginTop: 2 }}>{game.decision}</div>
-            )}
+        )
+      })()}
+
+      {/* 1. Header - bei aktiver Live-Demo ausgeblendet (Widerspruch sonst:
+          "Geplant"/Datum unten vs. LIVE-Badge oben in LiveMatchHeader, das
+          Score/Teams bereits eigenständig zeigt - siehe LiveMatchHeader.jsx). */}
+      {!showLiveDemo && (
+        <div className="card card-pad mb" style={{ textAlign: 'center' }}>
+          <div className="muted" style={{ fontSize: 13, marginBottom: 14 }}>
+            {new Date(game.date).toLocaleDateString('de-CH', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
+            {game.time ? ` · ${game.time} Uhr` : ''}
+            {' · '}
+            <span className="chip">{played ? 'Beendet' : 'Geplant'}</span>
           </div>
-          <div style={{ flex: 1, textAlign: 'left' }}>
-            <div className="muted" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', marginBottom: 8 }}>AUSWÄRTS</div>
-            <div className="row gap-sm">
-              <span className="dot" style={{ background: awayTeam.color, width: 18, height: 18 }} />
-              <h1 style={{ fontSize: 20 }}>
-                <Link to={`/teams/${awayTeam.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{awayTeam.name}</Link>
-              </h1>
+          <div className="row spread" style={{ alignItems: 'center', gap: 20 }}>
+            <div style={{ flex: 1, textAlign: 'right' }}>
+              <div className="muted" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', marginBottom: 8 }}>HEIM</div>
+              <div className="row gap-sm" style={{ justifyContent: 'flex-end' }}>
+                <h1 style={{ fontSize: 20 }}>
+                  <Link to={`/teams/${homeTeam.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{homeTeam.name}</Link>
+                </h1>
+                <span className="dot" style={{ background: homeTeam.color, width: 18, height: 18 }} />
+              </div>
+            </div>
+            <div style={{ fontSize: played ? 30 : 18, fontWeight: 800, minWidth: 110, fontFamily: 'var(--mono)' }}>
+              {played ? `${game.homeGoals} : ${game.awayGoals}` : 'vs.'}
+              {played && game.decision !== 'REG' && (
+                <div className="muted" style={{ fontSize: 12, fontWeight: 600, marginTop: 2 }}>{game.decision}</div>
+              )}
+            </div>
+            <div style={{ flex: 1, textAlign: 'left' }}>
+              <div className="muted" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', marginBottom: 8 }}>AUSWÄRTS</div>
+              <div className="row gap-sm">
+                <span className="dot" style={{ background: awayTeam.color, width: 18, height: 18 }} />
+                <h1 style={{ fontSize: 20 }}>
+                  <Link to={`/teams/${awayTeam.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{awayTeam.name}</Link>
+                </h1>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Trennt die Live-Sektion oben klar von der Pre-Game-Modellprognose
+          darunter - verhindert Verwechslung von Live Probability und
+          Pre-Game Forecast (beides sind unterschiedliche, unabhängige
+          Werte). Nur sichtbar, wenn die Live-Demo aktiv ist. */}
+      {showLiveDemo && (
+        <div className="section-label" style={{ marginTop: 4, marginBottom: 10, textAlign: 'center' }}>
+          ── Pre-Game / Vor dem Spiel ──
+        </div>
+      )}
 
       {!analysis ? (
         <div className="muted" style={{ padding: '20px 0' }}>Lädt…</div>
