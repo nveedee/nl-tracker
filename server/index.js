@@ -4,7 +4,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import sihfSync from './scripts/sync-sihf.cjs'
 import { runNlSync, readNlSyncStatus, DEFAULT_NL_SYNC_INTERVAL_MIN } from './sync.js'
-import { pollLiveGames, ensureFreshLiveState, LIVE_POLL_INTERVAL_MS } from './liveSync.js'
+import { pollLiveGames, ensureFreshLiveState, getAllLiveStates, LIVE_POLL_INTERVAL_MS } from './liveSync.js'
 
 const { runSync: runSihfSync, readSyncStatus } = sihfSync
 
@@ -276,6 +276,17 @@ app.get('/api/games/:gameId/live', async (req, res) => {
   } catch (e) {
     res.status(502).json({ error: 'SIHF momentan nicht erreichbar.', message: e.message })
   }
+})
+
+// Übersicht ALLER aktuell laufenden Spiele (Dashboard "Live jetzt") - liest
+// ausschliesslich den bestehenden Live-Cache (server/liveSync.js::
+// getAllLiveStates), löst selbst KEINEN zusätzlichen SIHF-Request aus. Der
+// Hintergrund-Poller unten (pollLiveGames) füllt diesen Cache ohnehin
+// bereits alle LIVE_POLL_INTERVAL_MS für jedes Spiel in seinem Zeitfenster -
+// das Dashboard braucht deshalb nur EINEN Request statt eines eigenen
+// useLiveGame()-Polls pro einzelnem Spiel.
+app.get('/api/live-games', (req, res) => {
+  res.json(getAllLiveStates())
 })
 
 // ---------------------------------------------------------------------------

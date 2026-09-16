@@ -176,6 +176,42 @@ export function useLiveGame({ gameId, homeTeam, awayTeam, pregame, enabled }) {
   return { liveMatch, ended }
 }
 
+export const LIVE_LIST_POLL_MS = 20_000 // identisch zu LIVE_CLIENT_POLL_MS/dem Server-Hintergrund-Poll-Intervall - der Cache (server/liveSync.js) aktualisiert sich ohnehin nicht öfter, schnelleres Polling hier würde nur denselben Stand mehrfach abfragen.
+
+// React-Hook: EIN zentraler Poll auf GET /api/live-games (server/liveSync.js::
+// getAllLiveStates) statt eines eigenen useLiveGame()-Polls pro Spiel -
+// liefert die rohen Live-Snapshots ALLER aktuell laufenden Spiele in einem
+// Request (Dashboard "Live jetzt", siehe Dashboard.jsx). Löst selbst keinen
+// zusätzlichen SIHF-Request aus, liest nur den bestehenden Server-Cache.
+// Liefert [] sowohl vor dem ersten erfolgreichen Request als auch wenn
+// tatsächlich kein Spiel live ist - der Aufrufer unterscheidet das nicht,
+// da in beiden Fällen kein Live-Bereich angezeigt werden soll.
+export function useLiveGamesList() {
+  const [liveStates, setLiveStates] = useState([])
+
+  useEffect(() => {
+    let cancelled = false
+    let interval = null
+
+    async function tick() {
+      try {
+        const res = await fetch('/api/live-games')
+        if (!res.ok) return
+        const json = await res.json()
+        if (!cancelled) setLiveStates(json)
+      } catch {
+        // vorübergehender Netzwerkfehler - bisheriger Stand bleibt sichtbar, nächster Tick versucht erneut
+      }
+    }
+
+    tick()
+    interval = setInterval(tick, LIVE_LIST_POLL_MS)
+    return () => { cancelled = true; clearInterval(interval) }
+  }, [])
+
+  return liveStates
+}
+
 // React-Hook: historischer Verlauf eines ABGESCHLOSSENEN echten Spiels
 // (GET /api/games/:gameId/replay, server/liveReplay.js::buildRealGameReplayState).
 // Im Unterschied zu useLiveGame() kein Intervall-Polling (das Spiel ändert

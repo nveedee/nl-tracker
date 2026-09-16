@@ -385,6 +385,14 @@ tbody tr.active-row td { background: var(--accent-soft); }
 td.num, th.num { font-variant-numeric: tabular-nums; font-family: var(--mono); }
 .rank { color: var(--text-dim); font-family: var(--mono); font-weight: 600; }
 
+/* Monats-Trennzeile innerhalb einer Spiele-Tabelle (Spielplan "Alle Spiele") */
+tr.month-row td {
+  padding: 7px 12px; text-align: left; font-size: 10.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint);
+  background: var(--bg-elev-2); cursor: default;
+}
+tr.month-row:hover td { background: var(--bg-elev-2); }
+
 /* Erste Spalte (Team) gepinnt: bleibt beim horizontalen Scrollen stehen -
    nur aktiviert über .table-wrap.pin-first (Standings/Rankings/Matrix; nicht
    überall sinnvoll, z.B. nicht bei schmalen 2-3-Spalten-Tabellen). */
@@ -734,6 +742,19 @@ input[type="checkbox"] { width: auto; accent-color: var(--accent); }
 .subtabs button:hover { color: var(--text); }
 .subtabs button.active { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
 
+/* ---------- Filter-Tabs (z.B. Spielplan "Alle Spiele": Alle/Vergangen/Live/Kommend) -
+   wie .subtabs, aber nicht sticky (kleiner Inline-Filter innerhalb einer Section, kein
+   eigenständiger Seiten-Tab-Wechsel). ---------- */
+.filter-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.filter-tabs button {
+  padding: 6px 14px; border: 1px solid var(--border); border-radius: 999px;
+  background: var(--bg-elev); color: var(--text-dim); font-weight: 700; font-size: 12px;
+  font-family: inherit; cursor: pointer;
+  transition: background 0.12s var(--ease), color 0.12s var(--ease), border-color 0.12s var(--ease);
+}
+.filter-tabs button:hover { color: var(--text); }
+.filter-tabs button.active { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
+
 /* Bracket-Karten */
 .bracket-card-list .row { padding: 5px 0; border-bottom: 1px solid var(--border); }
 .bracket-card-list .row:last-child { border-bottom: none; }
@@ -862,6 +883,17 @@ td.num strong, th.num strong { font-weight: 800; }
   .live-header-score { font-size: 21px; min-width: 68px; }
   .live-team-mark { width: 22px; height: 22px; font-size: 8.5px; }
 }
+
+/* ---------- Live-Win-Probability innerhalb LiveMatchHeader (optional, Dashboard "Live jetzt") ---------- */
+.live-header-prob { padding: 10px 14px 0; }
+.live-header-prob-labels {
+  display: flex; justify-content: space-between; margin-top: 5px;
+  font-size: 11px; font-weight: 700; color: var(--text-dim); font-family: var(--mono);
+}
+
+/* ---------- Dashboard "Live jetzt": Karten verlinken zu MatchupDetail ---------- */
+.live-dashboard-link { display: block; color: inherit; text-decoration: none; }
+.live-dashboard-link:hover .live-header { border-color: var(--border-strong); background: var(--bg-hover); }
 
 /* Win Probability Panel - Chart-first: minimaler Kopfbereich, kompakte
    inline Prozentzeile (keine grossen Kacheln), Chart nimmt den Hauptraum

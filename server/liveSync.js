@@ -84,6 +84,15 @@ export function getLiveState(gameId) {
   return cache.get(gameId) || null
 }
 
+// Alle aktuell im Cache gehaltenen Live-Snapshots (vom Hintergrund-Poller
+// oben befüllt, siehe pollLiveGames()) - für GET /api/live-games
+// (server/index.js): EIN zentraler Request fürs Dashboard statt eines
+// eigenen Live-Polls pro Spiel. Löst selbst KEINEN zusätzlichen SIHF-Request
+// aus, liest nur den bestehenden Cache.
+export function getAllLiveStates() {
+  return [...cache.entries()].map(([gameId, state]) => ({ gameId, ...state }))
+}
+
 // Für den GET-Endpoint (server/index.js): liefert den Cache, falls er noch
 // frisch genug ist (< maxAgeMs), sonst wird EIN gezielter Fetch für genau
 // dieses Spiel angestossen (respektiert denselben In-Flight-Lock wie der

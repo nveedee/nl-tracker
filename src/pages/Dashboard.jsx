@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------------------
 // Dashboard (/) - "Command Center": kompakte Hierarchie statt Tabellen-
 // Sammlung. Reihenfolge (oben -> unten, wichtig -> Detail):
-//   1. Season Hero  2. Next Games  3. Playoff Picture  4. League Pulse
-//   5. Table Snapshot  6. Last Games
+//   1. Season Hero  1b. Live jetzt (nur wenn >=1 Spiel live)  2. Next Games
+//   3. Playoff Picture  4. League Pulse  5. Table Snapshot  6. Last Games
 // Die vormals grosse Playoff-Probability-Kreisgrafik (PlayoffWheel.jsx) ist
 // entfernt (redundant zur ausführlichen Visualisierung auf /playoff-odds,
 // die unverändert bleibt) - "Playoff Picture" unten nutzt dieselben,
@@ -26,6 +26,7 @@ import { withPregamePredictions } from '../pregamePrediction.js'
 import { computeLeagueMarketMovers } from '../marketValueHistory.js'
 import { usePlayerHistory, usePositionBaselines, getPlayerSeasons, computeImpactScore, POSITION_LABEL } from '../playerHistory.js'
 import MatchForecast from '../components/MatchForecast.jsx'
+import LiveNowSection from '../components/LiveNowSection.jsx'
 import SyncStatus from '../components/SyncStatus.jsx'
 
 const PULSE_MARKET_WINDOW_DAYS = 14
@@ -200,6 +201,12 @@ export default function Dashboard() {
               <div className="stat"><strong>{scheduledCount}</strong><span>Offene Spiele</span></div>
             </div>
           </div>
+
+          {/* 1c) Live jetzt - zentrale, wiederverwendete Komponente
+              (src/components/LiveNowSection.jsx, auch auf Schedule.jsx
+              verwendet) - rendert selbst nichts, solange kein Spiel live
+              ist (kein Platzhalter, keine leere Card). */}
+          <LiveNowSection />
 
           {/* 2) Next Games */}
           {forecasts.length > 0 && (

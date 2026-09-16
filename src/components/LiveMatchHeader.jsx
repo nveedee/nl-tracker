@@ -13,7 +13,13 @@ function TeamMark({ team }) {
   )
 }
 
-export default function LiveMatchHeader({ homeTeam, awayTeam, live, badgeLabel, badgeStatic = false }) {
+// `probability` (optional, {pHome, pAway}) - zeigt zusätzlich die aktuelle
+// Live-Win-Probability an (Dashboard "Live jetzt", siehe Dashboard.jsx).
+// Ohne diesen Prop verhält sich die Komponente exakt wie bisher (MatchupDetail/
+// GameReplayView/DevLiveReplay übergeben ihn nicht) - rein additiv, keine
+// neue Live-Logik, `probability` kommt unverändert aus buildRealLiveMatch()
+// (src/liveGameClient.js).
+export default function LiveMatchHeader({ homeTeam, awayTeam, live, badgeLabel, badgeStatic = false, probability }) {
   const { status, score } = live
   const label = badgeLabel || (live.isDemo ? 'LIVE DEMO' : 'LIVE')
   return (
@@ -34,6 +40,17 @@ export default function LiveMatchHeader({ homeTeam, awayTeam, live, badgeLabel, 
           <TeamMark team={awayTeam} />
         </div>
       </div>
+      {probability && (
+        <div className="live-header-prob">
+          <div className="bar-track" style={{ height: 5 }}>
+            <div className="bar-fill" style={{ width: `${Math.round(probability.pHome * 100)}%` }} />
+          </div>
+          <div className="live-header-prob-labels">
+            <span>{homeTeam.short} {Math.round(probability.pHome * 100)}%</span>
+            <span>{Math.round(probability.pAway * 100)}% {awayTeam.short}</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
