@@ -856,6 +856,28 @@ table.sr-only { table-layout: fixed; }
 .bracket-card-list .row { padding: 5px 0; border-bottom: 1px solid var(--border); }
 .bracket-card-list .row:last-child { border-bottom: none; }
 
+/* ---------- Player Rankings: League Leaders (horizontal scrollende
+   Karten-Reihe, siehe PlayerRankings.jsx) - dasselbe Scroll-Snap-Muster wie
+   .subtabs, aber nicht sticky (mehrere gleichrangige Karten statt Tabs). ---------- */
+.leaders-row {
+  display: flex; gap: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity; padding-bottom: 2px;
+}
+.leader-card { flex: 0 0 192px; scroll-snap-align: start; }
+.leader-card .leader-title {
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-dim); margin-bottom: 8px;
+}
+.leader-item {
+  display: flex; align-items: center; gap: 8px; padding: 5px 0;
+  border-bottom: 1px solid var(--border); text-decoration: none; color: inherit;
+}
+.leader-item:last-child { border-bottom: none; }
+.leader-item .leader-rank { flex: none; width: 14px; color: var(--text-faint); font-family: var(--mono); font-size: 11px; font-weight: 700; }
+.leader-item .leader-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; font-weight: 600; }
+.leader-item .leader-value { flex: none; font-family: var(--mono); font-size: 11.5px; font-weight: 700; }
+.leader-item:hover .leader-name { color: var(--accent); }
+
 /* Per-Match-Forecast: Heim-/Auswärtssieg als zweigeteilter Balken */
 .split-bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; border: 1px solid var(--border); background: var(--bg-elev-2); }
 .split-bar .home { background: var(--accent); }
