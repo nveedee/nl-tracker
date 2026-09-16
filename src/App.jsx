@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { Routes, Route, NavLink, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate, NavLink, useLocation } from 'react-router-dom'
 import { useData } from './DataContext.jsx'
 import { ToastHost } from './components/ui.jsx'
 
@@ -13,7 +13,6 @@ import HeadToHead from './pages/HeadToHead.jsx'
 import Teams from './pages/Teams.jsx'
 import TeamDetail from './pages/TeamDetail.jsx'
 import PlayerDetail from './pages/PlayerDetail.jsx'
-import Games from './pages/Games.jsx'
 import Schedule from './pages/Schedule.jsx'
 import PlayerRankings from './pages/PlayerRankings.jsx'
 import Settings from './pages/Settings.jsx'
@@ -29,25 +28,29 @@ import SyncStatus from './components/SyncStatus.jsx'
 // nicht, siehe server/index.js).
 const DevLiveReplay = import.meta.env.DEV ? lazy(() => import('./pages/DevLiveReplay.jsx')) : null
 
-// Primäre Navigation: eine Zeile, keine Icons.
+// Primäre Navigation: eine Zeile, keine Icons. Nur die für die laufende
+// Analyse genutzten Seiten - Verwaltung/Administration steckt separat im
+// "Verwalten"-Dropdown (siehe secondaryNav unten).
 const primaryNav = [
   { to: '/', label: 'Dashboard', end: true },
   { to: '/standings', label: 'Tabelle' },
+  { to: '/schedule', label: 'Spielplan' },
   { to: '/elo', label: 'ELO' },
   { to: '/power', label: 'Power Ranking' },
   { to: '/playoff-odds', label: 'Playoff Odds' },
   { to: '/players', label: 'Spieler' },
   { to: '/goalies', label: 'Torhüter' },
   { to: '/head-to-head', label: 'H2H' },
-  { to: '/model-performance', label: 'Modell' },
-  { to: '/backtesting', label: 'Backtest' },
 ]
 
-// Verwaltung/Erfassung: sekundäres Menü, nicht Teil der Hauptnavigation.
+// Verwaltung/technische Bereiche: eigenes Dropdown, bewusst getrennt von der
+// Analyse-Hauptnavigation. "Alle Spiele" (vormals /games) gibt es hier
+// nicht mehr - /schedule zeigt jetzt sowohl kommende als auch abgeschlossene
+// Spiele (siehe Schedule.jsx), /games leitet nur noch dorthin weiter.
 const secondaryNav = [
-  { to: '/schedule', label: 'Spielplan' },
-  { to: '/games', label: 'Alle Spiele' },
   { to: '/teams', label: 'Teams & Kader' },
+  { to: '/model-performance', label: 'Modell' },
+  { to: '/backtesting', label: 'Backtest' },
   { to: '/settings', label: 'Einstellungen' },
 ]
 
@@ -55,6 +58,10 @@ function NavMore() {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   const location = useLocation()
+  // Trigger selbst als aktiv markieren, sobald die aktuelle Route zu einem
+  // der Unterpunkte gehört (auch Detailrouten wie /teams/:id) - sonst wäre
+  // "Verwalten" bei geschlossenem Menü nicht als aktiver Bereich erkennbar.
+  const isActive = secondaryNav.some((it) => location.pathname === it.to || location.pathname.startsWith(it.to + '/'))
 
   useEffect(() => { setOpen(false) }, [location.pathname])
 
@@ -72,13 +79,13 @@ function NavMore() {
 
   return (
     <div className="nav-more" ref={ref}>
-      <button className="nav-more-trigger" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+      <button className={'nav-more-trigger' + (isActive ? ' active' : '')} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
         Verwalten <span className="car">{open ? '▲' : '▼'}</span>
       </button>
       {open && (
         <div className="nav-more-menu">
           {secondaryNav.map((it) => (
-            <NavLink key={it.to} to={it.to} className={({ isActive }) => (isActive ? 'active' : '')}>
+            <NavLink key={it.to} to={it.to} className={({ isActive: linkActive }) => (linkActive ? 'active' : '')}>
               {it.label}
             </NavLink>
           ))}
@@ -157,7 +164,10 @@ export default function App() {
             <Route path="/model-performance" element={<ModelPerformance />} />
             <Route path="/backtesting" element={<Backtesting />} />
             <Route path="/players" element={<PlayerRankings />} />
-            <Route path="/games" element={<Games />} />
+            {/* /games ist in /schedule aufgegangen (kommende + abgeschlossene
+                Spiele jetzt auf einer Seite) - Redirect, damit alte Links/
+                Lesezeichen weiter funktionieren. */}
+            <Route path="/games" element={<Navigate to="/schedule" replace />} />
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/matchup/:gameId" element={<MatchupDetail />} />
             <Route path="/teams" element={<Teams />} />

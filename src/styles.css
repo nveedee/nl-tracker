@@ -270,6 +270,7 @@ p { margin: 0 0 10px; }
   white-space: nowrap;
 }
 .nav-more-trigger:hover, .nav-more-trigger[aria-expanded="true"] { color: var(--text); background: var(--bg-hover); }
+.nav-more-trigger.active { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
 .nav-more-trigger .car { font-size: 9px; opacity: 0.8; }
 .nav-more-menu {
   position: absolute; top: calc(100% + 6px); right: 0; z-index: 50;
@@ -328,6 +329,7 @@ a.card:hover {
 .grid { display: grid; gap: 14px; }
 .grid-2 { grid-template-columns: repeat(2, 1fr); }
 .grid-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
 
 /* ---------- Stat strip (kompakte Kennzahlenzeile) ---------- */
 .stat-strip {
@@ -685,126 +687,6 @@ input[type="checkbox"] { width: auto; accent-color: var(--accent); }
 .chart-tooltip-date { color: var(--text-dim); font-size: 10px; }
 .chart-tooltip-value { font-weight: 700; font-family: var(--mono); }
 
-/* ---------- Playoff Probability Wheel (radiale MoneyPuck-artige
-   Visualisierung: ein Kreis, ein Sektor pro Team statt Balkentabelle -
-   siehe src/components/PlayoffWheel.jsx + src/wheelGeometry.js) ---------- */
-.playoff-wheel-card {
-  background: var(--bg-elev);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-  padding: 18px 18px 14px;
-}
-.wheel-wrap { display: flex; justify-content: center; margin: 8px 0 2px; }
-.wheel-svg { width: min(100%, 420px); height: auto; display: block; }
-
-/* Die Ring-Skala liegt jetzt ÜBER den (durchgehend gefüllten) Team-
-   Trackflächen - braucht deshalb mehr Kontrast als zuvor, als sie noch auf
-   leerem Kartenhintergrund lag. pointer-events:none, damit sie Klicks auf
-   die darunterliegenden Sektoren nicht abfängt. */
-.wheel-rings circle {
-  fill: none; stroke: var(--bg-elev); stroke-opacity: 0.55; stroke-width: 0.9;
-  stroke-dasharray: 2 3; pointer-events: none;
-}
-.wheel-ring-labels text {
-  font-size: 6.6px; font-weight: 700; font-family: var(--mono);
-  fill: var(--text-dim); paint-order: stroke; stroke: var(--bg-elev);
-  stroke-width: 2.5px; pointer-events: none;
-}
-
-/* Runden-Labels DIREKT IN der Kreisgrafik (oberer Bereich, auf der 12-Uhr-
-   Achse) - kein externes Legenden-Element. paint-order:stroke mit einem
-   Kartenhintergrund-"Halo" hält den Text lesbar, unabhängig davon, welche
-   Teamfarbe an dieser Stelle gerade darunter liegt (ändert sich mit jeder
-   Simulation). Kleine zentrierte Trennlinie darunter ordnet das Label
-   eindeutig "seiner" Ebene zu, ohne echte (pro Team unterschiedliche)
-   Ringgrenzen vorzutäuschen. */
-.wheel-round-labels text {
-  font-size: 7.3px; font-weight: 800; font-family: var(--mono);
-  letter-spacing: 0.02em; text-anchor: middle; fill: var(--text);
-  paint-order: stroke; stroke: var(--bg-elev); stroke-width: 3px;
-  stroke-linejoin: round;
-}
-.wheel-round-labels line { stroke: var(--bg-elev); stroke-width: 1.6; stroke-linecap: round; opacity: 0.85; }
-
-/* Neutrale Trackfläche (0 bis maxRadius) - macht aus jedem Sektor immer ein
-   VOLLSTÄNDIGES Zielscheiben-Segment statt eines kurzen "Balkens", der im
-   Leeren endet. Dünne Kartenhintergrund-Trennlinie an den Sektorkanten für
-   eine saubere Ring-Optik. */
-.wheel-sector-track {
-  fill: var(--bg-elev-2); stroke: var(--bg-elev); stroke-width: 0.6;
-}
-/* Trennlinie ZWISCHEN den vier Playoff-Stufen (Kartenhintergrundfarbe) -
-   macht sie zu eigenständigen konzentrischen Bändern statt einem weichen
-   Opazitäts-Verlauf. */
-.wheel-sector-stage { stroke: var(--bg-elev); stroke-width: 0.6; }
-
-.wheel-sector { cursor: pointer; }
-.wheel-sector path { transition: opacity 0.15s ease; }
-.wheel-sector.dim { opacity: 0.28; }
-/* Radien animieren sanft auf neue Simulationswerte (z.B. 50% -> 63% nach
-   einem neuen Lauf) - nur wenn der Nutzer keine reduzierte Bewegung
-   bevorzugt. sectorPath() liefert bei gleichem Start-/Endwinkel immer
-   dieselbe Pfadstruktur (M/L/A/Z), wodurch `d` browserseitig interpolierbar
-   bleibt statt hart zu springen. */
-@media (prefers-reduced-motion: no-preference) {
-  .wheel-sector-stage { transition: d 0.5s cubic-bezier(.4, 0, .2, 1), opacity 0.15s ease; }
-}
-
-/* Zentraler Meister-/Cup-Hub - neutrale Nabe der Grafik, keine Teamfarbe. */
-.wheel-hub circle {
-  fill: var(--bg-elev-2); stroke: var(--border-strong); stroke-width: 1.2;
-}
-.wheel-hub text {
-  font-size: 12px; text-anchor: middle; dominant-baseline: central;
-}
-
-.wheel-logo { cursor: pointer; transition: opacity 0.15s ease; }
-.wheel-logo circle {
-  fill: var(--bg-elev); stroke-width: 2.4; transition: stroke-width 0.15s ease;
-}
-.wheel-logo text {
-  font-size: 8.2px; font-weight: 800; font-family: var(--mono);
-  fill: var(--text); text-anchor: middle; pointer-events: none;
-}
-.wheel-logo.active circle { stroke-width: 4; }
-.wheel-logo.dim { opacity: 0.4; }
-
-.wheel-legend {
-  display: flex; justify-content: center; flex-wrap: wrap; gap: 14px;
-  font-size: 10.5px; color: var(--text-dim); margin: 2px 0 12px;
-}
-.wheel-legend-dot {
-  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-  margin-right: 5px; vertical-align: middle; background: var(--accent);
-}
-
-.wheel-info {
-  min-height: 56px; border-top: 1px solid var(--border); padding-top: 10px;
-  display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
-}
-.wheel-info-head { display: flex; align-items: center; gap: 7px; font-size: 13px; }
-.wheel-info-head .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
-.wheel-info-rows {
-  display: flex; gap: 14px; flex-wrap: wrap; font-size: 11.5px;
-  color: var(--text-dim); font-family: var(--mono);
-}
-.wheel-info-rows b { color: var(--text); }
-
-/* Visuell versteckt, aber für Screenreader/Tastatur-Nutzung vorhanden -
-   nie die einzige Quelle für Wheel-Daten sein (siehe .sr-only-Tabelle in
-   PlayoffWheel.jsx: Hover/Tap ist ein Komfort-Zugang, kein Pflichtpfad). */
-.sr-only {
-  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
-}
-/* table-layout:auto ignoriert bei langen Zellinhalten (z.B. "Genève-Servette
-   HC") die explizite width:1px oben (Browser sichern eine Mindest-Content-
-   Breite) - das bläht trotz visueller Unsichtbarkeit die scrollWidth des
-   Dokuments auf (horizontaler Overflow auf Mobile). table-layout:fixed
-   erzwingt die 1px-Breite unabhängig vom Zellinhalt. */
-table.sr-only { table-layout: fixed; }
-
 /* ---------- StatTile ---------- */
 .stat-tile {
   background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius);
@@ -877,6 +759,16 @@ table.sr-only { table-layout: fixed; }
 .leader-item .leader-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; font-weight: 600; }
 .leader-item .leader-value { flex: none; font-family: var(--mono); font-size: 11.5px; font-weight: 700; }
 .leader-item:hover .leader-name { color: var(--accent); }
+
+/* ELO-Pulse-Karte (Dashboard.jsx): Winners/Losers klar getrennt statt einer
+   gemischten Liste - dezente Trennlinie zwischen den beiden Gruppen, kleines
+   farbiges Label statt aggressiver Flächenfarbe. */
+.pulse-elo-group + .pulse-elo-group { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.pulse-elo-label {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  margin-bottom: 3px;
+}
 
 /* Per-Match-Forecast: Heim-/Auswärtssieg als zweigeteilter Balken */
 .split-bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; border: 1px solid var(--border); background: var(--bg-elev-2); }
@@ -1183,6 +1075,7 @@ td.num strong, th.num strong { font-weight: 800; }
     padding-right: max(16px, env(safe-area-inset-right));
   }
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
   .stat-strip .stat { padding-right: 12px; }
   .stat-strip .stat:not(:first-child) { padding-left: 12px; }
 }
@@ -1199,6 +1092,7 @@ td.num strong, th.num strong { font-weight: 800; }
   .page-head h1 { font-size: 17px; }
   .card-pad { padding: 13px 14px; }
   .tiles { grid-template-columns: repeat(2, 1fr); }
+  .grid-4 { grid-template-columns: 1fr; }
   .stat-tile .value { font-size: 19px; }
   thead th, tbody td { padding: 7px 7px; }
   .subtabs button { padding: 0 12px; font-size: 12px; }

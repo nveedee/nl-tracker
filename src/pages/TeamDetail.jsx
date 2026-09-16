@@ -29,10 +29,10 @@ import {
 import { useTeamHistory, getTeamSeasons, teamSeasonRates, lastNSeasons } from '../teamHistory.js'
 import { computePowerRankings } from '../powerRankings.js'
 import { computeFixtures, computeMatchForecasts } from '../playoffSim.js'
-import { OT_SHARE_OF_TIES } from '../liveProbability.js'
 import { usePreseasonElo, computePreseasonRatings } from '../preseasonElo.js'
 import { computeMarketValuePrior, DEFAULT_PRIOR_SPREAD } from '../marketValuePrior.js'
 import { useSimResults, getProbsRow } from '../simResultsContext.jsx'
+import { getPregamePrediction, withPregamePredictions } from '../pregamePrediction.js'
 import MatchForecast from '../components/MatchForecast.jsx'
 
 const POS = [
@@ -192,8 +192,11 @@ export default function TeamDetail() {
   const histLast3 = lastNSeasons(teamHistoryData, id, 3)
 
   // Schedule Strength (für die Matchups-Sektion) - NUR Anzeige, kein
-  // Prognose-Input: bestehende computeFixtures() für die verbleibenden
-  // Spiele dieses Teams, aggregiert zu Ø-Gegner-ELO / Ø-Modell-Siegchance.
+  // Prognose-Input: bestehende computeFixtures() für Ø-Gegner-ELO. Die
+  // Siegchance je Spiel läuft über dieselbe Single Source of Truth wie
+  // überall sonst (src/pregamePrediction.js) - Snapshot bevorzugt, sonst
+  // der Live-Fixture-Wert -, damit "Ø Modell-Siegchance" nicht aus anderen
+  // Zahlen gemittelt wird als die einzelnen Matchup-Karten darunter zeigen.
   const fixtureByPair = new Map(fixturesData.fixtures.map((f) => [`${f.home}:${f.away}`, f]))
   const scheduleRows = data.games
     .filter((g) => g.status === 'scheduled' && (g.homeTeamId === id || g.awayTeamId === id))
@@ -204,7 +207,8 @@ export default function TeamDetail() {
       const f = fixtureByPair.get(`${g.homeTeamId}:${g.awayTeamId}`)
       if (!f) return null
       const oppElo = fixturesData.eloRatings[oppId] ?? eloStart
-      const pWin = isHome ? f.pHome : 1 - f.pHome
+      const prediction = getPregamePrediction(g.id, data.predictions, { gameId: g.id, pHomeWin: f.pHome, pAwayWin: 1 - f.pHome })
+      const pWin = isHome ? prediction.pHomeWin : prediction.pAwayWin
       return { game: g, opp: data.teams.find((t) => t.id === oppId), isHome, oppElo, pWin }
     })
     .filter(Boolean)
@@ -224,21 +228,16 @@ export default function TeamDetail() {
   }).filter(Boolean)
 
   // Matchups (Abschnitt H) - dieselbe Herleitung wie Dashboard.jsx/
-  // PlayoffOdds.jsx (computeMatchForecasts + computeFixtures-Anreicherung),
-  // hier auf die Spiele DIESES Teams gefiltert. Verwendet die bereits oben
-  // berechnete fixturesData - kein zweiter Simulationslauf.
-  const teamForecasts = computeMatchForecasts(data.teams, data.games, data.settings, data.players || [], preseasonRatings)
-    .filter((f) => f.homeTeam.id === id || f.awayTeam.id === id)
-    .map((f) => {
-      const fx = fixtureByPair.get(`${f.homeTeam.id}:${f.awayTeam.id}`)
-      if (!fx) return f
-      return {
-        ...f,
-        expHomeGoals: fx.expHome, expAwayGoals: fx.expAway,
-        eloHome: fixturesData.eloRatings[f.homeTeam.id], eloAway: fixturesData.eloRatings[f.awayTeam.id],
-        pOT: f.pDecision * OT_SHARE_OF_TIES, pSO: f.pDecision * (1 - OT_SHARE_OF_TIES),
-      }
-    })
+  // PlayoffOdds.jsx (computeMatchForecasts liefert Elo/xG/OT-SO-Split
+  // bereits mit), hier auf die Spiele DIESES Teams gefiltert.
+  // withPregamePredictions() ersetzt die Live-Werte durch den eingefrorenen
+  // Snapshot, sobald einer existiert - dieselbe Single Source of Truth wie
+  // auf allen anderen Seiten (src/pregamePrediction.js).
+  const teamForecasts = withPregamePredictions(
+    computeMatchForecasts(data.teams, data.games, data.settings, data.players || [], preseasonRatings)
+      .filter((f) => f.homeTeam.id === id || f.awayTeam.id === id),
+    data.predictions
+  )
 
   // Roster Value (Abschnitt E) - reine Summe/Sortierung bereits vorhandener
   // Marktwerte (player.marketValue, NL-API via server/sync.js). Keine neue

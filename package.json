@@ -16,7 +16,8 @@
     "test:sim": "node --test src/playoffSim.test.js",
     "test:wheel": "node --test src/wheelGeometry.test.js",
     "test:scoreline": "node --test src/scorelineMatrix.test.js",
-    "test:live": "node --test src/liveProbability.test.js"
+    "test:live": "node --test src/liveProbability.test.js",
+    "test:prediction": "node --test src/pregamePrediction.test.js"
   },
   "dependencies": {
     "express": "^4.19.2",

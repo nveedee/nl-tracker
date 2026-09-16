@@ -33,6 +33,7 @@
 
 import { isFinalGame, computeStandings, buildHeadToHeadPointsMap, compareTiebreak } from './stats.js'
 import { computeElo, homeWinProbability, ELO_CONFIG } from './elo.js'
+import { OT_SHARE_OF_TIES } from './liveProbability.js'
 
 export const SIMULATION_RUNS = 10000
 
@@ -320,20 +321,40 @@ export function computeDecisionProbability(expHome, expAway) {
 // für alle noch offenen Spiele, aus ELO + Heimvorteil + SOG-zugelassen-
 // Faktor (identische Teamstärke-Basis wie computeFixtures()/die Monte-Carlo-
 // Simulation - keine eigene Prognoseformel). Chronologisch sortiert.
+//
+// Liefert zusätzlich pOT/pSO/expHomeGoals/expAwayGoals/eloHome/eloAway -
+// vorher wurde dieselbe Anreicherung (pDecision * OT_SHARE_OF_TIES-Split +
+// ein ZWEITER computeFixtures()-Aufruf nur für ELO/xG) in Dashboard.jsx,
+// PlayoffOdds.jsx und TeamDetail.jsx jeweils separat dupliziert. Jetzt EIN
+// Ort - jeder Aufrufer bekommt die vollständigen Felder direkt aus dieser
+// Funktion, keine zweite Berechnung nötig. Diese Felder sind der LIVE-
+// Fallback für src/pregamePrediction.js, falls für ein Spiel (noch) kein
+// eingefrorener Prediction-Snapshot existiert - siehe dort für die
+// Priorisierung ggü. dem Snapshot.
 export function computeMatchForecasts(teams, games, settings, players = [], initialRatings) {
-  const { fixtures } = computeFixtures(teams, games, settings, players, initialRatings)
+  const { fixtures, eloRatings } = computeFixtures(teams, games, settings, players, initialRatings)
   const teamById = new Map(teams.map((t) => [t.id, t]))
+  const eloStart = settings?.eloStart ?? ELO_CONFIG.eloStart
 
   return fixtures
-    .map((f) => ({
-      gameId: f.gameId,
-      date: f.date,
-      homeTeam: teamById.get(f.home),
-      awayTeam: teamById.get(f.away),
-      pHomeWin: f.pHome,
-      pAwayWin: 1 - f.pHome,
-      pDecision: computeDecisionProbability(f.expHome, f.expAway),
-    }))
+    .map((f) => {
+      const pDecision = computeDecisionProbability(f.expHome, f.expAway)
+      return {
+        gameId: f.gameId,
+        date: f.date,
+        homeTeam: teamById.get(f.home),
+        awayTeam: teamById.get(f.away),
+        pHomeWin: f.pHome,
+        pAwayWin: 1 - f.pHome,
+        pDecision,
+        pOT: pDecision * OT_SHARE_OF_TIES,
+        pSO: pDecision * (1 - OT_SHARE_OF_TIES),
+        expHomeGoals: f.expHome,
+        expAwayGoals: f.expAway,
+        eloHome: eloRatings[f.home] ?? eloStart,
+        eloAway: eloRatings[f.away] ?? eloStart,
+      }
+    })
     .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
 }
 

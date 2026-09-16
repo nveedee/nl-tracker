@@ -43,7 +43,9 @@ const DEFAULT_LIMIT = 10
 // (src/liveProbability.js::OT_SHARE_OF_TIES, identisch zu playoffSim.js
 // CALIBRATION.otShareOfTies) - siehe PlayoffOdds.jsx/Dashboard.jsx, wo diese
 // Felder angereichert werden. Kein neuer Modellwert, nur zusätzlich
-// angezeigt.
+// angezeigt. `restNote` (optional, String): Back-to-back-Hinweistext, aus
+// der bestehenden src/restDays.js-Anpassung abgeleitet (identisch zu
+// Schedule.jsx/MatchupDetail.jsx) - nur ein Chip, keine neue Berechnung.
 export default function MatchForecast({ forecasts, title = 'Per-Match-Forecast', caption = 'Heimsieg-/Auswärtssieg-Chance aus ELO + Heimvorteil für die kommenden Spiele.', limit = DEFAULT_LIMIT, showCount = true }) {
   const [expanded, setExpanded] = useState(false)
   const navigate = useNavigate()
@@ -90,6 +92,7 @@ export default function MatchForecast({ forecasts, title = 'Per-Match-Forecast',
                   <span><span className="muted">OT</span> {fmtPct(f.pOT)}</span>
                   <span><span className="muted">SO</span> {fmtPct(f.pSO)}</span>
                   {f.eloHome != null && <span><span className="muted">ELO</span> {Math.round(f.eloHome)}–{Math.round(f.eloAway)}</span>}
+                  {f.restNote && <span title={f.restNote}><span className="muted">B2B</span></span>}
                 </div>
               )}
               {why && <div className="match-why muted">{why}</div>}

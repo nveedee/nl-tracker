@@ -13,11 +13,11 @@
 
 import { useState, useMemo } from 'react'
 import { useData } from '../DataContext.jsx'
-import { simulatePlayoffOdds, computeMatchForecasts, computeFixtures } from '../playoffSim.js'
-import { OT_SHARE_OF_TIES } from '../liveProbability.js'
+import { simulatePlayoffOdds, computeMatchForecasts } from '../playoffSim.js'
 import { usePreseasonElo, computePreseasonRatings } from '../preseasonElo.js'
 import { computeMarketValuePrior, DEFAULT_PRIOR_SPREAD } from '../marketValuePrior.js'
 import { computePowerRankings } from '../powerRankings.js'
+import { withPregamePredictions } from '../pregamePrediction.js'
 import { TeamBadge, Delta, SectionHeader, StatTile, ProbBar, Tabs, useScrollFade } from '../components/ui.jsx'
 import { getLastBaseline, recordBaselineIfNeeded, computeMovers } from '../baselineStore.js'
 import { useSimResults } from '../simResultsContext.jsx'
@@ -134,31 +134,18 @@ export default function PlayoffOdds() {
   }
 
   // Geschlossene Form (kein Monte-Carlo-Lauf nötig) - daher unabhängig von
-  // `results` immer verfügbar, sobald Daten geladen sind.
-  // Zusätzlich zu computeMatchForecasts() (Heimsieg-%/pDecision) werden hier
-  // rein additiv bereits vorhandene Werte angereichert (Requirement "Match
-  // Forecast Cards": Expected Goals/OT-SO-Split/ELO) - computeFixtures()
-  // liefert expHome/expAway/eloRatings ohnehin schon (playoffSim.js bleibt
-  // unverändert, nur ein zweiter, bereits exportierter Aufruf hier). Der
-  // OT/SO-Split kommt aus dem bereits vorhandenen OT-Anteil
-  // (liveProbability.js::OT_SHARE_OF_TIES, identisch zu playoffSim.js
-  // CALIBRATION.otShareOfTies, siehe dortiger Kommentar) - kein neuer/
-  // erfundener Modellwert.
+  // `results` immer verfügbar, sobald Daten geladen sind. computeMatchForecasts()
+  // liefert Expected Goals/OT-SO-Split/ELO bereits mit (siehe dortiger
+  // Kommentar) - kein zweiter computeFixtures()-Aufruf mehr nötig.
+  // withPregamePredictions() ersetzt die Live-Werte durch den eingefrorenen
+  // Prediction-Snapshot, sobald einer existiert (src/pregamePrediction.js) -
+  // dieselbe Single Source of Truth wie auf Dashboard/Schedule/TeamDetail/
+  // MatchupDetail, damit dasselbe Spiel hier nie eine andere Prozentzahl
+  // zeigt als anderswo.
   const forecasts = useMemo(() => {
     if (!data?.teams || !data?.games) return []
     const base = computeMatchForecasts(data.teams, data.games, data.settings, data.players || [], initialRatings)
-    const { fixtures, eloRatings } = computeFixtures(data.teams, data.games, data.settings, data.players || [], initialRatings)
-    const fixtureByGameId = new Map(fixtures.map((f) => [f.gameId, f]))
-    return base.map((f) => {
-      const fx = fixtureByGameId.get(f.gameId)
-      if (!fx) return f
-      return {
-        ...f,
-        expHomeGoals: fx.expHome, expAwayGoals: fx.expAway,
-        eloHome: eloRatings[f.homeTeam.id], eloAway: eloRatings[f.awayTeam.id],
-        pOT: f.pDecision * OT_SHARE_OF_TIES, pSO: f.pDecision * (1 - OT_SHARE_OF_TIES),
-      }
-    })
+    return withPregamePredictions(base, data.predictions)
   }, [data, initialRatings])
 
   if (scheduledCount === 0) {

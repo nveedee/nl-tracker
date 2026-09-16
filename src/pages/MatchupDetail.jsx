@@ -30,6 +30,7 @@ import GameReplayView from '../components/GameReplayView.jsx'
 import { usePreseasonElo, computePreseasonRatings } from '../preseasonElo.js'
 import { computeMarketValuePrior, DEFAULT_PRIOR_SPREAD } from '../marketValuePrior.js'
 import { applyRestAdjustment, computeRestAdjustment, DEFAULT_BACK_TO_BACK_PENALTY } from '../restDays.js'
+import { getPregamePrediction } from '../pregamePrediction.js'
 import {
   mergeMatchups, summarizeRecord, summarizeHomeAway,
   computeRecentFormDetailed, computeShotsAllowedPerGame, useHistoricalH2H,
@@ -303,29 +304,28 @@ export default function MatchupDetail() {
   }, [game, homeTeam, awayTeam, data, derived, historical, loadingHistorical, played, preseasonSeasonEnd])
 
   const mc = analysis?.monteCarlo
-  // Kopfzahlen der "Model Forecast"-Karte: existiert bereits ein eingefrorener
-  // Prediction-Snapshot (server/scripts/predictions.js) für dieses Spiel,
-  // MUSS dessen Wert angezeigt werden - identisch zum Spielplan
-  // (Schedule.jsx) und zur späteren "Pre-Game Prediction"-Sektion nach
-  // Spielende. Sonst würden zwei unterschiedliche Live-Neuberechnungen
-  // (Schedule: geschlossene ELO-Formel, hier: 10'000-Lauf-Monte-Carlo mit
-  // SOG/Marktwert-Prior) für dasselbe Spiel abweichende Prozentwerte zeigen.
-  // Ohne Snapshot bleibt der bisherige Live-mc-Fallback unverändert. Die
-  // übrigen mc-basierten Sektionen (Simulationsergebnisse, Expected Goals,
-  // Goal Probabilities, Scoreline-Matrix) bleiben bewusst unverändert live -
-  // der Snapshot speichert keine Torverteilung/Scoreline, nur die
-  // aggregierten Kennzahlen unten.
+  // Kopfzahlen der "Model Forecast"-Karte UND der "Simulationsergebnisse"
+  // weiter unten: existiert bereits ein eingefrorener Prediction-Snapshot
+  // (server/scripts/predictions.js) für dieses Spiel, MUSS dessen Wert
+  // überall auf der Seite angezeigt werden - identisch zum Spielplan
+  // (Schedule.jsx), Dashboard, Season Projections und der späteren
+  // "Pre-Game Prediction"-Sektion nach Spielende. Läuft über dieselbe
+  // zentrale Single Source of Truth wie dort (src/pregamePrediction.js),
+  // damit hier nie eine zweite, abweichende Live-Neuberechnung (10'000-Lauf-
+  // Monte-Carlo mit SOG/Marktwert-Prior) als konkurrierende Kopfzahl
+  // auftaucht. Ohne Snapshot bleibt der bisherige Live-mc-Fallback
+  // unverändert. Die restlichen mc-basierten Visualisierungen (Top-
+  // Endresultate, Expected Goals, Goal Probabilities, Scoreline-Matrix)
+  // bleiben bewusst unverändert live - der Snapshot speichert keine
+  // Torverteilung/Scoreline, nur die aggregierten Kennzahlen, die hier
+  // übernommen werden.
   const displayForecast = mc
-    ? (predictionSnapshot
-      ? {
-          pHomeWin: predictionSnapshot.homeWinProbability,
-          pAwayWin: predictionSnapshot.awayWinProbability,
-          avgHomeGoals: predictionSnapshot.expectedHomeGoals,
-          avgAwayGoals: predictionSnapshot.expectedAwayGoals,
-          pOT: predictionSnapshot.otProbability,
-          pSO: predictionSnapshot.soProbability,
-        }
-      : mc)
+    ? getPregamePrediction(game.id, data.predictions, {
+        gameId: game.id,
+        pHomeWin: mc.pHomeWin, pAwayWin: mc.pAwayWin,
+        pOT: mc.pOT, pSO: mc.pSO, pDecision: mc.pOT + mc.pSO,
+        expHomeGoals: mc.avgHomeGoals, expAwayGoals: mc.avgAwayGoals,
+      })
     : null
 
   // Echte Live-Anbindung (src/liveGameClient.js): aktiv, sobald das Spiel
@@ -344,7 +344,7 @@ export default function MatchupDetail() {
   // altes Spiel ohne gespeicherte Pre-Game-Prognose) bleibt `pregame` null -
   // kein erfundener Ersatzwert, Replay zeigt dann keine Wahrscheinlichkeit.
   const pregame = displayForecast
-    ? { expHomeFull: displayForecast.avgHomeGoals, expAwayFull: displayForecast.avgAwayGoals, pHomePreGame: displayForecast.pHomeWin }
+    ? { expHomeFull: displayForecast.expHomeGoals, expAwayFull: displayForecast.expAwayGoals, pHomePreGame: displayForecast.pHomeWin }
     : (played && predictionSnapshot
       ? { expHomeFull: predictionSnapshot.expectedHomeGoals, expAwayFull: predictionSnapshot.expectedAwayGoals, pHomePreGame: predictionSnapshot.homeWinProbability }
       : null)
@@ -562,8 +562,8 @@ export default function MatchupDetail() {
                 <div className="bar-fill" style={{ width: `${Math.round(displayForecast.pHomeWin * 100)}%` }} />
               </div>
               <div className="tiles" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                <StatTile label={`Erwartete Tore ${homeTeam.short}`} value={fmt2(displayForecast.avgHomeGoals)} />
-                <StatTile label={`Erwartete Tore ${awayTeam.short}`} value={fmt2(displayForecast.avgAwayGoals)} />
+                <StatTile label={`Erwartete Tore ${homeTeam.short}`} value={fmt2(displayForecast.expHomeGoals)} />
+                <StatTile label={`Erwartete Tore ${awayTeam.short}`} value={fmt2(displayForecast.expAwayGoals)} />
                 <StatTile label="OT-Wahrscheinlichkeit" value={fmtPct(displayForecast.pOT)} />
                 <StatTile label="SO-Wahrscheinlichkeit" value={fmtPct(displayForecast.pSO)} />
               </div>
@@ -712,16 +712,29 @@ export default function MatchupDetail() {
             )}
           </div>
 
-          {/* 5. Simulationsergebnisse (nur zukünftige Spiele) */}
-          {!played && mc && (
+          {/* 5. Simulationsergebnisse (nur zukünftige Spiele) - die
+              Kopfzahlen (Heimsieg/Auswärtssieg/OT/SO) kommen bewusst aus
+              `displayForecast` (derselben Single Source of Truth wie die
+              "Model Forecast"-Karte oben), NICHT aus `mc` direkt - sonst
+              könnten hier und oben zwei unterschiedliche Prozentzahlen für
+              dasselbe Spiel stehen, sobald ein Snapshot existiert. Nur die
+              Verteilungen darunter (Top-Endresultate/Expected Goals/Goal
+              Probabilities/Scoreline-Matrix) bleiben die live simulierte
+              Verteilung - die speichert der Snapshot nicht. */}
+          {!played && mc && displayForecast && (
             <div className="card card-pad mb">
-              <h2 className="mb">Simulationsergebnisse</h2>
+              <div className="row spread" style={{ alignItems: 'baseline', flexWrap: 'wrap', rowGap: 4, marginBottom: 8 }}>
+                <h2 style={{ margin: 0 }}>Simulationsergebnisse</h2>
+                <span className="muted" style={{ fontSize: 11 }} title="Aktuelle 10'000-Lauf-Simulation mit dem heutigen Modellstand - zur Einordnung von Endresultat-/Torverteilung. Kopfzahlen oben stammen aus dem Model Forecast.">
+                  Aktuelle Simulation (diagnostisch)
+                </span>
+              </div>
               <div className="stat-strip">
                 <div className="stat"><strong>{mc.runs.toLocaleString()}</strong><span>Simulationen</span></div>
-                <div className="stat"><strong>{fmtPct(mc.pHomeWin)}</strong><span>Heimsieg {homeTeam.short}</span></div>
-                <div className="stat"><strong>{fmtPct(mc.pAwayWin)}</strong><span>Auswärtssieg {awayTeam.short}</span></div>
-                <div className="stat"><strong>{fmtPct(mc.pOT)}</strong><span>OT</span></div>
-                <div className="stat"><strong>{fmtPct(mc.pSO)}</strong><span>SO</span></div>
+                <div className="stat"><strong>{fmtPct(displayForecast.pHomeWin)}</strong><span>Heimsieg {homeTeam.short}</span></div>
+                <div className="stat"><strong>{fmtPct(displayForecast.pAwayWin)}</strong><span>Auswärtssieg {awayTeam.short}</span></div>
+                <div className="stat"><strong>{fmtPct(displayForecast.pOT)}</strong><span>OT</span></div>
+                <div className="stat"><strong>{fmtPct(displayForecast.pSO)}</strong><span>SO</span></div>
               </div>
               <div className="section-label">5 häufigste Endresultate</div>
               <div className="table-wrap">
@@ -742,14 +755,27 @@ export default function MatchupDetail() {
             </div>
           )}
 
-          {/* 5a. Expected Goals + Goal Probabilities by Team + Scoreline
-              Probabilities (nur zukünftige Spiele) - alle drei aus denselben
-              10'000 Läufen wie "Simulationsergebnisse" oben, nur anders
-              aggregiert (Ø/Torverteilung je Team/volle Heim-x-Auswärtstore-
-              Matrix statt Top-5-Liste). Eine Datenquelle (mc), drei Ansichten. */}
-          {!played && mc && (
+          {/* 5a. Expected Goals (Headline) + Goal Probabilities by Team +
+              Scoreline Probabilities (nur zukünftige Spiele). Die
+              Expected-Goals-Headline kommt bewusst aus `displayForecast`
+              (derselben zentralen Pre-Game-Prediction wie die "Model
+              Forecast"-Karte oben) statt aus `mc.xg` - sonst stünde hier eine
+              zweite, von der live neu berechneten 10'000er-Simulation
+              abweichende xG-Zahl für dasselbe Spiel (siehe displayForecast-
+              Kommentar weiter oben). Goal Probabilities/Scoreline-Matrix/
+              Top-Endresultate bleiben unverändert aus denselben `mc`-Läufen -
+              die speichert der Snapshot nicht, sie bleiben die aktuelle
+              10'000er-Simulation (siehe "Simulationsergebnisse"-Karte). */}
+          {!played && mc && displayForecast && (
             <>
-              <ExpectedGoals homeTeam={homeTeam} awayTeam={awayTeam} xg={mc.xg} />
+              <ExpectedGoals
+                homeTeam={homeTeam} awayTeam={awayTeam}
+                xg={{
+                  homeXG: displayForecast.expHomeGoals,
+                  awayXG: displayForecast.expAwayGoals,
+                  totalXG: displayForecast.expHomeGoals + displayForecast.expAwayGoals,
+                }}
+              />
               <GoalProbabilities
                 homeTeam={homeTeam} awayTeam={awayTeam}
                 homeDistribution={mc.goalDist.home} awayDistribution={mc.goalDist.away}

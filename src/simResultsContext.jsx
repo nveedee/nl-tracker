@@ -21,7 +21,8 @@ const SimResultsContext = createContext(null)
 
 // Reduziert eine simulateSeasonProjections()-Zeile (`row.team.id`) ODER eine
 // Baseline-Zeile (`row.teamId`, s. baselineStore.js) auf dieselbe schlanke
-// Form - Konsumenten (PlayoffWheel etc.) müssen die Quelle nicht kennen.
+// Form - Konsumenten (Dashboard "Playoff Picture", PlayoffOdds.jsx etc.)
+// müssen die Quelle nicht kennen.
 // Zusätzliche Felder (Top 6/Play-in/Play-out/Ligaqualifikation/Ø Rang/Ø
 // Punkte/Median/Range) - existieren bereits auf jeder simulateSeasonProjections()-
 // Zeile (siehe playoffSim.js), waren hier nur bisher nicht durchgereicht.
