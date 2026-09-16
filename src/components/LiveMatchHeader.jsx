@@ -13,12 +13,13 @@ function TeamMark({ team }) {
   )
 }
 
-export default function LiveMatchHeader({ homeTeam, awayTeam, live }) {
+export default function LiveMatchHeader({ homeTeam, awayTeam, live, badgeLabel, badgeStatic = false }) {
   const { status, score } = live
+  const label = badgeLabel || (live.isDemo ? 'LIVE DEMO' : 'LIVE')
   return (
     <div className="card live-header">
       <div className="live-header-top">
-        <span className="live-badge"><span className="live-dot" />{live.isDemo ? 'LIVE DEMO' : 'LIVE'}</span>
+        <span className="live-badge">{!badgeStatic && <span className="live-dot" />}{label}</span>
         <span className="live-period-text">{status.periodLabel}</span>
         {status.clock && <span className="live-clock">{status.clock}</span>}
       </div>

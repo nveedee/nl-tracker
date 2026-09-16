@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import { useData } from './DataContext.jsx'
 import { ToastHost } from './components/ui.jsx'
@@ -21,6 +21,13 @@ import ModelPerformance from './pages/ModelPerformance.jsx'
 import Backtesting from './pages/Backtesting.jsx'
 import MatchupDetail from './pages/MatchupDetail.jsx'
 import SyncStatus from './components/SyncStatus.jsx'
+// DEV-ONLY: Live-Replay-Testseite (siehe DevLiveReplay.jsx-Kopfkommentar) -
+// lazy() statt statischem import, damit Vite die Komponente in einen
+// EIGENEN Chunk auslagert, der im Produktions-Build (`npm run build`) nie
+// angefordert wird (siehe DEV_ROUTES unten, nur unter import.meta.env.DEV
+// gemountet - der Backend-Endpunkt existiert in Produktion ohnehin gar
+// nicht, siehe server/index.js).
+const DevLiveReplay = import.meta.env.DEV ? lazy(() => import('./pages/DevLiveReplay.jsx')) : null
 
 // Primäre Navigation: eine Zeile, keine Icons.
 const primaryNav = [
@@ -157,6 +164,9 @@ export default function App() {
             <Route path="/teams/:id" element={<TeamDetail />} />
             <Route path="/players/:id" element={<PlayerDetail />} />
             <Route path="/settings" element={<Settings />} />
+            {import.meta.env.DEV && (
+              <Route path="/dev/live-replay" element={<Suspense fallback={<div className="muted">Lädt…</div>}><DevLiveReplay /></Suspense>} />
+            )}
             <Route path="*" element={<Dashboard />} />
           </Routes>
         )}

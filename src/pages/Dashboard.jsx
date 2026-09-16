@@ -4,7 +4,12 @@ import { useData } from '../DataContext.jsx'
 import { TeamBadge, Empty, StatTile, SectionHeader } from '../components/ui.jsx'
 import { isFinalGame } from '../stats.js'
 import { useSimResults, getProbsRow } from '../simResultsContext.jsx'
+import { computeMatchForecasts, computeFixtures } from '../playoffSim.js'
+import { usePreseasonElo, computePreseasonRatings } from '../preseasonElo.js'
+import { computeMarketValuePrior, DEFAULT_PRIOR_SPREAD } from '../marketValuePrior.js'
+import { OT_SHARE_OF_TIES } from '../liveProbability.js'
 import PlayoffWheel from '../components/PlayoffWheel.jsx'
+import MatchForecast from '../components/MatchForecast.jsx'
 
 export default function Dashboard() {
   const { data, derived } = useData()
@@ -46,6 +51,39 @@ export default function Dashboard() {
     ? new Date(simUpdatedAt).toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit' }).replace(/\.$/, '')
     : null
 
+  // Match Forecasts (Requirement "Dashboard Polish": eigene Sektion
+  // zwischen Season Projection und Tabelle/ELO/Topskorer) - identische
+  // Herleitung wie PlayoffOdds.jsx (siehe dortiger Kommentar), hier auf die
+  // nächsten 4 Spiele begrenzt. usePreseasonElo() lädt einmalig, danach
+  // synchron aus dem Cache (siehe preseasonElo.js) - kein zusätzlicher
+  // Ladezustand nötig, den das Dashboard abfangen müsste.
+  const preseasonSeasonEnd = usePreseasonElo()
+  const initialRatings = useMemo(() => {
+    if (!data?.teams) return null
+    const eloStart = data.settings?.eloStart ?? 1500
+    const useMarketValue = data.settings?.marketValuePriorEnabled !== false
+    const marketPrior = useMarketValue
+      ? computeMarketValuePrior(data.teams, data.players, eloStart, data.settings?.priorSpread ?? DEFAULT_PRIOR_SPREAD)
+      : null
+    return marketPrior || computePreseasonRatings(preseasonSeasonEnd, eloStart)
+  }, [data, preseasonSeasonEnd])
+  const forecasts = useMemo(() => {
+    if (!data?.teams || !data?.games) return []
+    const base = computeMatchForecasts(data.teams, data.games, data.settings, data.players || [], initialRatings)
+    const { fixtures, eloRatings } = computeFixtures(data.teams, data.games, data.settings, data.players || [], initialRatings)
+    const fixtureByGameId = new Map(fixtures.map((f) => [f.gameId, f]))
+    return base.map((f) => {
+      const fx = fixtureByGameId.get(f.gameId)
+      if (!fx) return f
+      return {
+        ...f,
+        expHomeGoals: fx.expHome, expAwayGoals: fx.expAway,
+        eloHome: eloRatings[f.homeTeam.id], eloAway: eloRatings[f.awayTeam.id],
+        pOT: f.pDecision * OT_SHARE_OF_TIES, pSO: f.pDecision * (1 - OT_SHARE_OF_TIES),
+      }
+    })
+  }, [data, initialRatings])
+
   return (
     <>
       <div className="page-head">
@@ -68,6 +106,7 @@ export default function Dashboard() {
         />
       ) : (
         <>
+          <div className="section-label">Season Projection</div>
           {playoffWheelRows.length > 0 ? (
             <PlayoffWheel rows={playoffWheelRows} updatedLabel={`Stand ${simUpdatedLabel}`} />
           ) : (
@@ -79,6 +118,21 @@ export default function Dashboard() {
               />
             </div>
           )}
+
+          {forecasts.length > 0 && (
+            <>
+              <div className="section-label" style={{ marginTop: 22 }}>Match Forecasts</div>
+              <MatchForecast
+                forecasts={forecasts}
+                title="Nächste Spiele"
+                caption="Heimsieg-/Auswärtssieg-Chance, Expected Goals, OT/SO-Anteil und ELO."
+                limit={4}
+                showCount={false}
+              />
+            </>
+          )}
+
+          <div className="section-label" style={{ marginTop: 22 }}>Tabelle · ELO · Topskorer · Letzte Spiele</div>
           <div className="grid grid-2">
           <div className="card card-pad">
             <SectionHeader

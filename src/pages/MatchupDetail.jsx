@@ -25,6 +25,8 @@ import LiveWinProbabilityPanel from '../components/LiveWinProbabilityPanel.jsx'
 import LiveGameTimeline from '../components/LiveGameTimeline.jsx'
 import LiveStatistics from '../components/LiveStatistics.jsx'
 import { buildDemoLiveMatch, DEMO_PERIOD_MARKERS, DEMO_MAX_MINUTE } from '../liveDemoData.js'
+import { useLiveGame } from '../liveGameClient.js'
+import GameReplayView from '../components/GameReplayView.jsx'
 import { usePreseasonElo, computePreseasonRatings } from '../preseasonElo.js'
 import { computeMarketValuePrior, DEFAULT_PRIOR_SPREAD } from '../marketValuePrior.js'
 import { applyRestAdjustment, computeRestAdjustment, DEFAULT_BACK_TO_BACK_PENALTY } from '../restDays.js'
@@ -217,6 +219,7 @@ export default function MatchupDetail() {
   const preseasonSeasonEnd = usePreseasonElo()
   const loadingHistorical = historical === null
   const [showLiveDemo, setShowLiveDemo] = useState(false)
+  const [showReplay, setShowReplay] = useState(false)
 
   const game = data?.games?.find((g) => g.id === gameId)
   const homeTeam = game && data.teams.find((t) => t.id === game.homeTeamId)
@@ -299,15 +302,6 @@ export default function MatchupDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game, homeTeam, awayTeam, data, derived, historical, loadingHistorical, played, preseasonSeasonEnd])
 
-  if (!game) {
-    return (
-      <div className="empty">
-        <div className="title">Spiel nicht gefunden</div>
-        <div style={{ marginTop: 14 }}><Link className="btn primary" to="/schedule">← Zurück zum Spielplan</Link></div>
-      </div>
-    )
-  }
-
   const mc = analysis?.monteCarlo
   // Kopfzahlen der "Model Forecast"-Karte: existiert bereits ein eingefrorener
   // Prediction-Snapshot (server/scripts/predictions.js) für dieses Spiel,
@@ -333,26 +327,79 @@ export default function MatchupDetail() {
         }
       : mc)
     : null
+
+  // Echte Live-Anbindung (src/liveGameClient.js): aktiv, sobald das Spiel
+  // weder gespielt noch abgesagt ist UND die geplante Startzeit bereits
+  // vergangen ist (grobe Schätzung - der Server (server/liveSync.js)
+  // entscheidet über sihfGameId/Live-Fenster ohnehin verbindlich, ein 404
+  // vom Endpunkt beendet das Polling automatisch, siehe useLiveGame()).
+  // Muss VOR dem frühen `if (!game)`-Return stehen (Rules of Hooks).
+  const gameStart = game ? new Date(`${game.date}T${game.time || '00:00'}`) : null
+  const liveEnabled = !!game && !played && gameStart && !Number.isNaN(gameStart.getTime()) && gameStart <= new Date()
+  // Requirement 6 (Replay): für ein bereits gespieltes Spiel ist `mc` IMMER
+  // null (simulateSingleGame() läuft nur für !played, siehe oben) - für den
+  // historischen Replay wird der Startpunkt deshalb direkt aus dem
+  // eingefrorenen Prediction Snapshot gebaut, unabhängig von `displayForecast`
+  // (das für gespielte Spiele sonst leer bliebe). Ohne Snapshot (z.B. sehr
+  // altes Spiel ohne gespeicherte Pre-Game-Prognose) bleibt `pregame` null -
+  // kein erfundener Ersatzwert, Replay zeigt dann keine Wahrscheinlichkeit.
+  const pregame = displayForecast
+    ? { expHomeFull: displayForecast.avgHomeGoals, expAwayFull: displayForecast.avgAwayGoals, pHomePreGame: displayForecast.pHomeWin }
+    : (played && predictionSnapshot
+      ? { expHomeFull: predictionSnapshot.expectedHomeGoals, expAwayFull: predictionSnapshot.expectedAwayGoals, pHomePreGame: predictionSnapshot.homeWinProbability }
+      : null)
+  const { liveMatch: realLiveMatch, ended: realLiveEnded } = useLiveGame({ gameId: game?.id, homeTeam, awayTeam, pregame, enabled: liveEnabled })
+
+  if (!game) {
+    return (
+      <div className="empty">
+        <div className="title">Spiel nicht gefunden</div>
+        <div style={{ marginTop: 14 }}><Link className="btn primary" to="/schedule">← Zurück zum Spielplan</Link></div>
+      </div>
+    )
+  }
+
   const leadIsHome = displayForecast ? displayForecast.pHomeWin >= displayForecast.pAwayWin : null
   const leadTeam = leadIsHome == null ? null : (leadIsHome ? homeTeam : awayTeam)
   const otherTeam = leadIsHome == null ? null : (leadIsHome ? awayTeam : homeTeam)
+
+  // Requirement 11: die erfundene Demo darf für ein echtes Spiel nie
+  // automatisch/gleichzeitig mit Live oder Replay erscheinen - Button nur
+  // noch im Dev-Build sichtbar (import.meta.env.DEV wird von Vite im
+  // Produktions-Build statisch zu `false` ausgewertet und der Zweig
+  // wegoptimiert). showReplay nur für abgeschlossene Spiele MIT bekannter
+  // sihfGameId (ohne sihfGameId kein historischer Verlauf rekonstruierbar,
+  // siehe server/liveReplay.js) - beide Ansichten sind gegenseitig exklusiv.
+  const canReplay = played && !!game.sihfGameId && !!pregame
 
   return (
     <div>
       <div className="row gap-sm mb wrap">
         <Link className="btn ghost sm" to="/schedule">← Zurück zum Spielplan</Link>
         <Link className="btn ghost sm" to={`/head-to-head?team1=${homeTeam.id}&team2=${awayTeam.id}`}>Head-to-Head öffnen</Link>
-        <button className="btn ghost sm" onClick={() => setShowLiveDemo((v) => !v)}>
-          {showLiveDemo ? 'Live-Ansicht (Demo) ausblenden' : '🔴 Live-Ansicht (Demo) anzeigen'}
-        </button>
+        {canReplay && (
+          <button className="btn ghost sm" onClick={() => setShowReplay((v) => !v)}>
+            {showReplay ? 'Spielverlauf ausblenden' : '📈 Spielverlauf anzeigen'}
+          </button>
+        )}
+        {import.meta.env.DEV && (
+          <button className="btn ghost sm" onClick={() => setShowLiveDemo((v) => !v)}>
+            {showLiveDemo ? 'Live-Ansicht (Demo) ausblenden' : '🔴 Live-Ansicht (Demo, nur Dev) anzeigen'}
+          </button>
+        )}
       </div>
+
+      {showReplay && !showLiveDemo && homeTeam && awayTeam && (
+        <GameReplayView gameId={game.id} homeTeam={homeTeam} awayTeam={awayTeam} pregame={pregame} />
+      )}
 
       {/* Live-Match-Ansicht: reines UI-Konzept mit statischen Demo-Daten
           (src/liveDemoData.js), unabhängig von echten Spieldaten/Status.
           Keine SIHF-Anbindung, kein Polling, keine liveState-Struktur im
-          Backend - siehe LIVE_PROBABILITY_ANALYSIS.md. Standardmässig
-          ausgeblendet, damit die reguläre Seite unverändert bleibt. */}
-      {showLiveDemo && homeTeam && awayTeam && (() => {
+          Backend - siehe LIVE_PROBABILITY_ANALYSIS.md. NUR NOCH IM DEV-BUILD
+          erreichbar (siehe Button oben) - darf nie gleichzeitig mit dem
+          echten Replay gezeigt werden, deshalb zusätzlich `!showReplay`. */}
+      {showLiveDemo && !showReplay && homeTeam && awayTeam && (() => {
         const liveDemo = buildDemoLiveMatch(homeTeam, awayTeam)
         return (
           <div className="mb">
@@ -382,10 +429,49 @@ export default function MatchupDetail() {
         )
       })()}
 
-      {/* 1. Header - bei aktiver Live-Demo ausgeblendet (Widerspruch sonst:
-          "Geplant"/Datum unten vs. LIVE-Badge oben in LiveMatchHeader, das
-          Score/Teams bereits eigenständig zeigt - siehe LiveMatchHeader.jsx). */}
-      {!showLiveDemo && (
+      {/* ECHTE Live-Ansicht (src/liveGameClient.js -> GET /api/games/:gameId/live).
+          Unabhängig vom Demo-Toggle oben - erscheint automatisch, sobald das
+          Spiel begonnen hat und noch nicht final ist. Dieselben drei
+          Komponenten wie die Demo-Sektion, nur mit echten Daten befüllt. */}
+      {!showLiveDemo && !showReplay && realLiveMatch && homeTeam && awayTeam && (
+        <div className="mb">
+          <div className="live-section-group">
+            <LiveMatchHeader homeTeam={homeTeam} awayTeam={awayTeam} live={realLiveMatch} />
+            <LiveWinProbabilityPanel
+              homeTeam={homeTeam} awayTeam={awayTeam}
+              probability={realLiveMatch.probability}
+              probabilityHistory={realLiveMatch.probabilityHistory}
+              events={realLiveMatch.events}
+              periodMarkers={DEMO_PERIOD_MARKERS}
+              maxMinute={DEMO_MAX_MINUTE}
+              isLive={realLiveMatch.isLive}
+              sourceLabel="Live-Daten (SIHF)"
+            />
+            <LiveGameTimeline homeTeam={homeTeam} awayTeam={awayTeam} events={realLiveMatch.events} sourceLabel="Live-Daten (SIHF)" />
+            {/* LiveStatistics bewusst NICHT hier eingebunden: die Komponente
+                erwartet ein flaches {sogHome, shotsHome, ...}-Objekt mit
+                fest benannten Kennzahlen, das SIHF-Rohfeld (raw.stats,
+                "Team Stats"-Tabelle) liefert aber beliebige, nicht
+                verifizierte Zeilenbeschriftungen (siehe
+                LIVE_PROBABILITY_ANALYSIS.md - kein aktuell laufendes Spiel
+                zum Prüfen verfügbar). Eine geratene Zuordnung würde falsche
+                Zahlen anzeigen - bleibt vorerst nur in der Demo aktiv,
+                bis die echten Label-Strings an einem echten Live-Spiel
+                verifiziert sind. `realLiveMatch.raw.teamStats` enthält die
+                Rohdaten bereits (siehe liveGameClient.js), für eine spätere
+                Ergänzung. */}
+          </div>
+        </div>
+      )}
+
+      {/* 1. Header - bei aktiver Live-Demo/echter Live-Ansicht ausgeblendet
+          (Widerspruch sonst: "Geplant"/Datum unten vs. LIVE-Badge oben in
+          LiveMatchHeader, das Score/Teams bereits eigenständig zeigt -
+          siehe LiveMatchHeader.jsx). realLiveEnded (Spiel gerade final
+          geworden, DataContext hat es aber evtl. noch nicht neu geladen)
+          zeigt den Header wieder normal an statt in der Live-Ansicht
+          hängenzubleiben. */}
+      {!showLiveDemo && !showReplay && !(realLiveMatch && !realLiveEnded) && (
         <div className="card card-pad mb" style={{ textAlign: 'center' }}>
           <div className="muted" style={{ fontSize: 13, marginBottom: 14 }}>
             {new Date(game.date).toLocaleDateString('de-CH', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
@@ -425,8 +511,8 @@ export default function MatchupDetail() {
       {/* Trennt die Live-Sektion oben klar von der Pre-Game-Modellprognose
           darunter - verhindert Verwechslung von Live Probability und
           Pre-Game Forecast (beides sind unterschiedliche, unabhängige
-          Werte). Nur sichtbar, wenn die Live-Demo aktiv ist. */}
-      {showLiveDemo && (
+          Werte). Nur sichtbar, wenn die Live-Demo oder die echte Live-Ansicht aktiv ist. */}
+      {(showLiveDemo || (realLiveMatch && !realLiveEnded)) && (
         <div className="section-label" style={{ marginTop: 4, marginBottom: 10, textAlign: 'center' }}>
           ── Pre-Game / Vor dem Spiel ──
         </div>

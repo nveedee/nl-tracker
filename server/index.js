@@ -4,6 +4,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import sihfSync from './scripts/sync-sihf.cjs'
 import { runNlSync, readNlSyncStatus, DEFAULT_NL_SYNC_INTERVAL_MIN } from './sync.js'
+import { pollLiveGames, ensureFreshLiveState, LIVE_POLL_INTERVAL_MS } from './liveSync.js'
 
 const { runSync: runSihfSync, readSyncStatus } = sihfSync
 
@@ -191,6 +192,93 @@ app.post('/api/sync-nl', async (_req, res) => {
 })
 
 // ---------------------------------------------------------------------------
+// Live-Spielstand (server/liveSync.js) - eigenständig vom SIHF-Sync oben:
+// schnelleres Polling (20s statt 5min), schreibt NIE in db.json/homeGoals/
+// status - liefert nur den zuletzt bekannten Live-Snapshot (oder holt bei
+// Bedarf einen frischen, siehe ensureFreshLiveState()). 404 = kein
+// Live-Zustand für dieses Spiel bekannt (nicht live, keine sihfGameId, oder
+// ausserhalb des Polling-Fensters) - kein Fehler.
+// ---------------------------------------------------------------------------
+// DEV-ONLY: Live-Replay eines abgeschlossenen Archiv-Spiels (server/liveReplay.js)
+// zum Testen des kompletten Live-Datenflusses ohne ein aktuell laufendes
+// NL-Spiel. Existiert im Produktions-Build GAR NICHT (Route wird nur bei
+// NODE_ENV !== 'production' registriert) - kein Laufzeit-Flag, das versehentlich
+// scharf bleiben könnte. Nutzt dieselbe parseLiveSnapshot()-Pipeline wie der
+// echte Live-Endpunkt unten, NICHT dessen Cache/Poller (deterministisch pro
+// Request, kein In-Flight-Lock/SIHF-Request nötig).
+if (process.env.NODE_ENV !== 'production') {
+  const { buildReplayLiveState } = await import('./liveReplay.js')
+  app.get('/api/dev/live-replay', (req, res) => {
+    try {
+      const elapsedSeconds = Number(req.query.elapsed)
+      if (!Number.isFinite(elapsedSeconds) || elapsedSeconds < 0) {
+        return res.status(400).json({ error: '?elapsed=<Sekunden> (Zahl >= 0) erforderlich' })
+      }
+      res.json(buildReplayLiveState(elapsedSeconds))
+    } catch (e) {
+      res.status(500).json({ error: 'Replay fehlgeschlagen', message: e.message })
+    }
+  })
+}
+
+// Historischer Live-Replay für ECHTE, abgeschlossene Spiele (server/liveReplay.js
+// ::buildRealGameReplayState) - produktives Feature (NICHT dev-only, im
+// Unterschied zum Fixture-Tool oben), siehe MatchupDetail.jsx: für
+// status:'final'-Spiele mit sihfGameId bietet die UI "Spielverlauf anzeigen"
+// an. `elapsed` optional - fehlt es, wird der volle Endstand geliefert
+// (FULL_GAME_SENTINEL_SECONDS). Kein Fallback auf erfundene Daten: fehlt
+// sihfGameId oder ist das Spiel nicht final, liefert dies einen klaren
+// 4xx-Fehler statt eines geratenen Zustands.
+app.get('/api/games/:gameId/replay', async (req, res) => {
+  const db = readDb()
+  const game = db.games.find((g) => g.id === req.params.gameId)
+  if (!game) return res.status(404).json({ error: 'Spiel nicht gefunden' })
+  try {
+    const { buildRealGameReplayState, FULL_GAME_SENTINEL_SECONDS } = await import('./liveReplay.js')
+    const elapsedSeconds = req.query.elapsed != null ? Number(req.query.elapsed) : FULL_GAME_SENTINEL_SECONDS
+    if (!Number.isFinite(elapsedSeconds) || elapsedSeconds < 0) {
+      return res.status(400).json({ error: '?elapsed=<Sekunden> (Zahl >= 0) oder weglassen für Endstand' })
+    }
+    const liveState = await buildRealGameReplayState(game, elapsedSeconds, { log: (...a) => console.log('[REPLAY]', ...a) })
+    res.json(liveState)
+  } catch (e) {
+    res.status(422).json({ error: 'Historischer Replay für dieses Spiel nicht möglich', message: e.message })
+  }
+})
+
+// Vollständige historische Zeitreihe (server/liveReplay.js::buildRealGameReplayTimeline)
+// für die grosse Live-Win-Probability-Kurve - EIN Request liefert die
+// komplette Snapshot-Serie über das ganze Spiel (regelmässiges Raster +
+// jeder echte Tor-Zeitpunkt), das Frontend berechnet daraus über die
+// UNVERÄNDERTE liveProbability.js die vollständige probabilityHistory
+// (siehe src/liveGameClient.js::useGameReplayTimeline).
+app.get('/api/games/:gameId/replay/timeline', async (req, res) => {
+  const db = readDb()
+  const game = db.games.find((g) => g.id === req.params.gameId)
+  if (!game) return res.status(404).json({ error: 'Spiel nicht gefunden' })
+  try {
+    const { buildRealGameReplayTimeline } = await import('./liveReplay.js')
+    const timeline = await buildRealGameReplayTimeline(game, { log: (...a) => console.log('[REPLAY]', ...a) })
+    res.json(timeline)
+  } catch (e) {
+    res.status(422).json({ error: 'Historischer Replay für dieses Spiel nicht möglich', message: e.message })
+  }
+})
+
+app.get('/api/games/:gameId/live', async (req, res) => {
+  const db = readDb()
+  const game = db.games.find((g) => g.id === req.params.gameId)
+  if (!game) return res.status(404).json({ error: 'Spiel nicht gefunden' })
+  try {
+    const liveState = await ensureFreshLiveState(game, { log: (...a) => console.log('[LIVE SYNC]', ...a) })
+    if (!liveState) return res.status(404).json({ error: 'Kein Live-Zustand für dieses Spiel verfügbar' })
+    res.json(liveState)
+  } catch (e) {
+    res.status(502).json({ error: 'SIHF momentan nicht erreichbar.', message: e.message })
+  }
+})
+
+// ---------------------------------------------------------------------------
 // Backup / Import / Reset
 // ---------------------------------------------------------------------------
 app.get('/api/export', (_req, res) => {
@@ -282,6 +370,17 @@ app.listen(PORT, () => {
     const nlIntervalMs = (Number(process.env.NL_SYNC_INTERVAL_MIN) || DEFAULT_NL_SYNC_INTERVAL_MIN) * 60 * 1000
     console.log(`  NL-Auto-Sync aktiv (alle ${nlIntervalMs / 60000} Min.)`)
     setInterval(pollNl, nlIntervalMs)
+  }
+
+  // Live-Poller (server/liveSync.js): eigenständig vom obigen 5-Min-SIHF-Sync,
+  // pollt nur Spiele innerhalb des Live-Fensters (siehe isCandidate() dort) -
+  // bei 0 laufenden Spielen ist das ein billiger No-Op (leerer Filter, kein
+  // Request). Abschaltbar mit LIVE_AUTO_POLL=0.
+  if (process.env.LIVE_AUTO_POLL !== '0') {
+    console.log(`  Live-Auto-Poll aktiv (alle ${LIVE_POLL_INTERVAL_MS / 1000}s, nur für laufende Spiele)`)
+    setInterval(() => {
+      pollLiveGames(readDb(), { log: (...a) => console.log('[LIVE SYNC]', ...a) }).catch((e) => console.error('[LIVE SYNC] Fehler:', e.message))
+    }, LIVE_POLL_INTERVAL_MS)
   }
 
   console.log()

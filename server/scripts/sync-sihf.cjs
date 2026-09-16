@@ -326,6 +326,123 @@ function parseSihfGame(raw, localPlayers) {
 }
 
 // ============================================================================
+// LIVE-SNAPSHOT (additiv, siehe LIVE_PROBABILITY_ANALYSIS.md Abschnitt
+// "Vorschlag") - komplett unabhängig von parseSihfGame()/computeGameUpdate()/
+// runSync() oben (die für abgeschlossene Spiele bleiben UNVERÄNDERT). Wird
+// von server/liveSync.js für ein schnelleres, separates Live-Polling
+// verwendet und schreibt NIE in game.homeGoals/awayGoals/status/decision -
+// nur in das eigenständige, additive Feld game.liveState.
+//
+// Verifiziert (siehe LIVE_PROBABILITY_ANALYSIS.md Abschnitt 16):
+// raw.status.{percent,name,canceled}, raw.result.{homeTeam,awayTeam,scores,
+// sogs}, raw.summary.periods[].{goals[],fouls[]}, raw.summary.shootout.shoots[].
+// NICHT verifiziert: ein exaktes Countdown-/Restzeit-Feld - es gibt (Stand
+// dieser Analyse) kein aktuell laufendes Spiel, an dem sich das prüfen liesse.
+// `percent` wird deshalb NUR als grober Spielfortschritt (0-100) verwendet,
+// NICHT als exakte Uhrzeit umgerechnet - `clock` bleibt bewusst `null`
+// (nichts erfunden), solange kein verifiziertes Feld dafür gefunden ist.
+// ============================================================================
+
+// Team-Zuordnung eines Goal-/Foul-Eintrags: beide verwenden (wie bei den
+// bereits verifizierten fouls[]) ein `teamId`-Feld mit der SIHF-Team-ID.
+function resolveEventTeamId(sihfTeamId) {
+  return SIHF_TO_TEAM_ID[sihfTeamId] || null
+}
+
+function parseLiveTeamStats(raw) {
+  const teamStatsTable = (raw.stats || []).find((s) => s.title === 'Team Stats')
+  const teamStats = {}
+  if (teamStatsTable && teamStatsTable.data) {
+    const homeName = raw.details && raw.details.homeTeam && raw.details.homeTeam.name
+    const idxHome = teamStatsTable.header.findIndex((h) => h.name === homeName)
+    const iHome = idxHome > 0 ? idxHome : 1
+    const iAway = iHome === 1 ? 2 : 1
+    for (const row of teamStatsTable.data) {
+      teamStats[row[0]] = { home: row[iHome], away: row[iAway] }
+    }
+  }
+  return teamStats
+}
+
+// `raw` = eine einzelne SIHF gameoverview-Antwort (dieselbe Quelle wie
+// parseSihfGame). Liefert einen Live-Snapshot unabhängig vom Spielstatus
+// (scheduled/live/final) - der Aufrufer (liveSync.js) entscheidet anhand von
+// `status`, ob/wie er das Ergebnis weiterverwendet.
+function parseLiveSnapshot(raw) {
+  const statusInfo = determineLocalStatus(raw.status) // unverändert wiederverwendet (keine zweite Status-Formel)
+  const homeSihfTeamId = raw.details && raw.details.homeTeam && raw.details.homeTeam.id
+  const awaySihfTeamId = raw.details && raw.details.awayTeam && raw.details.awayTeam.id
+  const homeTeamId = SIHF_TO_TEAM_ID[homeSihfTeamId]
+  const awayTeamId = SIHF_TO_TEAM_ID[awaySihfTeamId]
+
+  const isCanceled = !!(raw.status && raw.status.canceled)
+  const status = statusInfo.local === 'final'
+    ? 'final'
+    : (raw.status && raw.status.percent > 0 && !isCanceled ? 'live' : 'scheduled')
+
+  const scores = (raw.result && raw.result.scores) || []
+  const sogs = (raw.result && raw.result.sogs) || []
+  const periods = scores.map((s) => ({ name: s.name, indicator: s.indicator, home: Number(s.homeTeam), away: Number(s.awayTeam) }))
+  const shots = sogs.map((s) => ({ name: s.name, indicator: s.indicator, home: Number(s.homeTeam), away: Number(s.awayTeam) }))
+
+  const goals = []
+  for (const p of (raw.summary && raw.summary.periods) || []) {
+    for (const g of p.goals || []) {
+      goals.push({
+        period: p.name,
+        time: g.time || null, // "MM:SS", absolute Spielzeit über 60' (siehe LIVE_PROBABILITY_ANALYSIS.md)
+        teamId: resolveEventTeamId(g.teamId),
+        text: g.text || null,
+      })
+    }
+  }
+  // Chronologisch (Periodenreihenfolge, innerhalb der Periode nach Zeit) -
+  // SIHF liefert periods[] bereits in Spielreihenfolge, hier nur zusätzlich
+  // nach Zeit innerhalb der Periode sortiert, falls die Rohdaten das nicht
+  // schon tun.
+  goals.sort((a, b) => (a.time || '').localeCompare(b.time || ''))
+
+  const penalties = []
+  for (const p of (raw.summary && raw.summary.periods) || []) {
+    for (const f of p.fouls || []) {
+      penalties.push({ period: p.name, time: f.time || null, minutes: f.minutes, teamId: resolveEventTeamId(f.teamId), text: f.text || null })
+    }
+  }
+
+  // Score: raw.result.{homeTeam,awayTeam} ist bereits für abgeschlossene
+  // Spiele die verifizierte Quelle (parseSihfGame oben) - hier zusätzlich
+  // während "live" verwendet (identisches Feld, nur früher gelesen). Fällt
+  // dieses Feld während des Spiels doch leer aus, wird ersatzweise aus den
+  // gezählten Goal-Events abgeleitet (nie geraten, nur gezählt).
+  let homeGoals = Number(raw.result && raw.result.homeTeam)
+  let awayGoals = Number(raw.result && raw.result.awayTeam)
+  if (!Number.isFinite(homeGoals)) homeGoals = goals.filter((g) => g.teamId === homeTeamId).length
+  if (!Number.isFinite(awayGoals)) awayGoals = goals.filter((g) => g.teamId === awayTeamId).length
+
+  const shootoutEntries = (raw.summary && raw.summary.shootout && raw.summary.shootout.shoots) || []
+  // Phase für liveProbability.js (REG/OT/SO): >3 Periodeneinträge = Overtime
+  // begonnen; Shootout-Einträge vorhanden = bereits im Penaltyschiessen.
+  // Dieselbe Logik wie parseSihfGame(), hier zusätzlich WÄHREND des Spiels
+  // ausgewertet (nicht erst rückwirkend am Endergebnis).
+  let phase = 'REG'
+  if (shootoutEntries.length > 0) phase = 'SO'
+  else if (periods.length > 3) phase = 'OT'
+
+  return {
+    homeTeamId, awayTeamId,
+    status,
+    statusLabel: (raw.status && raw.status.name) || null, // z.B. "1. Drittel"/"Pause"/"Ende" - roh von SIHF, nicht übersetzt/erfunden
+    percent: (raw.status && raw.status.percent) ?? null,
+    clock: null, // kein verifiziertes Restzeit-/Countdown-Feld gefunden - siehe Dateikopf-Kommentar
+    phase,
+    homeGoals, awayGoals,
+    periods, shots, goals, penalties,
+    teamStats: parseLiveTeamStats(raw),
+    updatedAt: new Date().toISOString(),
+  }
+}
+
+// ============================================================================
 // DB-Helfer (eigenständig, dieses Skript läuft als .cjs unabhängig vom
 // ESM-Server, liest/schreibt aber dieselbe server/data/db.json)
 // ============================================================================
@@ -522,7 +639,7 @@ async function main() {
   }
 }
 
-module.exports = { runSync, runDiscover, parseSihfGame, computeGameUpdate, fetchSihfGame, SIHF_TO_TEAM_ID, readSyncStatus }
+module.exports = { runSync, runDiscover, parseSihfGame, computeGameUpdate, fetchSihfGame, SIHF_TO_TEAM_ID, readSyncStatus, parseLiveSnapshot }
 
 if (require.main === module) {
   main()

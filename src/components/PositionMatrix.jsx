@@ -39,6 +39,14 @@ function heatColor(stops, pct) {
   return { bg: `rgb(${r},${g},${b})`, fg: relLuma > 0.55 ? 'var(--text)' : '#fff' }
 }
 
+// Reine Anzeige-Skalierung für den Ø-Rang-Füllbalken (kein neuer Wert): Rang 1
+// (bester Fall) = 100% Füllung, Rang rankCount (schlechtester Fall) = 0%.
+function avgRankFillPct(avgRank, rankCount) {
+  if (rankCount <= 1) return 100
+  const t = (rankCount - avgRank) / (rankCount - 1)
+  return Math.round(Math.max(0, Math.min(1, t)) * 100)
+}
+
 // Zeilen = Teams, Spalten = Rang 1..14, Zelle = P(finalRank=Spalte). Zwei
 // Ansichten: "Tabelle" (Heatmap-Zahlen) und "Bars" (vertikale Mini-Balken je
 // Zelle, eine feste Farbe - die Höhe trägt hier die Grösse, nicht zusätzlich
@@ -81,7 +89,7 @@ export default function PositionMatrix({ rows, runs, compare }) {
             <tr>
               <th className="left">Team</th>
               {ranks.map((r) => <th key={r} className="num">{r}</th>)}
-              <th className="num">Ø-Rang</th>
+              <th className="num group-start" title="Erwarteter Schlussrang, Mittel über alle Simulationsläufe">Ø-Rang</th>
               {compare && <th className="num">Δ</th>}
               <th className="num">Median</th>
               <th className="num">σ</th>
@@ -112,7 +120,13 @@ export default function PositionMatrix({ rows, runs, compare }) {
                     </td>
                   )
                 })}
-                <td className="num">{row.avgRank.toFixed(1)}</td>
+                <td
+                  className="num group-start matrix-avgrank-cell"
+                  style={{ background: `linear-gradient(to right, var(--accent-soft) ${avgRankFillPct(row.avgRank, rankCount)}%, transparent ${avgRankFillPct(row.avgRank, rankCount)}%)` }}
+                  title={`Ø Rang ${row.avgRank.toFixed(2)} (1 = bester, ${rankCount} = schlechtester möglicher Rang)`}
+                >
+                  {row.avgRank.toFixed(1)}
+                </td>
                 {compare && <td className="num"><Delta pp={rankDelta} unit="" digits={2} /></td>}
                 <td className="num">{row.medianRank}</td>
                 <td className="num muted">{row.stdDevRank.toFixed(1)}</td>

@@ -8,6 +8,7 @@
 // 'penalty', side: 'home'|'away', text }]`.
 // ---------------------------------------------------------------------------
 import { Fragment, useMemo, useState } from 'react'
+import { formatClock } from '../liveProbability.js'
 
 const EVENT_ICON = { goal: '⚪', penalty: '⏱' }
 
@@ -27,7 +28,7 @@ const FILTERS = [
   { key: 'penalty', label: 'Strafen', test: (e) => e.type === 'penalty' },
 ]
 
-export default function LiveGameTimeline({ homeTeam, awayTeam, events }) {
+export default function LiveGameTimeline({ homeTeam, awayTeam, events, sourceLabel = 'Demo-Daten' }) {
   const [filter, setFilter] = useState('all')
 
   // Chronologisch aufsteigend sortieren und laufenden Score je Tor mitführen
@@ -58,7 +59,7 @@ export default function LiveGameTimeline({ homeTeam, awayTeam, events }) {
     <div className="card card-pad live-section">
       <div className="row spread live-section-head">
         <h2 style={{ fontSize: 13 }}>Events</h2>
-        <span className="chip" style={{ color: 'var(--text-dim)', fontSize: 10 }}>Demo-Daten</span>
+        <span className="chip" style={{ color: 'var(--text-dim)', fontSize: 10 }}>{sourceLabel}</span>
       </div>
 
       <div className="live-events-filter">
@@ -85,7 +86,7 @@ export default function LiveGameTimeline({ homeTeam, awayTeam, events }) {
               <Fragment key={i}>
                 {period !== prevPeriod && <div className="live-ticker-period">{period}</div>}
                 <div className={'live-ticker-row ' + e.type}>
-                  <span className="live-ticker-time">{e.minute}′</span>
+                  <span className="live-ticker-time">{formatClock(e.minute)}</span>
                   <span className="live-ticker-icon">{EVENT_ICON[e.type] || '•'}</span>
                   <span className="live-ticker-team" style={{ color: team.color }}>{team.short}</span>
                   {e.scoreAfter && <span className="live-ticker-score">{e.scoreAfter}</span>}

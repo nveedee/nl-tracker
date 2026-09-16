@@ -13,7 +13,8 @@
 
 import { useState, useMemo } from 'react'
 import { useData } from '../DataContext.jsx'
-import { simulatePlayoffOdds, computeMatchForecasts } from '../playoffSim.js'
+import { simulatePlayoffOdds, computeMatchForecasts, computeFixtures } from '../playoffSim.js'
+import { OT_SHARE_OF_TIES } from '../liveProbability.js'
 import { usePreseasonElo, computePreseasonRatings } from '../preseasonElo.js'
 import { computeMarketValuePrior, DEFAULT_PRIOR_SPREAD } from '../marketValuePrior.js'
 import { computePowerRankings } from '../powerRankings.js'
@@ -29,7 +30,15 @@ import LockStandings from '../components/LockStandings.jsx'
 import PointsTargets from '../components/PointsTargets.jsx'
 import SeasonEvolution from '../components/SeasonEvolution.jsx'
 
-function fmtPct(v) { return v == null ? '–' : (v * 100).toFixed(1) + '%' }
+// Ganzzahlig für lesbare Werte, aber mit einer Dezimalstelle unterhalb von 1%
+// (sonst würde eine echte, kleine Restchance als "0%" verschwinden) - reine
+// Anzeigeformatierung, keine Rundung der zugrundeliegenden Simulationswerte.
+function fmtPct(v) {
+  if (v == null) return '–'
+  const pct = v * 100
+  if (pct > 0 && pct < 1) return pct.toFixed(1) + '%'
+  return Math.round(pct) + '%'
+}
 
 const RUN_CHOICES = [1000, 2500, 5000, 10000]
 
@@ -126,9 +135,30 @@ export default function PlayoffOdds() {
 
   // Geschlossene Form (kein Monte-Carlo-Lauf nötig) - daher unabhängig von
   // `results` immer verfügbar, sobald Daten geladen sind.
+  // Zusätzlich zu computeMatchForecasts() (Heimsieg-%/pDecision) werden hier
+  // rein additiv bereits vorhandene Werte angereichert (Requirement "Match
+  // Forecast Cards": Expected Goals/OT-SO-Split/ELO) - computeFixtures()
+  // liefert expHome/expAway/eloRatings ohnehin schon (playoffSim.js bleibt
+  // unverändert, nur ein zweiter, bereits exportierter Aufruf hier). Der
+  // OT/SO-Split kommt aus dem bereits vorhandenen OT-Anteil
+  // (liveProbability.js::OT_SHARE_OF_TIES, identisch zu playoffSim.js
+  // CALIBRATION.otShareOfTies, siehe dortiger Kommentar) - kein neuer/
+  // erfundener Modellwert.
   const forecasts = useMemo(() => {
     if (!data?.teams || !data?.games) return []
-    return computeMatchForecasts(data.teams, data.games, data.settings, data.players || [], initialRatings)
+    const base = computeMatchForecasts(data.teams, data.games, data.settings, data.players || [], initialRatings)
+    const { fixtures, eloRatings } = computeFixtures(data.teams, data.games, data.settings, data.players || [], initialRatings)
+    const fixtureByGameId = new Map(fixtures.map((f) => [f.gameId, f]))
+    return base.map((f) => {
+      const fx = fixtureByGameId.get(f.gameId)
+      if (!fx) return f
+      return {
+        ...f,
+        expHomeGoals: fx.expHome, expAwayGoals: fx.expAway,
+        eloHome: eloRatings[f.homeTeam.id], eloAway: eloRatings[f.awayTeam.id],
+        pOT: f.pDecision * OT_SHARE_OF_TIES, pSO: f.pDecision * (1 - OT_SHARE_OF_TIES),
+      }
+    })
   }, [data, initialRatings])
 
   if (scheduledCount === 0) {
@@ -184,23 +214,34 @@ export default function PlayoffOdds() {
               {/* Volle Zahlen-Tabelle (alle Kategorien nebeneinander) + Detailansicht je Team */}
               <SectionHeader title="National League Projektion" caption="Alle Kategorien nebeneinander, antippen für Rangverteilung/ELO-Details." />
               <div className="card mb">
+                {/* Gruppenzeile über den Kategorien - rein visuelle Gliederung
+                    (Playoff-Weg / Meisterschaft / Abstiegszone / Saison), keine
+                    eigenen Werte, nur Einordnung der bestehenden Spalten darunter. */}
                 <div className="table-wrap pin-first" ref={tableWrapRef}>
-                  <table>
+                  <table className="projection-table">
                     <thead>
+                      <tr className="group-row">
+                        <th className="left"></th>
+                        <th className="num group-start" colSpan={3}>Playoff-Weg</th>
+                        <th className="num group-start" colSpan={3}>Meisterschaft</th>
+                        <th className="num group-start" colSpan={2}>Abstiegszone</th>
+                        <th className="num group-start" colSpan={2}>Saison Ø</th>
+                        <th className="num group-start"></th>
+                        <th className="num"></th>
+                      </tr>
                       <tr>
                         <th className="left">Team</th>
-                        <th className="num">Playoffs</th>
-                        <th className="num">Top 6</th>
-                        <th className="num">Play-in</th>
-                        <th className="num">Halbfinale</th>
-                        <th className="num">Finale</th>
-                        <th className="num">Meister</th>
-                        <th className="num">Play-out</th>
-                        <th className="num">Ligaqual.</th>
-                        <th className="num">Ø Pkt</th>
-                        <th className="num">Ø Rang</th>
-                        <th className="num">Best</th>
-                        <th className="num">Worst</th>
+                        <th className="num group-start" title="Wahrscheinlichkeit, die Playoffs zu erreichen (Top 10)">Playoffs</th>
+                        <th className="num" title="Wahrscheinlichkeit, direkt in die Halbfinal-Runde zu kommen (Top 6)">Top 6</th>
+                        <th className="num" title="Wahrscheinlichkeit, über das Play-in in die Playoffs zu kommen">Play-in</th>
+                        <th className="num group-start" title="Wahrscheinlichkeit, das Halbfinale zu erreichen">Halbfinale</th>
+                        <th className="num" title="Wahrscheinlichkeit, den Final zu erreichen">Finale</th>
+                        <th className="num" title="Meisterchance">Meister</th>
+                        <th className="num group-start" title="Wahrscheinlichkeit, in die Play-out-Runde (Platz 13/14) zu müssen">Play-out</th>
+                        <th className="num" title="Wahrscheinlichkeit einer Ligaqualifikation (direkte Abstiegsgefahr)">Ligaqual.</th>
+                        <th className="num group-start" title="Erwartete Punktezahl am Saisonende, Mittel über alle Simulationsläufe">Ø Pkt</th>
+                        <th className="num" title="Erwarteter Schlussrang, Mittel über alle Simulationsläufe">Ø Rang</th>
+                        <th className="num group-start" title="Bester und schlechtester simulierter Punktestand (Spannweite)">Range</th>
                         <th className="num"></th>
                       </tr>
                     </thead>
@@ -208,18 +249,17 @@ export default function PlayoffOdds() {
                       {results.rows.map((r) => (
                         <tr key={r.team.id} className={expandedTeam === r.team.id ? 'active-row' : ''}>
                           <td className="left"><TeamBadge team={r.team} short /></td>
-                          <td className="num">{fmtPct(r.pPlayoffs)}</td>
+                          <td className="num group-start" style={{ fontWeight: 600 }}>{fmtPct(r.pPlayoffs)}</td>
                           <td className="num">{fmtPct(r.pTop6)}</td>
                           <td className="num">{fmtPct(r.pPlayIn)}</td>
-                          <td className="num">{fmtPct(r.pSemifinal)}</td>
+                          <td className="num group-start">{fmtPct(r.pSemifinal)}</td>
                           <td className="num">{fmtPct(r.pFinal)}</td>
                           <td className="num"><strong style={{ color: 'var(--accent)' }}>{fmtPct(r.pChampion)}</strong></td>
-                          <td className="num">{fmtPct(r.pPlayout1314)}</td>
-                          <td className="num">{fmtPct(r.pLigaQualifikation)}</td>
-                          <td className="num">{r.avgPts.toFixed(1)}</td>
-                          <td className="num">{r.avgRank.toFixed(1)}</td>
-                          <td className="num muted" style={{ fontSize: 11.5 }}>{Math.round(r.maxPts)}</td>
-                          <td className="num muted" style={{ fontSize: 11.5 }}>{Math.round(r.minPts)}</td>
+                          <td className="num group-start" style={r.pPlayout1314 >= 0.1 ? { color: 'var(--warn)', fontWeight: 600 } : undefined}>{fmtPct(r.pPlayout1314)}</td>
+                          <td className="num" style={r.pLigaQualifikation >= 0.05 ? { color: 'var(--bad)', fontWeight: 600 } : undefined}>{fmtPct(r.pLigaQualifikation)}</td>
+                          <td className="num group-start" style={{ fontWeight: 600 }}>{r.avgPts.toFixed(1)}</td>
+                          <td className="num" style={{ fontWeight: 600 }}>{r.avgRank.toFixed(1)}</td>
+                          <td className="num group-start muted" style={{ fontSize: 11.5 }}>{Math.round(r.minPts)}–{Math.round(r.maxPts)}</td>
                           <td className="num">
                             <button
                               className="btn ghost sm"

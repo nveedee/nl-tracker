@@ -15,13 +15,14 @@
 // Re-Render der übrigen Seite aus, nur dieser Komponente selbst.
 // ---------------------------------------------------------------------------
 import { useCallback, useRef, useState } from 'react'
+import { formatClock } from '../liveProbability.js'
 
 const CHART_W = 800
 const CHART_H = 220
 const PAD_L = 30
 const PAD_R = 10
 const PAD_TOP = 10
-const PAD_BOTTOM = 24
+const PAD_BOTTOM = 32
 const Y_TICKS = [0, 25, 50, 75, 100]
 
 function xForMinute(minute, maxMinute) {
@@ -32,20 +33,68 @@ function yForPct(pct) {
   const usable = CHART_H - PAD_TOP - PAD_BOTTOM
   return PAD_TOP + (1 - Math.max(0, Math.min(1, pct))) * usable
 }
-function buildPolyline(history, key, maxMinute) {
-  return history.map((p) => `${xForMinute(p.elapsedSeconds / 60, maxMinute).toFixed(1)},${yForPct(p[key]).toFixed(1)}`).join(' ')
+// Monotone kubische Hermite-Interpolation (Fritsch-Carlson, identisches
+// Prinzip wie d3.curveMonotoneX) für ein visuell fliessendes Chart, OHNE
+// Overshoots über die echten Datenpunkte hinaus (keine erfundenen lokalen
+// Maxima/Minima, keine Werte ausserhalb [0,100]%, da die Tangenten explizit
+// auf 0 geklemmt werden, wo die Steigung das Vorzeichen wechselt - siehe
+// `m*mNext<=0`-Fall unten). Die Datenpunkte SELBST (probabilityHistory) sind
+// weiterhin die alleinige Quelle der Wahrheit (liveProbability.js) - diese
+// Funktion ist AUSSCHLIESSLICH Rendering, keine zweite Wahrscheinlichkeits-
+// berechnung. Bei sehr dicht beieinanderliegenden Punkten (z.B. die
+// Torsekunde und die Sekunde davor, siehe server/liveReplay.js) ergibt das
+// automatisch einen praktisch senkrechten, harten Sprung statt einer
+// künstlich verrundeten Kurve - Requirement 2 ("Tore müssen harte Events
+// bleiben") ist damit ohne Sonderfall-Code erfüllt.
+function buildMonotonePath(history, key, maxMinute) {
+  const n = history.length
+  if (n === 0) return ''
+  const xs = history.map((p) => xForMinute(p.elapsedSeconds / 60, maxMinute))
+  const ys = history.map((p) => yForPct(p[key]))
+  if (n === 1) return `M ${xs[0].toFixed(2)} ${ys[0].toFixed(2)}`
+
+  const dxs = new Array(n - 1), ms = new Array(n - 1)
+  for (let i = 0; i < n - 1; i++) {
+    dxs[i] = xs[i + 1] - xs[i]
+    ms[i] = dxs[i] !== 0 ? (ys[i + 1] - ys[i]) / dxs[i] : 0
+  }
+  const tangents = new Array(n)
+  tangents[0] = ms[0]
+  tangents[n - 1] = ms[n - 2]
+  for (let i = 1; i < n - 1; i++) {
+    if (ms[i - 1] * ms[i] <= 0) {
+      tangents[i] = 0 // lokales Extremum in den echten Daten -> Tangente 0, keine Überschwinger
+    } else {
+      const common = dxs[i - 1] + dxs[i]
+      tangents[i] = (3 * common) / ((common + dxs[i]) / ms[i - 1] + (common + dxs[i - 1]) / ms[i])
+    }
+  }
+
+  let d = `M ${xs[0].toFixed(2)} ${ys[0].toFixed(2)}`
+  for (let i = 0; i < n - 1; i++) {
+    const dx = dxs[i]
+    const c1x = xs[i] + dx / 3
+    const c1y = ys[i] + (tangents[i] * dx) / 3
+    const c2x = xs[i + 1] - dx / 3
+    const c2y = ys[i + 1] - (tangents[i + 1] * dx) / 3
+    d += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${xs[i + 1].toFixed(2)} ${ys[i + 1].toFixed(2)}`
+  }
+  return d
 }
 // Nächstgelegenen historischen Snapshot zu einer Ziel-Spielminute finden -
-// KEINE Interpolation (Abschnitt 5 der Aufgabenstellung).
+// KEINE Interpolation der WERTE (Abschnitt 5 der Aufgabenstellung). Bisektion
+// statt linearem Scan, da `history` bei 1s-Auflösung bis zu ~4000 Punkte
+// enthält und diese Funktion bei jedem Mousemove läuft.
 function nearestSnapshotIndex(history, minute) {
   const targetSeconds = minute * 60
-  let best = 0
-  let bestDiff = Infinity
-  for (let i = 0; i < history.length; i++) {
-    const diff = Math.abs(history[i].elapsedSeconds - targetSeconds)
-    if (diff < bestDiff) { bestDiff = diff; best = i }
+  let lo = 0, hi = history.length - 1
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1
+    if (history[mid].elapsedSeconds < targetSeconds) lo = mid + 1
+    else hi = mid
   }
-  return best
+  if (lo > 0 && Math.abs(history[lo - 1].elapsedSeconds - targetSeconds) <= Math.abs(history[lo].elapsedSeconds - targetSeconds)) return lo - 1
+  return lo
 }
 
 function ProbTile({ label, value, color }) {
@@ -59,7 +108,7 @@ function ProbTile({ label, value, color }) {
 
 const EVENT_ICON = { GOAL: '⚪', PENALTY: '⏱' }
 
-export default function LiveWinProbabilityPanel({ homeTeam, awayTeam, probability, probabilityHistory, events, periodMarkers, maxMinute, isLive = true }) {
+export default function LiveWinProbabilityPanel({ homeTeam, awayTeam, probability, probabilityHistory, events, periodMarkers, maxMinute, isLive = true, sourceLabel = 'UI-Konzept · Demo-Daten', nowLabel = 'Jetzt' }) {
   const drawColor = 'var(--text-faint)'
   const goals = events.filter((e) => e.type === 'goal')
   const currentMinute = probabilityHistory[probabilityHistory.length - 1].elapsedSeconds / 60
@@ -97,21 +146,37 @@ export default function LiveWinProbabilityPanel({ homeTeam, awayTeam, probabilit
     <div className="card live-prob-panel">
       <div className="row spread live-prob-head">
         <div className="section-label" style={{ marginBottom: 0 }}>Live Win Probability</div>
-        <span className="chip" style={{ color: 'var(--text-dim)', fontSize: 10 }}>UI-Konzept · Demo-Daten</span>
+        <span className="chip" style={{ color: 'var(--text-dim)', fontSize: 10 }}>{sourceLabel}</span>
       </div>
 
-      {/* "Jetzt" - IMMER der letzte Snapshot, unabhängig vom Hover/Pin. */}
+      {/* "Jetzt" - IMMER der letzte Snapshot, unabhängig vom Hover/Pin.
+          BEWUSST ZWEI GETRENNTE ZEILEN (nicht mehr eine gemeinsame 3er-
+          Aufzählung): Final Win Probability (Heim+Auswärts = 100%, inkl.
+          OT/SO) und Regulation Outcome (Heim+Unentschieden+Auswärts nach 60'
+          = 100%) sind zwei unterschiedliche Wahrscheinlichkeitsräume - siehe
+          liveProbability.js-Kopfkommentar "UI-DEFINITION". Die vorherige
+          gemeinsame Zeile suggerierte fälschlich eine gemeinsame 100%-Summe
+          aller drei Werte. pHomeReg/pAwayReg fehlen bei der (dev-only) Demo
+          weiterhin (liveDemoData.js liefert sie nicht) - dann bleibt die
+          zweite Zeile schlicht weg, kein Fehler. */}
       <div className="live-prob-inline">
         <span className="live-prob-inline-item" style={{ color: homeTeam.color }}>
           <b>{Math.round(probability.pHome * 100)}%</b> {homeTeam.short}
         </span>
-        <span className="live-prob-inline-item muted">
-          {Math.round(probability.pDraw * 100)}% Unentschieden
-        </span>
+        <span className="live-prob-inline-item muted" style={{ fontSize: 10.5 }}>Final Win Probability</span>
         <span className="live-prob-inline-item" style={{ color: awayTeam.color }}>
           {awayTeam.short} <b>{Math.round(probability.pAway * 100)}%</b>
         </span>
       </div>
+      {probability.pHomeReg != null && probability.pAwayReg != null && (
+        <div className="live-prob-inline" style={{ marginTop: 2 }}>
+          <span className="live-prob-inline-item" style={{ color: homeTeam.color }}>{Math.round(probability.pHomeReg * 100)}%</span>
+          <span className="live-prob-inline-item muted" style={{ fontSize: 10.5 }}>
+            Regulation Outcome (60:00) · {Math.round(probability.pDraw * 100)}% Unentschieden
+          </span>
+          <span className="live-prob-inline-item" style={{ color: awayTeam.color }}>{Math.round(probability.pAwayReg * 100)}%</span>
+        </div>
+      )}
 
       <div
         className="live-chart-wrap"
@@ -134,26 +199,40 @@ export default function LiveWinProbabilityPanel({ homeTeam, awayTeam, probabilit
           {periodMarkers.slice(0, -1).map((m, i) => {
             const next = periodMarkers[i + 1]
             const mid = xForMinute((m + Math.min(next, maxMinute)) / 2, maxMinute)
-            return <text key={'lbl' + m} x={mid} y={CHART_H - 6} className="live-chart-period-label">{i < 3 ? `${i + 1}. Drittel` : 'OT'}</text>
+            return <text key={'lbl' + m} x={mid} y={CHART_H - 20} className="live-chart-period-label">{i < 3 ? `${i + 1}. Drittel` : 'OT'}</text>
           })}
 
+          {/* Zeitachse in MM:SS (nie Dezimalminuten) an jeder Drittelgrenze
+              (0:00/20:00/40:00/60:00) + bei OT-Spielen zusätzlich am
+              tatsächlichen Spielende (maxMinute, aus den echten Daten, kein
+              erfundener OT-Zeitpunkt). */}
+          {[...new Set([...periodMarkers, Math.floor(maxMinute)])].map((m) => (
+            <text key={'time' + m} x={xForMinute(m, maxMinute)} y={CHART_H - 6} className="live-chart-time-label" textAnchor="middle">{formatClock(m)}</text>
+          ))}
+
+          {/* Kompakte Event-Marker (Requirement: "kompakte Event-Marker",
+              "wenig visuelles Rauschen") - nur eine dünne Linie + ein kleines
+              Dreieck an der Oberkante, KEIN permanenter Text mehr (bei vielen
+              Toren kurz hintereinander überlappte sich sonst die Beschriftung
+              unlesbar). Die vollen Details (Zeit/Team/Spielstand) liefert
+              weiterhin der Hover-Tooltip sowie die Events-Liste
+              (LiveGameTimeline) darunter - hier keine Redundanz. */}
           {goals.map((e, i) => {
             const x = xForMinute(e.minute, maxMinute)
             const color = e.side === 'home' ? homeTeam.color : awayTeam.color
-            const shortLabel = `${e.minute}′ ${e.side === 'home' ? homeTeam.short : awayTeam.short}`
             return (
               <g key={i}>
                 <line x1={x} x2={x} y1={PAD_TOP} y2={CHART_H - PAD_BOTTOM} className="live-chart-goal-line" style={{ stroke: color }} />
-                <text x={x + 3} y={PAD_TOP + 8} className="live-chart-goal-label" style={{ fill: color }} transform={`rotate(-90 ${x + 3} ${PAD_TOP + 8})`}>{shortLabel}</text>
+                <polygon points={`${x - 3.5},${PAD_TOP} ${x + 3.5},${PAD_TOP} ${x},${PAD_TOP + 5}`} style={{ fill: color }} />
               </g>
             )
           })}
 
           <line x1={xForMinute(currentMinute, maxMinute)} x2={xForMinute(currentMinute, maxMinute)} y1={PAD_TOP} y2={CHART_H - PAD_BOTTOM} className="live-chart-now-line" />
 
-          <polyline points={buildPolyline(probabilityHistory, 'drawAfter60', maxMinute)} className="live-chart-line draw" />
-          <polyline points={buildPolyline(probabilityHistory, 'awayWin', maxMinute)} className="live-chart-line" style={{ stroke: awayTeam.color }} />
-          <polyline points={buildPolyline(probabilityHistory, 'homeWin', maxMinute)} className="live-chart-line" style={{ stroke: homeTeam.color }} />
+          <path d={buildMonotonePath(probabilityHistory, 'drawAfter60', maxMinute)} className="live-chart-line draw" />
+          <path d={buildMonotonePath(probabilityHistory, 'awayWin', maxMinute)} className="live-chart-line" style={{ stroke: awayTeam.color }} />
+          <path d={buildMonotonePath(probabilityHistory, 'homeWin', maxMinute)} className="live-chart-line" style={{ stroke: homeTeam.color }} />
 
           {/* Statische "Jetzt"-Punkte auf Draw/Away - der Home-Punkt (unten)
               trägt zusätzlich den pulsierenden LIVE-Marker (Abschnitt 9 der
@@ -220,7 +299,7 @@ export default function LiveWinProbabilityPanel({ homeTeam, awayTeam, probabilit
         </svg>
 
         <div className="live-chart-now-tag" style={{ left: `${(xForMinute(currentMinute, maxMinute) / CHART_W) * 100}%` }}>
-          <span className="live-chart-now-tag-label">Jetzt</span>
+          <span className="live-chart-now-tag-label">{nowLabel}</span>
           <span className="live-chart-now-tag-value">{Math.round(currentMinute)}′</span>
         </div>
 
