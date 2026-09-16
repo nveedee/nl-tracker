@@ -2,12 +2,17 @@
 // Team-Detailseite (/teams/:id) - Team-Analytics-Ebene, analog zur mehrfach
 // erweiterten Player-Analytics-Ebene (PlayerDetail.jsx/playerHistory.js).
 // Rein deskriptiv/analytisch - VERWENDET ausschliesslich bereits bestehende,
-// unveränderte Produktivfunktionen (computeElo/homeWinProbability aus
-// elo.js, computeFixtures aus playoffSim.js, computePowerRankings aus
-// powerRankings.js, computeStandings/computeHomeSplits/computeTeamForm aus
-// stats.js). Keine neue Prognoseformel, nichts fliesst in die Match-Prognose
-// zurück - "Schedule Strength" und "Team Strength Profile" sind ausdrücklich
-// NUR Anzeige (siehe dortige Kommentare).
+// unveränderte Produktivfunktionen (computeElo aus elo.js, computeFixtures
+// aus playoffSim.js, computePowerRankings aus powerRankings.js,
+// computeStandings/computeHomeSplits/computeTeamForm aus stats.js). Keine
+// neue Prognoseformel, nichts fliesst in die Match-Prognose zurück -
+// "Schedule Strength" ist ausdrücklich NUR Anzeige (siehe dortiger
+// Kommentar). Nach dem UX-Audit (siehe Commit-History) bewusst REDUZIERT:
+// keine separate "Team Strength"-Karte mehr (ELO/Power Score stehen nur noch
+// in "Saisonentwicklung", Kader-Impact nur noch als Spalte in der
+// Kader-Tabelle bzw. in "Team Depth") und "Offense"/"Defense" wird nur noch
+// für echte Tore-/SOG-Statistiken verwendet (siehe "Tore & Splits"), nicht
+// mehr zusätzlich für Kader-Perzentile.
 // ---------------------------------------------------------------------------
 
 import { useMemo, useRef, useState } from 'react'
@@ -20,10 +25,8 @@ import {
 } from '../stats.js'
 import {
   usePlayerHistory, usePositionBaselines, computeTeamRosterProfile, computeTeamDepth,
-  getPlayerSeasons, classifyTrend, buildCurrentSeasonRecord,
 } from '../playerHistory.js'
 import { useTeamHistory, getTeamSeasons, teamSeasonRates, lastNSeasons } from '../teamHistory.js'
-import { homeWinProbability } from '../elo.js'
 import { computePowerRankings } from '../powerRankings.js'
 import { computeFixtures, computeMatchForecasts } from '../playoffSim.js'
 import { OT_SHARE_OF_TIES } from '../liveProbability.js'
@@ -80,7 +83,6 @@ export default function TeamDetail() {
   const team = data.teams.find((t) => t.id === id)
   const [editing, setEditing] = useState(null)
   const [editTeam, setEditTeam] = useState(false)
-  const [top5Mode, setTop5Mode] = useState('impact')
   const [compareTeamId, setCompareTeamId] = useState('')
   const [rosterFilter, setRosterFilter] = useState('all')
   const [rosterSearch, setRosterSearch] = useState('')
@@ -119,38 +121,11 @@ export default function TeamDetail() {
   const statById = Object.fromEntries(derived.playerStats.map((s) => [s.player.id, s]))
   const currentSeasonLabel = data.settings?.seasonName?.match(/\d{4}\/\d{2}/)?.[0] || null
 
-  const top5Enriched = (rosterProfile?.top5 || []).map((entry) => {
-    const s = statById[entry.player.id]
-    const ppg = s && s.gp > 0 ? s.points / s.gp : null
-    const seasons = getPlayerSeasons(playerHistoryData, entry.player.id)
-    const current = buildCurrentSeasonRecord(s, entry.player, currentSeasonLabel)
-    const trend = classifyTrend(current ? [...seasons, current] : seasons)
-    return { ...entry, ppg, trend }
-  })
-
-  // Team Player Core (Abschnitt 8): wählbare Top-5-Sortierung. "P/GP" und
-  // "Punkte" beziehen sich auf die LAUFENDE Saison (statById) - beide Listen
-  // sind naturgemäss leer, solange 0 Spiele gespielt wurden (kein Leakage,
-  // kein erfundener Wert).
-  const scoredWithCurrent = (rosterProfile?.scored || []).map((s) => {
-    const stat = statById[s.player.id]
-    return { ...s, currentPpg: stat && stat.gp > 0 ? stat.points / stat.gp : null, currentPoints: stat?.points ?? 0 }
-  })
-  const top5ByMode = top5Mode === 'ppg'
-    ? [...scoredWithCurrent].filter((s) => s.currentPpg != null).sort((a, b) => b.currentPpg - a.currentPpg).slice(0, 5)
-    : top5Mode === 'points'
-      ? [...scoredWithCurrent].filter((s) => s.currentPoints > 0).sort((a, b) => b.currentPoints - a.currentPoints).slice(0, 5)
-      : top5Enriched
-
-  const teamPointsTotal = players.reduce((sum, p) => sum + (statById[p.id]?.points || 0), 0)
-  const currentContributors = teamPointsTotal > 0
-    ? players
-        .map((p) => ({ player: p, points: statById[p.id]?.points || 0, gp: statById[p.id]?.gp || 0 }))
-        .filter((c) => c.points > 0)
-        .sort((a, b) => b.points - a.points)
-        .slice(0, 5)
-        .map((c) => ({ ...c, share: c.points / teamPointsTotal }))
-    : []
+  // Impact Score je Spieler (0-100, Karriere-Perzentil aus computeImpactScore/
+  // computeTeamRosterProfile, playerHistory.js) - NACH dem UX-Audit als
+  // Spalte direkt in der Kader-Tabelle statt einer eigenen Top-5-Ansicht.
+  // Keine neue Berechnung, nur Lookup auf bereits vorhandenes rosterProfile.scored.
+  const impactScoreByPlayerId = Object.fromEntries((rosterProfile?.scored || []).map((s) => [s.player.id, s.score]))
 
   const standing = derived.standings.find((s) => s.team.id === id)
   const rank = standing ? derived.standings.indexOf(standing) + 1 : null
@@ -177,6 +152,16 @@ export default function TeamDetail() {
   const formTrend = form5 && formSeason && form5.gp >= 3
     ? (form5.ptsPerGame - formSeason.ptsPerGame > 0.3 ? 'up' : form5.ptsPerGame - formSeason.ptsPerGame < -0.3 ? 'down' : 'flat')
     : null
+  // Form-Kacheln (Abschnitt B): ein Kurzfenster (Letzte 5/10) nur zeigen,
+  // wenn es tatsächlich ein ECHTER Ausschnitt der Saison ist (weniger Spiele
+  // als die Saison insgesamt) - sonst sind Fenster- und Saisonwert zwangsläufig
+  // identisch (z.B. Saisonstart) und die Kachel liefert keine Zusatzinfo.
+  // Keine künstliche Schwelle, rein aus vorhandenen gp-Werten abgeleitet.
+  const formTiles = [
+    form5 && formSeason && form5.gp < formSeason.gp ? ['Letzte 5', form5] : null,
+    form10 && formSeason && form10.gp < formSeason.gp ? ['Letzte 10', form10] : null,
+    ['Saison', formSeason],
+  ].filter(Boolean)
 
   // Formverlauf über die Saison: kumulierte Punkte/Spiel nach jedem
   // absolvierten Spiel (chronologisch) - reine Deskriptivstatistik.
@@ -206,8 +191,8 @@ export default function TeamDetail() {
   const sogAllowedPg = standing?.gp > 0 && sogAllowedTotal > 0 ? sogAllowedTotal / standing.gp : null
   const histLast3 = lastNSeasons(teamHistoryData, id, 3)
 
-  // Schedule Strength (Abschnitt 6) - NUR Anzeige, kein Prognose-Input:
-  // bestehende computeFixtures()/homeWinProbability() für die verbleibenden
+  // Schedule Strength (für die Matchups-Sektion) - NUR Anzeige, kein
+  // Prognose-Input: bestehende computeFixtures() für die verbleibenden
   // Spiele dieses Teams, aggregiert zu Ø-Gegner-ELO / Ø-Modell-Siegchance.
   const fixtureByPair = new Map(fixturesData.fixtures.map((f) => [`${f.home}:${f.away}`, f]))
   const scheduleRows = data.games
@@ -237,23 +222,6 @@ export default function TeamDetail() {
     const opp = data.teams.find((t) => t.id === (isHome ? g.awayTeamId : g.homeTeamId))
     return { game: g, opp, isHome, eloBefore, eloAfter: h.rating }
   }).filter(Boolean)
-
-  // Team Strength Profile (Abschnitt 12) - AUSSCHLIESSLICH DARSTELLUNG,
-  // keine neue Prognosekennzahl: jede Kennzahl ist bereits an anderer Stelle
-  // eigenständig definiert/validiert (ELO, Power-Ranking-Offense/Defense via
-  // Impact Score, Kader-Impact, Form) - hier nur auf eine gemeinsame
-  // 0-100-Anzeigeskala gebracht (ELO per Liga-Min/Max, Form per /3 Punkte),
-  // damit sie nebeneinander als Balken darstellbar sind.
-  const leagueElos = derived.elo.ranking.map((r) => r.rating)
-  const eloMin = Math.min(...leagueElos), eloMax = Math.max(...leagueElos)
-  const strengthProfile = [
-    eloRow ? { label: 'ELO', pct: eloMax > eloMin ? ((eloRow.rating - eloMin) / (eloMax - eloMin)) * 100 : 50, raw: eloRow.rating } : null,
-    powerRow ? { label: 'Power Score', pct: powerRow.powerScore, raw: powerRow.powerScore } : null,
-    rosterProfile?.offense != null ? { label: 'Offense (Kader)', pct: rosterProfile.offense, raw: rosterProfile.offense } : null,
-    rosterProfile?.defense != null ? { label: 'Defense (Kader)', pct: rosterProfile.defense, raw: rosterProfile.defense } : null,
-    rosterProfile?.avgScore != null ? { label: 'Roster (Ø Impact)', pct: rosterProfile.avgScore, raw: rosterProfile.avgScore } : null,
-    form10 ? { label: 'Form (10 Sp.)', pct: (form10.ptsPerGame / 3) * 100, raw: form10.ptsPerGame } : null,
-  ].filter(Boolean)
 
   // Matchups (Abschnitt H) - dieselbe Herleitung wie Dashboard.jsx/
   // PlayoffOdds.jsx (computeMatchForecasts + computeFixtures-Anreicherung),
@@ -344,6 +312,11 @@ export default function TeamDetail() {
       render: (p) => statById[p.id]?.plusMinus != null ? plusMinusStr(statById[p.id].plusMinus) : 0,
     },
     {
+      key: 'impact', label: 'Impact', num: true, title: 'Impact Score: positions-relatives Karriere-Perzentil (0-100), siehe Spielerprofil',
+      value: (p) => impactScoreByPlayerId[p.id] ?? -1,
+      render: (p) => impactScoreByPlayerId[p.id] != null ? impactScoreByPlayerId[p.id].toFixed(1) : <span className="muted">–</span>,
+    },
+    {
       key: 'actions', label: '', num: true, noSort: true,
       render: (p) => (
         <span className="row gap-sm" style={{ justifyContent: 'flex-end' }}>
@@ -388,8 +361,11 @@ export default function TeamDetail() {
       </div>
 
       {/* A) Team Hero - die wichtigsten Kennzahlen auf einen Blick, oberhalb
-          jeder weiteren Sektion. Playoff-Chance kommt aus dem app-weiten
-          Live-Simulationsstore (kein Neuberechnen hier, siehe projectionRow). */}
+          jeder weiteren Sektion. Nur Tabellenfakten + Playoff-Chance/Trend -
+          ELO und Power Score stehen (nach dem UX-Audit) ausschliesslich noch
+          in "Saisonentwicklung", damit hier nicht dieselben Zahlen doppelt
+          auftauchen. Playoff-Chance kommt aus dem app-weiten Live-
+          Simulationsstore (kein Neuberechnen hier, siehe projectionRow). */}
       <div className="card card-pad mb">
         <div className="stat-strip">
           <div className="stat"><strong>{rank ? `#${rank}` : '–'}</strong><span>Tabellenplatz</span></div>
@@ -401,8 +377,6 @@ export default function TeamDetail() {
             </strong>
             <span>Tordifferenz</span>
           </div>
-          <div className="stat"><strong>{eloRow?.rating ?? eloStart}</strong><span>ELO</span></div>
-          <div className="stat"><strong>{powerRow?.powerScore ?? '–'}</strong><span>Power Score</span></div>
           <div className="stat">
             <strong>{projectionRow ? fmtPct(projectionRow.pPlayoffs) : '–'}</strong>
             <span>Playoff-Chance</span>
@@ -423,14 +397,15 @@ export default function TeamDetail() {
         )}
       </div>
 
-      {/* B) Form - Kurzfenster (5/10/Saison) + letzte 5 Resultate als Badges
-          statt reinem Text. Der Saisonverlauf lebt jetzt gebündelt unten in
+      {/* B) Form - Kurzfenster nur, wenn sie sich tatsächlich vom Saisonwert
+          unterscheiden (formTiles, siehe oben) + letzte 5 Resultate als
+          Badges statt reinem Text. Der Saisonverlauf lebt gebündelt unten in
           "Saisonentwicklung" (ELO + Punkte zusammen) - hier bewusst kein
           zweites, fast identisches Liniendiagramm. */}
       <div className="card card-pad mb">
         <h2 className="mb">Form</h2>
-        <div className="grid grid-3 mb">
-          {[['Letzte 5', form5], ['Letzte 10', form10], ['Saison', formSeason]].map(([label, f]) => (
+        <div className="grid grid-3 mb" style={{ gridTemplateColumns: `repeat(${formTiles.length}, 1fr)` }}>
+          {formTiles.map(([label, f]) => (
             <div key={label} className="tile">
               <div className="label">{label}</div>
               {f ? (
@@ -466,14 +441,17 @@ export default function TeamDetail() {
           der bereits vorhandene Punkte/Spiel-Verlauf (kumuliert), beide über
           dieselbe SeasonLineChart-Komponente (Hover-Tooltip mit Datum +
           exaktem Wert, Start-/Aktuell-Marker) - keine Neuberechnung, keine
-          neue Kennzahl. Marktwertentwicklung ist NICHT dargestellt: die
+          neue Kennzahl. Power Score (unveraendert aus computePowerRankings)
+          steht hier als einzige Stelle auf der Seite (vormals zusätzlich im
+          Hero UND in der separaten "Team Strength"-Karte - beides entfernt,
+          siehe UX-Audit). Marktwertentwicklung ist NICHT dargestellt: die
           NL-API liefert bislang erst einen Marktwert-Snapshot pro Spieler
           (Saisonstart), keine verlässliche Zeitreihe - siehe Abschlussbericht. */}
       <div className="card card-pad mb">
         <h2 className="mb">Saisonentwicklung</h2>
         <div className="stat-strip">
           <div className="stat"><strong>{preseasonElo != null ? Math.round(preseasonElo) : '–'}</strong><span>Pre-Season-ELO</span></div>
-          <div className="stat"><strong>{eloRow?.rating ?? eloStart}</strong><span>Aktuell</span></div>
+          <div className="stat"><strong>{eloRow?.rating ?? eloStart}</strong><span>ELO aktuell</span></div>
           <div className="stat"><strong>{eloHistory.length ? Math.round(Math.max(...eloHistory.map((h) => h.rating))) : '–'}</strong><span>Saisonhoch</span></div>
           <div className="stat"><strong>{eloHistory.length ? Math.round(Math.min(...eloHistory.map((h) => h.rating))) : '–'}</strong><span>Saisontief</span></div>
           <div className="stat">
@@ -482,6 +460,7 @@ export default function TeamDetail() {
             </strong>
             <span>Veränderung</span>
           </div>
+          <div className="stat"><strong>{powerRow?.powerScore ?? '–'}</strong><span>Power Score</span></div>
         </div>
         {eloHistory.length >= 2 ? (
           <SeasonLineChart
@@ -587,26 +566,6 @@ export default function TeamDetail() {
         </div>
       )}
 
-      {/* F) Team Strength - AUSSCHLIESSLICH DARSTELLUNG, keine neue
-          Prognosekennzahl: jede Grösse ist bereits eigenständig definiert
-          (ELO, Power Score, Kader-Impact-Score, Form), hier nur auf eine
-          gemeinsame 0-100-Anzeigeskala gebracht. */}
-      {strengthProfile.length > 0 && (
-        <div className="card card-pad mb">
-          <h2 className="mb">Team Strength</h2>
-          <div className="muted" style={{ fontSize: 11.5, marginBottom: 12 }}>
-            Nur Darstellung, keine neue Prognosekennzahl - jede Grösse ist bereits eigenständig definiert (ELO, Power Score, Kader-Impact-Score, Form), hier nur auf eine gemeinsame 0-100-Skala gebracht.
-          </div>
-          {strengthProfile.map((s) => (
-            <div key={s.label} className="row" style={{ fontSize: 12.5, marginBottom: 8 }}>
-              <span className="muted" style={{ minWidth: 120 }}>{s.label}</span>
-              <div className="bar-track" style={{ flex: 1 }}><div className="bar-fill" style={{ width: `${Math.max(0, Math.min(100, s.pct))}%` }} /></div>
-              <strong style={{ minWidth: 50, textAlign: 'right', fontFamily: 'var(--mono)' }}>{s.raw.toFixed(s.label === 'ELO' || s.label === 'Power Score' ? 0 : s.label.startsWith('Form') ? 2 : 1)}</strong>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* G) Season Projection - Kompaktansicht der zuletzt gelaufenen
           Monte-Carlo-Simulation (simResultsContext.jsx), gefiltert auf dieses
           Team. Keine Neuberechnung - Hinweistext + Link, falls in dieser
@@ -692,27 +651,23 @@ export default function TeamDetail() {
       )}
 
       {/* J) Detailed Statistics - alles Tiefere/Granularere ganz unten:
-          Offense/Defense, Heim/Auswärts, Kaderanalyse (Impact Score/Team
-          Depth), historischer Mehrsaisonvergleich, direkter Teamvergleich. */}
+          Tore & Splits (zusammengeführt aus vormals Offense/Defense +
+          Heim/Auswärts - "Offense"/"Defense" heisst hier ausschliesslich noch
+          echte Tore-/SOG-Statistik, nicht mehr zusätzlich Kader-Perzentil,
+          siehe UX-Audit), Team Depth (auf den echten Mehrwert reduziert -
+          "Wer trägt das Team aktuell"/Top-5-Tabs entfernt, das leistet die
+          sortierbare Kader-Tabelle oben bereits), historischer
+          Mehrsaisonvergleich, direkter Teamvergleich. */}
       <div className="section-label" style={{ marginTop: 4 }}>Detailed Statistics</div>
 
       <div className="card card-pad mb">
-        <h2 className="mb">Offense / Defense</h2>
-        <div className="grid grid-2">
-          <div>
-            <div className="section-label">Offense</div>
-            <div className="tiles" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
-              <div className="tile"><div className="label">Tore/Spiel</div><div className="value mono">{gpg}</div></div>
-              <div className="tile"><div className="label">SOG/Spiel</div><div className="value mono">{sogForPg != null ? sogForPg.toFixed(1) : '–'}</div></div>
-            </div>
-          </div>
-          <div>
-            <div className="section-label">Defense</div>
-            <div className="tiles" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
-              <div className="tile"><div className="label">Gegentore/Spiel</div><div className="value mono">{gpa}</div></div>
-              <div className="tile"><div className="label">SOG zugelassen/Spiel</div><div className="value mono">{sogAllowedPg != null ? sogAllowedPg.toFixed(1) : '–'}</div></div>
-            </div>
-          </div>
+        <h2 className="mb">Tore &amp; Splits</h2>
+        <div className="section-label">Offense / Defense</div>
+        <div className="tiles" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+          <div className="tile"><div className="label">Tore/Spiel</div><div className="value mono">{gpg}</div></div>
+          <div className="tile"><div className="label">Gegentore/Spiel</div><div className="value mono">{gpa}</div></div>
+          <div className="tile"><div className="label">SOG/Spiel</div><div className="value mono">{sogForPg != null ? sogForPg.toFixed(1) : '–'}</div></div>
+          <div className="tile"><div className="label">SOG zugelassen/Spiel</div><div className="value mono">{sogAllowedPg != null ? sogAllowedPg.toFixed(1) : '–'}</div></div>
         </div>
         {histLast3.length > 0 && (
           <div className="muted mt" style={{ fontSize: 12 }}>
@@ -722,45 +677,45 @@ export default function TeamDetail() {
             }).join(' · ')}
           </div>
         )}
-      </div>
 
-      {standing && (
-        <div className="card card-pad mb">
-          <h2 className="mb">Heim / Auswärts</h2>
-          <div className="grid grid-2">
-            {[['Heimspiele', splits.home], ['Auswärtsspiele', splits.away]].map(([label, s]) => (
-              <div key={label}>
-                <div className="section-label">{label}</div>
-                <div style={{ fontSize: '0.9rem', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
-                  <div><span className="muted">Spiele</span> <strong>{s.gp}</strong></div>
-                  <div><span className="muted">Bilanz</span> <strong>{s.w}-{s.otw}-{s.otl}-{s.l}</strong></div>
-                  <div><span className="muted">Punkte/Sp.</span> <strong>{s.gp > 0 ? fmt2(s.pts / s.gp) : '–'}</strong></div>
-                  <div><span className="muted">Tore/Sp.</span> <strong>{s.gp > 0 ? fmt2(s.gf / s.gp) : '–'}</strong></div>
-                  <div><span className="muted">Gegent./Sp.</span> <strong>{s.gp > 0 ? fmt2(s.ga / s.gp) : '–'}</strong></div>
+        {standing && (
+          <>
+            <div className="section-label mt">Heim / Auswärts</div>
+            <div className="grid grid-2">
+              {[['Heimspiele', splits.home], ['Auswärtsspiele', splits.away]].map(([label, s]) => (
+                <div key={label}>
+                  <div className="muted" style={{ fontSize: 11.5, fontWeight: 700, marginBottom: 4 }}>{label}</div>
+                  <div style={{ fontSize: '0.9rem', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
+                    <div><span className="muted">Spiele</span> <strong>{s.gp}</strong></div>
+                    <div><span className="muted">Bilanz</span> <strong>{s.w}-{s.otw}-{s.otl}-{s.l}</strong></div>
+                    <div><span className="muted">Punkte/Sp.</span> <strong>{s.gp > 0 ? fmt2(s.pts / s.gp) : '–'}</strong></div>
+                    <div><span className="muted">Tore/Sp.</span> <strong>{s.gp > 0 ? fmt2(s.gf / s.gp) : '–'}</strong></div>
+                    <div><span className="muted">Gegent./Sp.</span> <strong>{s.gp > 0 ? fmt2(s.ga / s.gp) : '–'}</strong></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {splits.home.gp > 0 && splits.away.gp > 0 && (
+              <div className="mt">
+                <div className="row" style={{ fontSize: 12 }}>
+                  <span className="muted" style={{ minWidth: 70 }}>Heim Pkt/Sp.</span>
+                  <div className="bar-track" style={{ flex: 1 }}><div className="bar-fill" style={{ width: `${Math.min((splits.home.pts / splits.home.gp / 3) * 100, 100)}%` }} /></div>
+                  <strong style={{ minWidth: 34, textAlign: 'right' }}>{fmt2(splits.home.pts / splits.home.gp)}</strong>
+                </div>
+                <div className="row mt" style={{ fontSize: 12 }}>
+                  <span className="muted" style={{ minWidth: 70 }}>Ausw. Pkt/Sp.</span>
+                  <div className="bar-track" style={{ flex: 1 }}><div className="bar-fill" style={{ width: `${Math.min((splits.away.pts / splits.away.gp / 3) * 100, 100)}%`, background: 'var(--text-faint)' }} /></div>
+                  <strong style={{ minWidth: 34, textAlign: 'right' }}>{fmt2(splits.away.pts / splits.away.gp)}</strong>
                 </div>
               </div>
-            ))}
-          </div>
-          {splits.home.gp > 0 && splits.away.gp > 0 && (
-            <div className="mt">
-              <div className="row" style={{ fontSize: 12 }}>
-                <span className="muted" style={{ minWidth: 70 }}>Heim Pkt/Sp.</span>
-                <div className="bar-track" style={{ flex: 1 }}><div className="bar-fill" style={{ width: `${Math.min((splits.home.pts / splits.home.gp / 3) * 100, 100)}%` }} /></div>
-                <strong style={{ minWidth: 34, textAlign: 'right' }}>{fmt2(splits.home.pts / splits.home.gp)}</strong>
-              </div>
-              <div className="row mt" style={{ fontSize: 12 }}>
-                <span className="muted" style={{ minWidth: 70 }}>Ausw. Pkt/Sp.</span>
-                <div className="bar-track" style={{ flex: 1 }}><div className="bar-fill" style={{ width: `${Math.min((splits.away.pts / splits.away.gp / 3) * 100, 100)}%`, background: 'var(--text-faint)' }} /></div>
-                <strong style={{ minWidth: 34, textAlign: 'right' }}>{fmt2(splits.away.pts / splits.away.gp)}</strong>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </>
+        )}
+      </div>
 
       {rosterProfile && rosterProfile.scoredCount > 0 && (
         <div className="card card-pad mb">
-          <h2 className="mb">Kaderanalyse</h2>
+          <h2 className="mb">Team Depth</h2>
           <div className="stat-strip">
             <div className="stat"><strong>{rosterProfile.playerCount}</strong><span>Feldspieler</span></div>
             <div className="stat"><strong>{rosterProfile.avgScore.toFixed(1)}</strong><span>Ø Impact Score</span></div>
@@ -768,100 +723,39 @@ export default function TeamDetail() {
             {rosterProfile.avgBirthYear != null && <div className="stat"><strong>{rosterProfile.avgBirthYear}</strong><span>Ø Geburtsjahr</span></div>}
           </div>
           <div className="muted mb" style={{ fontSize: 11 }}>
-            Impact Score: positions-relatives Perzentil (0-100) aus Karriere-P/GP, TOI/GP, +/-/GP und SOG/GP – siehe Spielerprofil für Details.
+            Impact Score: positions-relatives Perzentil (0-100) aus Karriere-P/GP, TOI/GP, +/-/GP und SOG/GP – auch je Spieler in der Kader-Tabelle oben.
             {rosterProfile.scoredCount < rosterProfile.playerCount && ` Nur für ${rosterProfile.scoredCount}/${rosterProfile.playerCount} Feldspieler genug Karrieredaten vorhanden.`}
           </div>
 
-          <div className="row spread mb">
-            <div className="section-label" style={{ marginBottom: 0 }}>Top 5</div>
-            <div className="pill-tabs">
-              <button className={top5Mode === 'impact' ? 'active' : ''} onClick={() => setTop5Mode('impact')}>Impact Score</button>
-              <button className={top5Mode === 'ppg' ? 'active' : ''} onClick={() => setTop5Mode('ppg')}>P/GP (Saison)</button>
-              <button className={top5Mode === 'points' ? 'active' : ''} onClick={() => setTop5Mode('points')}>Punkte (Saison)</button>
-            </div>
-          </div>
-          {top5ByMode.length === 0 ? (
-            <div className="muted" style={{ fontSize: 12.5, marginBottom: 14 }}>Noch keine Saisonspiele - diese Ansicht basiert auf {currentSeasonLabel || 'der laufenden Saison'}.</div>
-          ) : (
-            <div className="table-wrap" style={{ marginBottom: 16 }}>
-              <table>
-                <thead><tr><th className="left">Spieler</th><th className="left">Position</th><th className="num">P/GP (Saison)</th><th className="num">Punkte (Saison)</th><th className="left">Trend</th><th className="num">Impact Score</th></tr></thead>
-                <tbody>
-                  {top5ByMode.map((s) => (
-                    <tr key={s.player.id}>
-                      <td className="left"><Link to={`/players/${s.player.id}`}>{s.player.name}</Link></td>
-                      <td className="left"><span className="chip">{s.position}</span></td>
-                      <td className="num">{s.ppg != null || s.currentPpg != null ? (s.currentPpg ?? s.ppg).toFixed(2) : <span className="muted">–</span>}</td>
-                      <td className="num">{s.currentPoints ?? statById[s.player.id]?.points ?? 0}</td>
-                      <td className="left">
-                        {s.trend ? (
-                          <span className={s.trend.label.includes('steigend') ? 'good' : s.trend.label === 'fallend' ? 'bad' : 'muted'} style={{ fontSize: 12.5, fontWeight: 700 }}>
-                            {s.trend.label}
-                          </span>
-                        ) : <span className="muted" style={{ fontSize: 12.5 }}>–</span>}
-                      </td>
-                      <td className="num"><strong>{s.score.toFixed(1)}</strong></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Team Depth */}
           {teamDepth && (
-            <>
-              <div className="section-label">Team Depth</div>
-              <div className="grid grid-3 mb">
-                {[
-                  ['Stürmer', teamDepth.forwards],
-                  ['Verteidiger', teamDepth.defense],
-                  ['Torhüter', teamDepth.goalies],
-                ].map(([label, g]) => (
-                  <div key={label} className="tile">
-                    <div className="label">{label}</div>
-                    <div className="value mono">{g.count}</div>
-                    <div style={{ marginTop: 6, fontSize: 12 }}>
-                      {label === 'Torhüter' ? (
-                        g.avgSavePct != null ? (
-                          <>
-                            <div className="row spread"><span className="muted">Ø SV%</span><strong>{fmtPct(g.avgSavePct)}</strong></div>
-                            <div className="row spread"><span className="muted">Median SV%</span><strong>{fmtPct(g.medianSavePct)}</strong></div>
-                          </>
-                        ) : <span className="muted">Zu wenig Karrieredaten</span>
-                      ) : g.avgImpact != null ? (
+            <div className="grid grid-3">
+              {[
+                ['Stürmer', teamDepth.forwards],
+                ['Verteidiger', teamDepth.defense],
+                ['Torhüter', teamDepth.goalies],
+              ].map(([label, g]) => (
+                <div key={label} className="tile">
+                  <div className="label">{label}</div>
+                  <div className="value mono">{g.count}</div>
+                  <div style={{ marginTop: 6, fontSize: 12 }}>
+                    {label === 'Torhüter' ? (
+                      g.avgSavePct != null ? (
                         <>
-                          <div className="row spread"><span className="muted">Ø Impact</span><strong>{g.avgImpact.toFixed(1)}</strong></div>
-                          <div className="row spread"><span className="muted">Median</span><strong>{g.medianImpact.toFixed(1)}</strong></div>
-                          {g.avgPpg != null && <div className="row spread"><span className="muted">Ø Karriere-P/GP</span><strong>{fmt2(g.avgPpg)}</strong></div>}
+                          <div className="row spread"><span className="muted">Ø SV%</span><strong>{fmtPct(g.avgSavePct)}</strong></div>
+                          <div className="row spread"><span className="muted">Median SV%</span><strong>{fmtPct(g.medianSavePct)}</strong></div>
                         </>
-                      ) : <span className="muted">Zu wenig Karrieredaten</span>}
-                    </div>
+                      ) : <span className="muted">Zu wenig Karrieredaten</span>
+                    ) : g.avgImpact != null ? (
+                      <>
+                        <div className="row spread"><span className="muted">Ø Impact</span><strong>{g.avgImpact.toFixed(1)}</strong></div>
+                        <div className="row spread"><span className="muted">Median</span><strong>{g.medianImpact.toFixed(1)}</strong></div>
+                        {g.avgPpg != null && <div className="row spread"><span className="muted">Ø Karriere-P/GP</span><strong>{fmt2(g.avgPpg)}</strong></div>}
+                      </>
+                    ) : <span className="muted">Zu wenig Karrieredaten</span>}
                   </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {currentContributors.length > 0 && (
-            <>
-              <div className="section-label">Wer trägt das Team aktuell? ({currentSeasonLabel || 'laufende Saison'}, Punkteanteil)</div>
-              <div className="table-wrap">
-                <table>
-                  <thead><tr><th className="left">Spieler</th><th className="num">GP</th><th className="num">Punkte</th><th className="num">Anteil</th></tr></thead>
-                  <tbody>
-                    {currentContributors.map((c) => (
-                      <tr key={c.player.id}>
-                        <td className="left"><Link to={`/players/${c.player.id}`}>{c.player.name}</Link></td>
-                        <td className="num">{c.gp}</td>
-                        <td className="num"><strong>{c.points}</strong></td>
-                        <td className="num">{(c.share * 100).toFixed(1)}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}
