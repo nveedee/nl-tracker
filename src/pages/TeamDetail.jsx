@@ -10,7 +10,7 @@
 // NUR Anzeige (siehe dortige Kommentare).
 // ---------------------------------------------------------------------------
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useData } from '../DataContext.jsx'
 import { TeamBadge, Modal, toast, SortableTable, MarketValueTrend } from '../components/ui.jsx'
@@ -41,6 +41,7 @@ const posOrder = { G: 0, D: 1, F: 2 }
 
 function fmt2(v) { return v == null ? '–' : v.toFixed(2) }
 function mean(a) { return a.length ? a.reduce((s, v) => s + v, 0) / a.length : null }
+function fmtDateShort(iso) { return iso ? new Date(iso).toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit' }) : '–' }
 
 // Punkte/Tore/Gegentore/Siegquote über die letzten N (bzw. alle) Spiele eines
 // Teams - dieselbe NL-Punktelogik wie computeTeamForm/computeStandings in
@@ -189,7 +190,7 @@ export default function TeamDetail() {
       const won = (isHome ? g.homeGoals : g.awayGoals) > (isHome ? g.awayGoals : g.homeGoals)
       const ot = g.decision === 'OT' || g.decision === 'SO'
       cum += won ? (ot ? 2 : 3) : (ot ? 1 : 0)
-      return { index: i + 1, ppg: cum / (i + 1) }
+      return { index: i + 1, date: g.date, ppg: cum / (i + 1) }
     })
   }, [data.games, id])
 
@@ -422,8 +423,10 @@ export default function TeamDetail() {
         )}
       </div>
 
-      {/* B) Form - Kurzfenster (5/10/Saison), letzte 5 Resultate als Badges
-          statt reinem Text, plus Saisonverlauf (Ø Punkte/Spiel kumuliert). */}
+      {/* B) Form - Kurzfenster (5/10/Saison) + letzte 5 Resultate als Badges
+          statt reinem Text. Der Saisonverlauf lebt jetzt gebündelt unten in
+          "Saisonentwicklung" (ELO + Punkte zusammen) - hier bewusst kein
+          zweites, fast identisches Liniendiagramm. */}
       <div className="card card-pad mb">
         <h2 className="mb">Form</h2>
         <div className="grid grid-3 mb">
@@ -442,7 +445,7 @@ export default function TeamDetail() {
           ))}
         </div>
         {recentResults.length > 0 && (
-          <div className="row gap-sm mb" style={{ flexWrap: 'wrap' }}>
+          <div className="row gap-sm" style={{ flexWrap: 'wrap' }}>
             {[...recentResults].slice(0, 5).reverse().map((r) => {
               const won = r.isHome ? r.game.homeGoals > r.game.awayGoals : r.game.awayGoals > r.game.homeGoals
               return (
@@ -455,13 +458,19 @@ export default function TeamDetail() {
             })}
           </div>
         )}
-        {formSeries.length >= 2 ? <FormChart series={formSeries} /> : <div className="muted" style={{ fontSize: 12.5 }}>Formverlauf erscheint, sobald mehrere Spiele absolviert sind.</div>}
       </div>
 
-      {/* C) ELO / Team-Entwicklung - unverändert aus der historischen
-          ELO-Verlaufsreihe (derived.elo.history), keine Neuberechnung. */}
+      {/* C) Saisonentwicklung - "wie hat sich das Team seit Saisonbeginn
+          entwickelt" (im Gegensatz zu Form oben: "wie steht es gerade").
+          ELO-Verlauf aus derived.elo.history (elo.js, unveraendert) + darunter
+          der bereits vorhandene Punkte/Spiel-Verlauf (kumuliert), beide über
+          dieselbe SeasonLineChart-Komponente (Hover-Tooltip mit Datum +
+          exaktem Wert, Start-/Aktuell-Marker) - keine Neuberechnung, keine
+          neue Kennzahl. Marktwertentwicklung ist NICHT dargestellt: die
+          NL-API liefert bislang erst einen Marktwert-Snapshot pro Spieler
+          (Saisonstart), keine verlässliche Zeitreihe - siehe Abschlussbericht. */}
       <div className="card card-pad mb">
-        <h2 className="mb">ELO-Verlauf</h2>
+        <h2 className="mb">Saisonentwicklung</h2>
         <div className="stat-strip">
           <div className="stat"><strong>{preseasonElo != null ? Math.round(preseasonElo) : '–'}</strong><span>Pre-Season-ELO</span></div>
           <div className="stat"><strong>{eloRow?.rating ?? eloStart}</strong><span>Aktuell</span></div>
@@ -474,7 +483,33 @@ export default function TeamDetail() {
             <span>Veränderung</span>
           </div>
         </div>
-        {eloHistory.length >= 2 ? <TeamEloChart history={eloHistory} color={team.color} start={eloStart} /> : <div className="muted" style={{ fontSize: 12.5 }}>Verlauf erscheint, sobald Spiele absolviert sind.</div>}
+        {eloHistory.length >= 2 ? (
+          <SeasonLineChart
+            points={eloHistory.map((h) => ({ value: h.rating, label: h.date ? fmtDateShort(h.date) : 'Start' }))}
+            color={team.color}
+            valueFmt={(v) => Math.round(v)}
+            yMin={Math.min(...eloHistory.map((h) => h.rating), eloStart - 40)}
+            yMax={Math.max(...eloHistory.map((h) => h.rating), eloStart + 40)}
+          />
+        ) : <div className="muted" style={{ fontSize: 12.5 }}>Verlauf erscheint, sobald Spiele absolviert sind.</div>}
+
+        {formSeries.length >= 2 && (
+          <>
+            <div className="section-label mt">Punkte/Spiel (kumuliert)</div>
+            <div className="muted" style={{ fontSize: 11.5, marginBottom: 6 }}>
+              Start (nach Spiel 1): {fmt2(formSeries[0].ppg)} · Aktuell: <strong>{fmt2(formSeries[formSeries.length - 1].ppg)}</strong> Pkt/Sp.
+            </div>
+            <SeasonLineChart
+              points={formSeries.map((p) => ({ value: p.ppg, label: fmtDateShort(p.date) }))}
+              color="var(--accent)"
+              valueFmt={(v) => v.toFixed(2)}
+              yMin={0}
+              yMax={Math.max(3, ...formSeries.map((p) => p.ppg))}
+              yTickCount={2}
+              height={120}
+            />
+          </>
+        )}
       </div>
 
       {/* D) Kader - sortierbare Tabelle (SortableTable, src/components/ui.jsx)
@@ -955,45 +990,70 @@ function CompareRow({ label, v1, v2, fmt = (v) => v, lowerIsBetter = false }) {
   )
 }
 
-// Kompaktes SVG-Liniendiagramm: kumulierte Punkte/Spiel über die Saison.
-function FormChart({ series }) {
-  const W = 700, H = 140, pad = { l: 30, r: 10, t: 10, b: 10 }
-  const max = Math.max(3, ...series.map((p) => p.ppg))
-  const x = (i) => pad.l + (i / Math.max(1, series.length - 1)) * (W - pad.l - pad.r)
-  const y = (v) => pad.t + (1 - v / max) * (H - pad.t - pad.b)
-  const d = series.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i)},${y(p.ppg)}`).join(' ')
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ minWidth: 320 }}>
-      <line x1={pad.l} x2={W - pad.r} y1={y(0)} y2={y(0)} stroke="var(--border)" />
-      <text x={pad.l - 6} y={y(0) + 4} fontSize="10" fill="var(--text-dim)" textAnchor="end">0</text>
-      <line x1={pad.l} x2={W - pad.r} y1={y(3)} y2={y(3)} stroke="var(--border)" />
-      <text x={pad.l - 6} y={y(3) + 4} fontSize="10" fill="var(--text-dim)" textAnchor="end">3</text>
-      <path d={d} fill="none" stroke="var(--accent)" strokeWidth="2" opacity="0.9" />
-    </svg>
-  )
-}
+// Generisches SVG-Liniendiagramm mit Hover-Tooltip (Datum/Label + exaktem
+// Wert), Start- und Aktuell-Marker - gemeinsam genutzt für ELO- und
+// Punkte-Verlauf (Abschnitt "Saisonentwicklung"), damit die Hover-/
+// Positionierungslogik nicht zweimal fast identisch existiert. Reine
+// Darstellung bereits vorhandener Werte, keine Berechnung.
+// `points`: [{ value, label }], chronologisch. `yMin`/`yMax`: vom Aufrufer
+// vorgegebene Skala (dieselbe Logik wie zuvor je Chart). `yTickCount`: Anzahl
+// Gitterlinien (Default 3).
+function SeasonLineChart({ points, color, valueFmt = (v) => v, yMin, yMax, yTickCount = 3, height = 160 }) {
+  const [hoverIdx, setHoverIdx] = useState(null)
+  const svgRef = useRef(null)
+  const W = 700, H = height, pad = { l: 40, r: 10, t: 14, b: 10 }
+  const span = (yMax - yMin) || 1
+  const last = points.length - 1
+  const x = (i) => pad.l + (i / Math.max(1, last)) * (W - pad.l - pad.r)
+  const y = (v) => pad.t + (1 - (v - yMin) / span) * (H - pad.t - pad.b)
+  const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i)},${y(p.value)}`).join(' ')
+  const ticks = Array.from({ length: yTickCount + 1 }, (_, i) => yMin + (span * i) / yTickCount)
 
-// Einzelteam-ELO-Verlauf, analog zu EloChart in EloRanking.jsx (dort nicht
-// exportiert, daher hier als eigene, gleich aufgebaute Komponente).
-function TeamEloChart({ history, color, start }) {
-  const W = 700, H = 180, pad = { l: 40, r: 10, t: 10, b: 18 }
-  const ratings = history.map((p) => p.rating)
-  const min = Math.min(...ratings, start - 40), max = Math.max(...ratings, start + 40)
-  const x = (i) => pad.l + (i / Math.max(1, history.length - 1)) * (W - pad.l - pad.r)
-  const y = (v) => pad.t + (1 - (v - min) / (max - min || 1)) * (H - pad.t - pad.b)
-  const d = history.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i)},${y(p.rating)}`).join(' ')
-  const yTicks = 3
-  const ticks = Array.from({ length: yTicks + 1 }, (_, i) => Math.round(min + ((max - min) * i) / yTicks))
+  const handleMove = (e) => {
+    if (!svgRef.current) return
+    const rect = svgRef.current.getBoundingClientRect()
+    const fracX = (e.clientX - rect.left) / rect.width
+    const vbX = fracX * W
+    const usable = W - pad.l - pad.r
+    const idx = Math.round(((vbX - pad.l) / usable) * last)
+    setHoverIdx(Math.max(0, Math.min(last, idx)))
+  }
+
+  const hp = hoverIdx != null ? points[hoverIdx] : null
+
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ minWidth: 320 }}>
-      {ticks.map((tk) => (
-        <g key={tk}>
-          <line x1={pad.l} x2={W - pad.r} y1={y(tk)} y2={y(tk)} stroke="var(--border)" />
-          <text x={pad.l - 8} y={y(tk) + 4} fontSize="10" fill="var(--text-dim)" textAnchor="end">{tk}</text>
-        </g>
-      ))}
-      <path d={d} fill="none" stroke={color} strokeWidth="2" opacity="0.9" />
-    </svg>
+    <div style={{ position: 'relative' }}>
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${W} ${H}`}
+        width="100%"
+        style={{ minWidth: 280, display: 'block', cursor: points.length > 1 ? 'crosshair' : 'default' }}
+        onMouseMove={handleMove}
+        onMouseLeave={() => setHoverIdx(null)}
+      >
+        {ticks.map((tk) => (
+          <g key={tk}>
+            <line x1={pad.l} x2={W - pad.r} y1={y(tk)} y2={y(tk)} stroke="var(--border)" />
+            <text x={pad.l - 8} y={y(tk) + 4} fontSize="10" fill="var(--text-dim)" textAnchor="end">{valueFmt(tk)}</text>
+          </g>
+        ))}
+        <path d={d} fill="none" stroke={color} strokeWidth="2" opacity="0.9" />
+        <circle cx={x(0)} cy={y(points[0].value)} r="3" fill="var(--text-faint)" />
+        <circle cx={x(last)} cy={y(points[last].value)} r="4.5" fill={color} stroke="var(--bg-elev)" strokeWidth="1.5" />
+        {hoverIdx != null && (
+          <>
+            <line x1={x(hoverIdx)} x2={x(hoverIdx)} y1={pad.t} y2={H - pad.b} stroke="var(--border-strong)" strokeDasharray="2,2" />
+            <circle cx={x(hoverIdx)} cy={y(hp.value)} r="4.5" fill={color} stroke="var(--bg-elev)" strokeWidth="1.5" />
+          </>
+        )}
+      </svg>
+      {hp && (
+        <div className="chart-tooltip" style={{ left: `${(x(hoverIdx) / W) * 100}%`, top: `${(y(hp.value) / H) * 100}%` }}>
+          <div className="chart-tooltip-date">{hp.label}</div>
+          <div className="chart-tooltip-value">{valueFmt(hp.value)}</div>
+        </div>
+      )}
+    </div>
   )
 }
 

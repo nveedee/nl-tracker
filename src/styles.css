@@ -674,6 +674,17 @@ input[type="checkbox"] { width: auto; accent-color: var(--accent); }
   font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums;
 }
 
+/* ---------- Chart-Tooltip (Season-Line-Chart Hover, TeamDetail.jsx) ---------- */
+.chart-tooltip {
+  position: absolute; transform: translate(-50%, -120%);
+  background: var(--bg-elev-2); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm); padding: 4px 8px; font-size: 11px;
+  white-space: nowrap; pointer-events: none; box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  z-index: 5;
+}
+.chart-tooltip-date { color: var(--text-dim); font-size: 10px; }
+.chart-tooltip-value { font-weight: 700; font-family: var(--mono); }
+
 /* ---------- Playoff Probability Wheel (radiale MoneyPuck-artige
    Visualisierung: ein Kreis, ein Sektor pro Team statt Balkentabelle -
    siehe src/components/PlayoffWheel.jsx + src/wheelGeometry.js) ---------- */
