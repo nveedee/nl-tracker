@@ -22,6 +22,7 @@ const MAX_BASELINES = 90 // ~3 Saison-Monate tägliche Historie, verhindert unbe
 
 const BASELINE_FIELDS = [
   'pPlayoffs', 'pTop6', 'pPlayIn', 'pSemifinal', 'pFinal', 'pChampion', 'pPlayout1314', 'pLigaQualifikation', 'avgRank',
+  'avgPts', 'medianPts', 'minPts', 'maxPts',
 ]
 
 function todayKey(d = new Date()) {

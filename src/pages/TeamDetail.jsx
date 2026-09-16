@@ -11,11 +11,11 @@
 // ---------------------------------------------------------------------------
 
 import { useMemo, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useData } from '../DataContext.jsx'
-import { TeamBadge, Modal, toast } from '../components/ui.jsx'
+import { TeamBadge, Modal, toast, SortableTable, MarketValueTrend } from '../components/ui.jsx'
 import {
-  fmtPct, fmtNum, plusMinusStr, computeTeamForm, computeHomeSplits,
+  fmtPct, fmtNum, fmtChf, plusMinusStr, computeHomeSplits,
   isFinalGame,
 } from '../stats.js'
 import {
@@ -25,16 +25,18 @@ import {
 import { useTeamHistory, getTeamSeasons, teamSeasonRates, lastNSeasons } from '../teamHistory.js'
 import { homeWinProbability } from '../elo.js'
 import { computePowerRankings } from '../powerRankings.js'
-import { computeFixtures } from '../playoffSim.js'
+import { computeFixtures, computeMatchForecasts } from '../playoffSim.js'
+import { OT_SHARE_OF_TIES } from '../liveProbability.js'
 import { usePreseasonElo, computePreseasonRatings } from '../preseasonElo.js'
 import { computeMarketValuePrior, DEFAULT_PRIOR_SPREAD } from '../marketValuePrior.js'
+import { useSimResults, getProbsRow } from '../simResultsContext.jsx'
+import MatchForecast from '../components/MatchForecast.jsx'
 
 const POS = [
   { v: 'G', label: 'Torhüter' },
   { v: 'D', label: 'Verteidiger' },
   { v: 'F', label: 'Stürmer' },
 ]
-const posLabel = (v) => POS.find((p) => p.v === v)?.label || v
 const posOrder = { G: 0, D: 1, F: 2 }
 
 function fmt2(v) { return v == null ? '–' : v.toFixed(2) }
@@ -67,16 +69,20 @@ function computeFormWindow(teamId, games, n) {
 
 export default function TeamDetail() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const { data, derived, api, refresh } = useData()
   const playerHistoryData = usePlayerHistory()
   const baselines = usePositionBaselines()
   const teamHistoryData = useTeamHistory()
   const preseasonSeasonEnd = usePreseasonElo()
+  const { rows: simRows, updatedAt: simUpdatedAt } = useSimResults()
   const team = data.teams.find((t) => t.id === id)
   const [editing, setEditing] = useState(null)
   const [editTeam, setEditTeam] = useState(false)
   const [top5Mode, setTop5Mode] = useState('impact')
   const [compareTeamId, setCompareTeamId] = useState('')
+  const [rosterFilter, setRosterFilter] = useState('all')
+  const [rosterSearch, setRosterSearch] = useState('')
 
   const eloStart = data.settings?.eloStart ?? 1500
   const homeAdv = data.settings?.eloHomeAdvantage ?? 65
@@ -146,18 +152,30 @@ export default function TeamDetail() {
     : []
 
   const standing = derived.standings.find((s) => s.team.id === id)
+  const rank = standing ? derived.standings.indexOf(standing) + 1 : null
+  const bilanz = standing ? `${standing.w}-${standing.otw}-${standing.otl}-${standing.l}` : null
   const eloRow = derived.elo.ranking.find((r) => r.team.id === id)
   const powerRow = power.find((p) => p.team.id === id)
   const eloHistory = derived.elo.history[id] || []
   const preseasonElo = preseasonRatings?.[id] ?? null
+  // Season-Projection-Kompaktwerte (Abschnitt G) aus dem app-weiten Live-
+  // Simulationsergebnis (simResultsContext.jsx) - derselbe Store wie
+  // Dashboard/PlayoffOdds. NICHT hier neu simuliert (siehe Kommentar oben in
+  // der Datei). Null, solange in dieser Session noch nie simuliert wurde.
+  const projectionRow = getProbsRow(simRows, id)
 
   const form5 = computeFormWindow(id, data.games, 5)
   const form10 = computeFormWindow(id, data.games, 10)
   const formSeason = standing?.gp > 0 ? { gp: standing.gp, ptsPerGame: standing.pts / standing.gp, gfpg: standing.gf / standing.gp, gapg: standing.ga / standing.gp } : null
-  const formLegacy = computeTeamForm(id, data.games)
   const splits = computeHomeSplits(id, data.games)
   const gpg = standing?.gp > 0 ? (standing.gf / standing.gp).toFixed(2) : '–'
   const gpa = standing?.gp > 0 ? (standing.ga / standing.gp).toFixed(2) : '–'
+  // Kleiner Formtrend fürs Hero (Abschnitt A) - Vergleich Ø-Punkte/Spiel der
+  // letzten 5 Spiele gegen den Saisonschnitt, reine Ableitung aus bereits
+  // vorhandenen Werten (form5/formSeason), kein neuer Modellwert.
+  const formTrend = form5 && formSeason && form5.gp >= 3
+    ? (form5.ptsPerGame - formSeason.ptsPerGame > 0.3 ? 'up' : form5.ptsPerGame - formSeason.ptsPerGame < -0.3 ? 'down' : 'flat')
+    : null
 
   // Formverlauf über die Saison: kumulierte Punkte/Spiel nach jedem
   // absolvierten Spiel (chronologisch) - reine Deskriptivstatistik.
@@ -229,11 +247,53 @@ export default function TeamDetail() {
   const eloMin = Math.min(...leagueElos), eloMax = Math.max(...leagueElos)
   const strengthProfile = [
     eloRow ? { label: 'ELO', pct: eloMax > eloMin ? ((eloRow.rating - eloMin) / (eloMax - eloMin)) * 100 : 50, raw: eloRow.rating } : null,
+    powerRow ? { label: 'Power Score', pct: powerRow.powerScore, raw: powerRow.powerScore } : null,
     rosterProfile?.offense != null ? { label: 'Offense (Kader)', pct: rosterProfile.offense, raw: rosterProfile.offense } : null,
     rosterProfile?.defense != null ? { label: 'Defense (Kader)', pct: rosterProfile.defense, raw: rosterProfile.defense } : null,
     rosterProfile?.avgScore != null ? { label: 'Roster (Ø Impact)', pct: rosterProfile.avgScore, raw: rosterProfile.avgScore } : null,
     form10 ? { label: 'Form (10 Sp.)', pct: (form10.ptsPerGame / 3) * 100, raw: form10.ptsPerGame } : null,
   ].filter(Boolean)
+
+  // Matchups (Abschnitt H) - dieselbe Herleitung wie Dashboard.jsx/
+  // PlayoffOdds.jsx (computeMatchForecasts + computeFixtures-Anreicherung),
+  // hier auf die Spiele DIESES Teams gefiltert. Verwendet die bereits oben
+  // berechnete fixturesData - kein zweiter Simulationslauf.
+  const teamForecasts = computeMatchForecasts(data.teams, data.games, data.settings, data.players || [], preseasonRatings)
+    .filter((f) => f.homeTeam.id === id || f.awayTeam.id === id)
+    .map((f) => {
+      const fx = fixtureByPair.get(`${f.homeTeam.id}:${f.awayTeam.id}`)
+      if (!fx) return f
+      return {
+        ...f,
+        expHomeGoals: fx.expHome, expAwayGoals: fx.expAway,
+        eloHome: fixturesData.eloRatings[f.homeTeam.id], eloAway: fixturesData.eloRatings[f.awayTeam.id],
+        pOT: f.pDecision * OT_SHARE_OF_TIES, pSO: f.pDecision * (1 - OT_SHARE_OF_TIES),
+      }
+    })
+
+  // Roster Value (Abschnitt E) - reine Summe/Sortierung bereits vorhandener
+  // Marktwerte (player.marketValue, NL-API via server/sync.js). Keine neue
+  // Bewertungslogik, kein Team-Score. Historische Team-Marktwertentwicklung
+  // (Verlauf über die Saison) ist NICHT umgesetzt: es gibt nur eine
+  // Zeitreihe PRO SPIELER (player.marketValueHistory), keine bereits
+  // aggregierte Team-Zeitreihe - eine tagesweise Summierung über alle
+  // Spieler wäre eine neue Berechnung, siehe Abschlussbericht.
+  const playersWithValue = players.filter((p) => p.marketValue != null)
+  const rosterValueTotal = playersWithValue.reduce((s, p) => s + p.marketValue, 0)
+  const topValuablePlayers = [...playersWithValue].sort((a, b) => b.marketValue - a.marketValue).slice(0, 5)
+  const rosterTrendUp = players.filter((p) => p.marketValueTrend === 1).length
+  const rosterTrendDown = players.filter((p) => p.marketValueTrend === -1).length
+
+  // Kader (Abschnitt D) - Position/Namenfilter für die sortierbare
+  // Kadertabelle, dieselben statById-Werte wie überall sonst auf der Seite.
+  const rosterSearchLower = rosterSearch.trim().toLowerCase()
+  const rosterFiltered = players.filter((p) => {
+    if (rosterSearchLower && !p.name.toLowerCase().includes(rosterSearchLower)) return false
+    if (rosterFilter === 'all') return true
+    return p.position === rosterFilter
+  })
+  const rosterSkaters = rosterFiltered.filter((p) => p.position !== 'G')
+  const rosterGoalies = rosterFiltered.filter((p) => p.position === 'G')
 
   const compareTeam = compareTeamId ? data.teams.find((t) => t.id === compareTeamId) : null
   const compareRow = compareTeam ? power.find((p) => p.team.id === compareTeamId) : null
@@ -263,6 +323,55 @@ export default function TeamDetail() {
     catch (e) { toast(e.message, true) }
   }
 
+  const skaterColumns = [
+    { key: 'number', label: '#', num: true, noSort: true, render: (p) => <span className="muted">{p.number}</span> },
+    { key: 'name', label: 'Spieler', left: true, value: (p) => p.name, render: (p) => <Link to={`/players/${p.id}`}>{p.name}</Link> },
+    { key: 'position', label: 'Pos.', left: true, value: (p) => p.position, render: (p) => <span className="chip">{p.position}</span> },
+    { key: 'gp', label: 'GP', num: true, value: (p) => statById[p.id]?.gp || 0, render: (p) => statById[p.id]?.gp || 0 },
+    { key: 'goals', label: 'G', num: true, value: (p) => statById[p.id]?.goals || 0, render: (p) => statById[p.id]?.goals || 0 },
+    { key: 'assists', label: 'A', num: true, value: (p) => statById[p.id]?.assists || 0, render: (p) => statById[p.id]?.assists || 0 },
+    { key: 'points', label: 'P', num: true, value: (p) => statById[p.id]?.points || 0, render: (p) => <strong>{statById[p.id]?.points || 0}</strong> },
+    {
+      key: 'ppg', label: 'P/GP', num: true,
+      value: (p) => { const s = statById[p.id]; return s?.gp > 0 ? s.points / s.gp : -1 },
+      render: (p) => { const s = statById[p.id]; return s?.gp > 0 ? (s.points / s.gp).toFixed(2) : <span className="muted">–</span> },
+    },
+    { key: 'sog', label: 'SOG', num: true, value: (p) => statById[p.id]?.sog ?? -1, render: (p) => statById[p.id]?.sog ?? <span className="muted">–</span> },
+    {
+      key: 'plusMinus', label: '+/–', num: true,
+      value: (p) => statById[p.id]?.plusMinus ?? 0,
+      render: (p) => statById[p.id]?.plusMinus != null ? plusMinusStr(statById[p.id].plusMinus) : 0,
+    },
+    {
+      key: 'actions', label: '', num: true, noSort: true,
+      render: (p) => (
+        <span className="row gap-sm" style={{ justifyContent: 'flex-end' }}>
+          <button className="btn ghost sm" onClick={(e) => { e.stopPropagation(); setEditing(p) }}>Bearbeiten</button>
+          <button className="btn ghost sm" onClick={(e) => { e.stopPropagation(); removePlayer(p) }}>Entfernen</button>
+        </span>
+      ),
+    },
+  ]
+  const goalieColumns = [
+    { key: 'number', label: '#', num: true, noSort: true, render: (p) => <span className="muted">{p.number}</span> },
+    { key: 'name', label: 'Spieler', left: true, value: (p) => p.name, render: (p) => <Link to={`/players/${p.id}`}>{p.name}</Link> },
+    { key: 'gp', label: 'GP', num: true, value: (p) => statById[p.id]?.gp || 0, render: (p) => statById[p.id]?.gp || 0 },
+    { key: 'wins', label: 'S', num: true, value: (p) => statById[p.id]?.wins || 0, render: (p) => statById[p.id]?.wins || 0 },
+    { key: 'losses', label: 'N', num: true, value: (p) => statById[p.id]?.losses || 0, render: (p) => statById[p.id]?.losses || 0 },
+    { key: 'savePct', label: 'SV%', num: true, value: (p) => statById[p.id]?.savePct ?? -1, render: (p) => fmtPct(statById[p.id]?.savePct) },
+    { key: 'gaa', label: 'GTS', num: true, value: (p) => statById[p.id]?.gaa ?? 999, render: (p) => fmtNum(statById[p.id]?.gaa) },
+    { key: 'shutouts', label: 'SO', num: true, value: (p) => statById[p.id]?.shutouts || 0, render: (p) => statById[p.id]?.shutouts || 0 },
+    {
+      key: 'actions', label: '', num: true, noSort: true,
+      render: (p) => (
+        <span className="row gap-sm" style={{ justifyContent: 'flex-end' }}>
+          <button className="btn ghost sm" onClick={(e) => { e.stopPropagation(); setEditing(p) }}>Bearbeiten</button>
+          <button className="btn ghost sm" onClick={(e) => { e.stopPropagation(); removePlayer(p) }}>Entfernen</button>
+        </span>
+      ),
+    },
+  ]
+
   return (
     <>
       <div className="page-head">
@@ -277,25 +386,44 @@ export default function TeamDetail() {
         </div>
       </div>
 
-      {/* 1. Team Overview */}
+      {/* A) Team Hero - die wichtigsten Kennzahlen auf einen Blick, oberhalb
+          jeder weiteren Sektion. Playoff-Chance kommt aus dem app-weiten
+          Live-Simulationsstore (kein Neuberechnen hier, siehe projectionRow). */}
       <div className="card card-pad mb">
-        <div className="section-label">Team Overview</div>
         <div className="stat-strip">
-          <div className="stat"><strong>{eloRow?.rating ?? eloStart}</strong><span>Aktuelles ELO</span></div>
-          <div className="stat"><strong>{preseasonElo != null ? Math.round(preseasonElo) : '–'}</strong><span>Pre-Season-ELO</span></div>
-          <div className="stat"><strong>{powerRow?.powerScore ?? '–'}</strong><span>Power Score</span></div>
-          <div className="stat"><strong>{standing?.gp ?? 0}</strong><span>Spiele</span></div>
+          <div className="stat"><strong>{rank ? `#${rank}` : '–'}</strong><span>Tabellenplatz</span></div>
           <div className="stat"><strong>{standing?.pts ?? 0}</strong><span>Punkte</span></div>
-          <div className="stat"><strong>{formSeason ? fmt2(formSeason.ptsPerGame) : '–'}</strong><span>Punkte/Spiel</span></div>
-          <div className="stat"><strong>{gpg}</strong><span>Tore/Spiel</span></div>
-          <div className="stat"><strong>{gpa}</strong><span>Gegentore/Spiel</span></div>
+          <div className="stat"><strong>{bilanz ?? '–'}</strong><span>Bilanz (S-SnV-NnV-N)</span></div>
+          <div className="stat">
+            <strong className={standing && standing.gd > 0 ? 'good' : standing && standing.gd < 0 ? 'bad' : ''}>
+              {standing ? (standing.gd > 0 ? '+' : '') + standing.gd : '–'}
+            </strong>
+            <span>Tordifferenz</span>
+          </div>
+          <div className="stat"><strong>{eloRow?.rating ?? eloStart}</strong><span>ELO</span></div>
+          <div className="stat"><strong>{powerRow?.powerScore ?? '–'}</strong><span>Power Score</span></div>
+          <div className="stat">
+            <strong>{projectionRow ? fmtPct(projectionRow.pPlayoffs) : '–'}</strong>
+            <span>Playoff-Chance</span>
+          </div>
+          {formTrend && (
+            <div className="stat">
+              <strong className={formTrend === 'up' ? 'good' : formTrend === 'down' ? 'bad' : 'muted'} title="Ø Punkte/Spiel der letzten 5 Spiele vs. Saisonschnitt">
+                {formTrend === 'up' ? '▲' : formTrend === 'down' ? '▼' : '→'}
+              </strong>
+              <span>Formtrend</span>
+            </div>
+          )}
         </div>
-        <div className="muted" style={{ fontSize: 11.5 }}>
-          Season Projection &amp; Playoff-/Meister-Wahrscheinlichkeit: <Link to="/playoff-odds">vollständige 10'000-Läufe-Simulation auf der Season-Projections-Seite</Link> (hier nicht automatisch neu berechnet, aus Performance-Gründen).
-        </div>
+        {!projectionRow && (
+          <div className="muted mt" style={{ fontSize: 11.5 }}>
+            Playoff-/Meister-Wahrscheinlichkeit noch nicht verfügbar - <Link to="/playoff-odds">Season-Projections-Simulation starten</Link>.
+          </div>
+        )}
       </div>
 
-      {/* 2. Team Form */}
+      {/* B) Form - Kurzfenster (5/10/Saison), letzte 5 Resultate als Badges
+          statt reinem Text, plus Saisonverlauf (Ø Punkte/Spiel kumuliert). */}
       <div className="card card-pad mb">
         <h2 className="mb">Form</h2>
         <div className="grid grid-3 mb">
@@ -313,11 +441,226 @@ export default function TeamDetail() {
             </div>
           ))}
         </div>
-        {formLegacy.form && <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>Letzte 5 (Serie): {formLegacy.form}</div>}
+        {recentResults.length > 0 && (
+          <div className="row gap-sm mb" style={{ flexWrap: 'wrap' }}>
+            {[...recentResults].slice(0, 5).reverse().map((r) => {
+              const won = r.isHome ? r.game.homeGoals > r.game.awayGoals : r.game.awayGoals > r.game.homeGoals
+              return (
+                <ResultBadge
+                  key={r.game.id}
+                  code={resultCode(won, r.game.decision)}
+                  title={`${r.game.date} vs. ${r.opp?.short}: ${r.isHome ? `${r.game.homeGoals}:${r.game.awayGoals}` : `${r.game.awayGoals}:${r.game.homeGoals}`}`}
+                />
+              )
+            })}
+          </div>
+        )}
         {formSeries.length >= 2 ? <FormChart series={formSeries} /> : <div className="muted" style={{ fontSize: 12.5 }}>Formverlauf erscheint, sobald mehrere Spiele absolviert sind.</div>}
       </div>
 
-      {/* 3. Offense / Defense */}
+      {/* C) ELO / Team-Entwicklung - unverändert aus der historischen
+          ELO-Verlaufsreihe (derived.elo.history), keine Neuberechnung. */}
+      <div className="card card-pad mb">
+        <h2 className="mb">ELO-Verlauf</h2>
+        <div className="stat-strip">
+          <div className="stat"><strong>{preseasonElo != null ? Math.round(preseasonElo) : '–'}</strong><span>Pre-Season-ELO</span></div>
+          <div className="stat"><strong>{eloRow?.rating ?? eloStart}</strong><span>Aktuell</span></div>
+          <div className="stat"><strong>{eloHistory.length ? Math.round(Math.max(...eloHistory.map((h) => h.rating))) : '–'}</strong><span>Saisonhoch</span></div>
+          <div className="stat"><strong>{eloHistory.length ? Math.round(Math.min(...eloHistory.map((h) => h.rating))) : '–'}</strong><span>Saisontief</span></div>
+          <div className="stat">
+            <strong className={(eloRow?.rating ?? eloStart) - eloHistory[0]?.rating >= 0 ? 'good' : 'bad'}>
+              {eloHistory.length ? (((eloRow?.rating ?? eloStart) - eloHistory[0].rating) >= 0 ? '+' : '') + Math.round((eloRow?.rating ?? eloStart) - eloHistory[0].rating) : '–'}
+            </strong>
+            <span>Veränderung</span>
+          </div>
+        </div>
+        {eloHistory.length >= 2 ? <TeamEloChart history={eloHistory} color={team.color} start={eloStart} /> : <div className="muted" style={{ fontSize: 12.5 }}>Verlauf erscheint, sobald Spiele absolviert sind.</div>}
+      </div>
+
+      {/* D) Kader - sortierbare Tabelle (SortableTable, src/components/ui.jsx)
+          mit Positionsfilter + Suche. Ersetzt die frühere separate
+          Admin-Kadertabelle vollständig (Bearbeiten/Entfernen bleiben hier
+          erhalten) - keine zweite, redundante Spielerliste mehr auf der Seite. */}
+      <div className="card card-pad mb">
+        <div className="row spread mb" style={{ flexWrap: 'wrap', gap: 10 }}>
+          <h2 style={{ margin: 0 }}>Kader</h2>
+          <input
+            value={rosterSearch}
+            onChange={(e) => setRosterSearch(e.target.value)}
+            placeholder="Spieler suchen…"
+            style={{ width: 200 }}
+          />
+        </div>
+        <div className="pill-tabs mb">
+          <button className={rosterFilter === 'all' ? 'active' : ''} onClick={() => setRosterFilter('all')}>Alle</button>
+          <button className={rosterFilter === 'F' ? 'active' : ''} onClick={() => setRosterFilter('F')}>Stürmer</button>
+          <button className={rosterFilter === 'D' ? 'active' : ''} onClick={() => setRosterFilter('D')}>Verteidiger</button>
+          <button className={rosterFilter === 'G' ? 'active' : ''} onClick={() => setRosterFilter('G')}>Goalies</button>
+        </div>
+        {players.length === 0 ? (
+          <div className="empty">
+            <div className="title">Noch keine Spieler</div>
+            <div className="hint">Füge die Spieler dieses Teams hinzu.</div>
+            <div style={{ marginTop: 14 }}><button className="btn primary" onClick={() => setEditing({})}>Ersten Spieler hinzufügen</button></div>
+          </div>
+        ) : rosterFiltered.length === 0 ? (
+          <div className="muted" style={{ fontSize: 12.5 }}>Keine Spieler gefunden.</div>
+        ) : (
+          <>
+            {rosterSkaters.length > 0 && <SortableTable columns={skaterColumns} rows={rosterSkaters} initialSort="points" rowKey={(p) => p.id} />}
+            {rosterGoalies.length > 0 && (
+              <div style={{ marginTop: rosterSkaters.length > 0 ? 16 : 0 }}>
+                {rosterSkaters.length > 0 && <div className="section-label">Torhüter</div>}
+                <SortableTable columns={goalieColumns} rows={rosterGoalies} initialSort="gp" rowKey={(p) => p.id} />
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* E) Roster Value - reine Summe/Sortierung bestehender Marktwerte
+          (player.marketValue/marketValueTrend, NL-API), keine neue
+          Bewertungslogik. Team-weite Marktwertentwicklung über die Saison
+          ist NICHT dargestellt (siehe Abschlussbericht: keine aggregierte
+          Team-Zeitreihe vorhanden, nur pro Spieler). */}
+      {playersWithValue.length > 0 && (
+        <div className="card card-pad mb">
+          <h2 className="mb">Roster Value</h2>
+          <div className="stat-strip">
+            <div className="stat"><strong>CHF {fmtChf(rosterValueTotal)}</strong><span>Kaderwert gesamt</span></div>
+            <div className="stat"><strong>{playersWithValue.length}/{players.length}</strong><span>Spieler mit Marktwert</span></div>
+            <div className="stat"><strong className="good">{rosterTrendUp}</strong><span>Im Aufwind</span></div>
+            <div className="stat"><strong className="bad">{rosterTrendDown}</strong><span>Im Abwind</span></div>
+          </div>
+          <div className="section-label">Wertvollste Spieler</div>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th className="left">Spieler</th><th className="left">Pos.</th><th className="num">Marktwert</th><th className="num">Trend</th></tr></thead>
+              <tbody>
+                {topValuablePlayers.map((p) => (
+                  <tr key={p.id}>
+                    <td className="left"><Link to={`/players/${p.id}`}>{p.name}</Link></td>
+                    <td className="left"><span className="chip">{p.position}</span></td>
+                    <td className="num"><strong>CHF {fmtChf(p.marketValue)}</strong></td>
+                    <td className="num"><MarketValueTrend trend={p.marketValueTrend} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="muted mt" style={{ fontSize: 11 }}>Quelle: nationalleague.ch.</div>
+        </div>
+      )}
+
+      {/* F) Team Strength - AUSSCHLIESSLICH DARSTELLUNG, keine neue
+          Prognosekennzahl: jede Grösse ist bereits eigenständig definiert
+          (ELO, Power Score, Kader-Impact-Score, Form), hier nur auf eine
+          gemeinsame 0-100-Anzeigeskala gebracht. */}
+      {strengthProfile.length > 0 && (
+        <div className="card card-pad mb">
+          <h2 className="mb">Team Strength</h2>
+          <div className="muted" style={{ fontSize: 11.5, marginBottom: 12 }}>
+            Nur Darstellung, keine neue Prognosekennzahl - jede Grösse ist bereits eigenständig definiert (ELO, Power Score, Kader-Impact-Score, Form), hier nur auf eine gemeinsame 0-100-Skala gebracht.
+          </div>
+          {strengthProfile.map((s) => (
+            <div key={s.label} className="row" style={{ fontSize: 12.5, marginBottom: 8 }}>
+              <span className="muted" style={{ minWidth: 120 }}>{s.label}</span>
+              <div className="bar-track" style={{ flex: 1 }}><div className="bar-fill" style={{ width: `${Math.max(0, Math.min(100, s.pct))}%` }} /></div>
+              <strong style={{ minWidth: 50, textAlign: 'right', fontFamily: 'var(--mono)' }}>{s.raw.toFixed(s.label === 'ELO' || s.label === 'Power Score' ? 0 : s.label.startsWith('Form') ? 2 : 1)}</strong>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* G) Season Projection - Kompaktansicht der zuletzt gelaufenen
+          Monte-Carlo-Simulation (simResultsContext.jsx), gefiltert auf dieses
+          Team. Keine Neuberechnung - Hinweistext + Link, falls in dieser
+          Session noch nie simuliert wurde. */}
+      <div className="card card-pad mb">
+        <h2 className="mb">Season Projection</h2>
+        {!projectionRow ? (
+          <div className="muted" style={{ fontSize: 12.5 }}>
+            Noch keine Simulation in dieser Session gelaufen. <Link to="/playoff-odds">Jetzt simulieren →</Link>
+          </div>
+        ) : (
+          <>
+            <div className="stat-strip">
+              <div className="stat"><strong>{fmtPct(projectionRow.pPlayoffs)}</strong><span>Playoffs</span></div>
+              <div className="stat"><strong>{fmtPct(projectionRow.pTop6)}</strong><span>Top 6</span></div>
+              <div className="stat"><strong>{fmtPct(projectionRow.pPlayIn)}</strong><span>Play-in</span></div>
+              <div className="stat"><strong>{fmtPct(projectionRow.pSemifinal)}</strong><span>Halbfinale</span></div>
+              <div className="stat"><strong>{fmtPct(projectionRow.pFinal)}</strong><span>Finale</span></div>
+              <div className="stat"><strong style={{ color: 'var(--accent)' }}>{fmtPct(projectionRow.pChampion)}</strong><span>Meister</span></div>
+              <div className="stat"><strong style={projectionRow.pPlayout1314 >= 0.1 ? { color: 'var(--warn)' } : undefined}>{fmtPct(projectionRow.pPlayout1314)}</strong><span>Play-out</span></div>
+              <div className="stat"><strong style={projectionRow.pLigaQualifikation >= 0.05 ? { color: 'var(--bad)' } : undefined}>{fmtPct(projectionRow.pLigaQualifikation)}</strong><span>Ligaqualifikation</span></div>
+              <div className="stat"><strong>{projectionRow.avgRank != null ? projectionRow.avgRank.toFixed(1) : '–'}</strong><span>Ø Rang</span></div>
+              <div className="stat"><strong>{projectionRow.avgPts != null ? projectionRow.avgPts.toFixed(1) : '–'}</strong><span>Ø Punkte</span></div>
+              {projectionRow.minPts != null && projectionRow.maxPts != null && (
+                <div className="stat"><strong>{Math.round(projectionRow.minPts)}–{Math.round(projectionRow.maxPts)}</strong><span>Range</span></div>
+              )}
+            </div>
+            <div className="muted mt" style={{ fontSize: 11 }}>
+              Aus der zuletzt gelaufenen Season-Projections-Simulation{simUpdatedAt ? ` (${new Date(simUpdatedAt).toLocaleString('de-CH')})` : ''} - <Link to="/playoff-odds">vollständige Ansicht</Link>. Hier nicht neu berechnet.
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* H) Matchups - dieselbe Karten-Komponente wie Dashboard/PlayoffOdds
+          (inkl. "Warum?"-Erklärung), hier auf dieses Team gefiltert. Bewusst
+          KEINE Vermischung mit historischen H2H-Daten (siehe Team vs. Team
+          weiter unten, klar getrennt und nur verlinkt). */}
+      {teamForecasts.length > 0 && (
+        <>
+          <div className="section-label" style={{ marginTop: 4 }}>Matchups</div>
+          <MatchForecast
+            forecasts={teamForecasts}
+            title="Kommende Spiele"
+            caption={scheduleAvgOppElo != null
+              ? `Ø Gegner-ELO ${Math.round(scheduleAvgOppElo)} · Ø Modell-Siegchance ${fmtPct(scheduleAvgPWin)} für die ${scheduleRows.length} verbleibenden Spiele.`
+              : 'Heimsieg-/Auswärtssieg-Chance aus ELO + Heimvorteil.'}
+            limit={6}
+            showCount={teamForecasts.length > 6}
+          />
+        </>
+      )}
+
+      {/* I) Recent Games - klickbar auf die bestehende Matchup-Detailseite,
+          REG/OT/SO klar unterschieden (derselbe Badge-Code wie
+          MatchupDetail.jsx/headToHead.js), ELO vor/nach aus der bereits
+          vorhandenen ELO-Historie. */}
+      {recentResults.length > 0 && (
+        <div className="card card-pad mb">
+          <h2 className="mb">Letzte Spiele</h2>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th className="left">Datum</th><th className="left">Gegner</th><th className="left">H/A</th><th className="num">Ergebnis</th><th className="left"></th><th className="num">ELO vor</th><th className="num">ELO nach</th></tr></thead>
+              <tbody>
+                {recentResults.map((r) => {
+                  const won = r.isHome ? r.game.homeGoals > r.game.awayGoals : r.game.awayGoals > r.game.homeGoals
+                  return (
+                    <tr key={r.game.id} onClick={() => navigate(`/matchup/${r.game.id}`)} style={{ cursor: 'pointer' }}>
+                      <td className="left" style={{ fontSize: 12 }}>{r.game.date}</td>
+                      <td className="left"><TeamBadge team={r.opp} short /></td>
+                      <td className="left">{r.isHome ? 'H' : 'A'}</td>
+                      <td className="num"><strong>{r.isHome ? `${r.game.homeGoals}:${r.game.awayGoals}` : `${r.game.awayGoals}:${r.game.homeGoals}`}</strong></td>
+                      <td className="left"><ResultBadge code={resultCode(won, r.game.decision)} /></td>
+                      <td className="num muted">{r.eloBefore != null ? Math.round(r.eloBefore) : '–'}</td>
+                      <td className="num">{Math.round(r.eloAfter)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* J) Detailed Statistics - alles Tiefere/Granularere ganz unten:
+          Offense/Defense, Heim/Auswärts, Kaderanalyse (Impact Score/Team
+          Depth), historischer Mehrsaisonvergleich, direkter Teamvergleich. */}
+      <div className="section-label" style={{ marginTop: 4 }}>Detailed Statistics</div>
+
       <div className="card card-pad mb">
         <h2 className="mb">Offense / Defense</h2>
         <div className="grid grid-2">
@@ -346,7 +689,6 @@ export default function TeamDetail() {
         )}
       </div>
 
-      {/* 4. Heim / Auswärts */}
       {standing && (
         <div className="card card-pad mb">
           <h2 className="mb">Heim / Auswärts</h2>
@@ -381,80 +723,6 @@ export default function TeamDetail() {
         </div>
       )}
 
-      {/* 5. ELO History */}
-      <div className="card card-pad mb">
-        <h2 className="mb">ELO-Verlauf</h2>
-        <div className="stat-strip">
-          <div className="stat"><strong>{preseasonElo != null ? Math.round(preseasonElo) : '–'}</strong><span>Pre-Season-ELO</span></div>
-          <div className="stat"><strong>{eloRow?.rating ?? eloStart}</strong><span>Aktuell</span></div>
-          <div className="stat"><strong>{eloHistory.length ? Math.round(Math.max(...eloHistory.map((h) => h.rating))) : '–'}</strong><span>Saisonhoch</span></div>
-          <div className="stat"><strong>{eloHistory.length ? Math.round(Math.min(...eloHistory.map((h) => h.rating))) : '–'}</strong><span>Saisontief</span></div>
-          <div className="stat">
-            <strong className={(eloRow?.rating ?? eloStart) - eloHistory[0]?.rating >= 0 ? 'good' : 'bad'}>
-              {eloHistory.length ? (((eloRow?.rating ?? eloStart) - eloHistory[0].rating) >= 0 ? '+' : '') + Math.round((eloRow?.rating ?? eloStart) - eloHistory[0].rating) : '–'}
-            </strong>
-            <span>Veränderung</span>
-          </div>
-        </div>
-        {eloHistory.length >= 2 ? <TeamEloChart history={eloHistory} color={team.color} start={eloStart} /> : <div className="muted" style={{ fontSize: 12.5 }}>Verlauf erscheint, sobald Spiele absolviert sind.</div>}
-      </div>
-
-      {/* 6. Schedule Strength */}
-      {scheduleRows.length > 0 && (
-        <div className="card card-pad mb">
-          <h2 className="mb">Schedule Strength</h2>
-          <div className="muted" style={{ fontSize: 11.5, marginBottom: 10 }}>
-            Nur Anzeige aus dem bestehenden Modell (ELO + Heimvorteil) - kein zusätzlicher Prognosefaktor.
-          </div>
-          <div className="stat-strip">
-            <div className="stat"><strong>{scheduleRows.length}</strong><span>Offene Spiele</span></div>
-            <div className="stat"><strong>{scheduleAvgOppElo != null ? Math.round(scheduleAvgOppElo) : '–'}</strong><span>Ø Gegner-ELO</span></div>
-            <div className="stat"><strong>{scheduleAvgPWin != null ? fmtPct(scheduleAvgPWin) : '–'}</strong><span>Ø Modell-Siegchance</span></div>
-          </div>
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th className="left">Datum</th><th className="left">Gegner</th><th className="left">H/A</th><th className="num">Gegner-ELO</th><th className="num">Modell-Siegchance</th></tr></thead>
-              <tbody>
-                {scheduleRows.slice(0, 10).map((r) => (
-                  <tr key={r.game.id}>
-                    <td className="left" style={{ fontSize: 12 }}>{r.game.date}</td>
-                    <td className="left"><TeamBadge team={r.opp} short /></td>
-                    <td className="left">{r.isHome ? 'H' : 'A'}</td>
-                    <td className="num">{Math.round(r.oppElo)}</td>
-                    <td className="num"><strong>{fmtPct(r.pWin)}</strong></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* 7. Recent Results */}
-      {recentResults.length > 0 && (
-        <div className="card card-pad mb">
-          <h2 className="mb">Letzte Ergebnisse</h2>
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th className="left">Datum</th><th className="left">Gegner</th><th className="left">H/A</th><th className="num">Ergebnis</th><th className="num">ELO vor</th><th className="num">ELO nach</th></tr></thead>
-              <tbody>
-                {recentResults.map((r) => (
-                  <tr key={r.game.id}>
-                    <td className="left" style={{ fontSize: 12 }}>{r.game.date}</td>
-                    <td className="left"><TeamBadge team={r.opp} short /></td>
-                    <td className="left">{r.isHome ? 'H' : 'A'}</td>
-                    <td className="num"><strong>{r.isHome ? `${r.game.homeGoals}:${r.game.awayGoals}` : `${r.game.awayGoals}:${r.game.homeGoals}`}</strong></td>
-                    <td className="num muted">{r.eloBefore != null ? Math.round(r.eloBefore) : '–'}</td>
-                    <td className="num">{Math.round(r.eloAfter)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* 8-9. Team Player Core / Team Depth (Kaderanalyse) */}
       {rosterProfile && rosterProfile.scoredCount > 0 && (
         <div className="card card-pad mb">
           <h2 className="mb">Kaderanalyse</h2>
@@ -563,7 +831,6 @@ export default function TeamDetail() {
         </div>
       )}
 
-      {/* 10. Historischer Teamvergleich */}
       {histLast3.length > 0 && (
         <div className="card card-pad mb">
           <h2 className="mb">Historischer Teamvergleich</h2>
@@ -586,7 +853,7 @@ export default function TeamDetail() {
                 })}
                 <tr>
                   <td className="left"><strong>{currentSeasonLabel || 'Aktuell'}</strong></td>
-                  <td className="num">{standing ? '#' + (derived.standings.indexOf(standing) + 1) : '–'}</td>
+                  <td className="num">{rank ? '#' + rank : '–'}</td>
                   <td className="num"><strong>{formSeason ? fmt2(formSeason.ptsPerGame) : '–'}</strong></td>
                   <td className="num">{gpg}</td>
                   <td className="num">{gpa}</td>
@@ -600,7 +867,6 @@ export default function TeamDetail() {
         </div>
       )}
 
-      {/* 11. Team vs Team */}
       <div className="card card-pad mb">
         <h2 className="mb">Team vs. Team</h2>
         <div className="row gap-sm mb">
@@ -632,96 +898,38 @@ export default function TeamDetail() {
           </div>
         )}
         <div className="muted mt" style={{ fontSize: 11 }}>
-          Season Projection / Playoff-Chancen: <Link to="/playoff-odds">vollständige Simulation auf der Season-Projections-Seite</Link>.
+          Historischer H2H-Vergleich: <Link to={compareTeam ? `/head-to-head?team1=${id}&team2=${compareTeamId}` : '/head-to-head'}>eigene Head-to-Head-Seite</Link> (bewusst getrennt von den Modellwerten oben).
         </div>
       </div>
-
-      {/* 12. Team Strength Profile */}
-      {strengthProfile.length > 0 && (
-        <div className="card card-pad mb">
-          <h2 className="mb">Team Strength Profile</h2>
-          <div className="muted" style={{ fontSize: 11.5, marginBottom: 12 }}>
-            Nur Darstellung, keine neue Prognosekennzahl - jede Grösse ist bereits eigenständig definiert (ELO, Kader-Impact-Score, Form), hier nur auf eine gemeinsame 0-100-Skala gebracht.
-          </div>
-          {strengthProfile.map((s) => (
-            <div key={s.label} className="row" style={{ fontSize: 12.5, marginBottom: 8 }}>
-              <span className="muted" style={{ minWidth: 120 }}>{s.label}</span>
-              <div className="bar-track" style={{ flex: 1 }}><div className="bar-fill" style={{ width: `${Math.max(0, Math.min(100, s.pct))}%` }} /></div>
-              <strong style={{ minWidth: 50, textAlign: 'right', fontFamily: 'var(--mono)' }}>{s.raw.toFixed(s.label === 'ELO' ? 0 : s.label.startsWith('Form') ? 2 : 1)}</strong>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {players.length === 0 ? (
-        <div className="empty">
-          <div className="title">Noch keine Spieler</div>
-          <div className="hint">Füge die Spieler dieses Teams hinzu.</div>
-          <div style={{ marginTop: 14 }}><button className="btn primary" onClick={() => setEditing({})}>Ersten Spieler hinzufügen</button></div>
-        </div>
-      ) : (
-        <div className="card">
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th className="num">#</th>
-                  <th className="left">Spieler</th>
-                  <th className="left">Position</th>
-                  <th className="num">SP</th>
-                  <th className="num">T</th>
-                  <th className="num">A</th>
-                  <th className="num">P</th>
-                  <th className="num">+/–</th>
-                  <th className="num">SM</th>
-                  <th className="num"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {players.map((p) => {
-                  const s = statById[p.id] || {}
-                  const goalie = p.position === 'G'
-                  return (
-                    <tr key={p.id}>
-                      <td className="num muted">{p.number}</td>
-                      <td className="left"><Link to={`/players/${p.id}`}>{p.name}</Link></td>
-                      <td className="left"><span className="chip">{posLabel(p.position)}</span></td>
-                      <td className="num">{s.gp || 0}</td>
-                      {goalie ? (
-                        <>
-                          <td className="num muted" colSpan={1} title="SV%">{fmtPct(s.savePct)}</td>
-                          <td className="num muted" title="GTS">{fmtNum(s.gaa)}</td>
-                          <td className="num">{s.shutouts || 0} SO</td>
-                          <td className="num muted">–</td>
-                          <td className="num">{s.pim || 0}</td>
-                        </>
-                      ) : (
-                        <>
-                          <td className="num">{s.goals || 0}</td>
-                          <td className="num">{s.assists || 0}</td>
-                          <td className="num"><strong>{s.points || 0}</strong></td>
-                          <td className="num">{s.plusMinus != null ? plusMinusStr(s.plusMinus) : 0}</td>
-                          <td className="num">{s.pim || 0}</td>
-                        </>
-                      )}
-                      <td className="num">
-                        <span className="row gap-sm" style={{ justifyContent: 'flex-end' }}>
-                          <button className="btn ghost sm" onClick={() => setEditing(p)}>Bearbeiten</button>
-                          <button className="btn ghost sm" onClick={() => removePlayer(p)}>Entfernen</button>
-                        </span>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
 
       {editing && <PlayerModal player={editing} onSave={savePlayer} onClose={() => setEditing(null)} />}
       {editTeam && <TeamModal team={team} onSave={saveTeam} onClose={() => setEditTeam(false)} />}
     </>
+  )
+}
+
+// Ergebnis-Code (S/OTS/SOS/N/OTN/SON) - identische Logik wie resultCode() in
+// src/headToHead.js bzw. MatchupDetail.jsx, hier lokal dupliziert (gleiches
+// Muster wie CompareRow unten): kein neuer Zustand, nur Text-Klassifikation
+// eines bereits vorhandenen game.decision-Werts.
+function resultCode(won, decision) {
+  if (decision === 'SO') return won ? 'SOS' : 'SON'
+  if (decision === 'OT') return won ? 'OTS' : 'OTN'
+  return won ? 'S' : 'N'
+}
+const BADGE_STYLE = {
+  S: { bg: 'var(--good)', label: 'S' }, OTS: { bg: 'var(--good)', label: 'OTS' }, SOS: { bg: 'var(--good)', label: 'SOS' },
+  N: { bg: 'var(--bad)', label: 'N' }, OTN: { bg: 'var(--bad)', label: 'OTN' }, SON: { bg: 'var(--bad)', label: 'SON' },
+}
+function ResultBadge({ code, title }) {
+  const s = BADGE_STYLE[code] || { bg: 'var(--text-dim)', label: code }
+  return (
+    <span title={title} style={{
+      display: 'inline-block', minWidth: 30, textAlign: 'center', padding: '2px 6px',
+      borderRadius: 5, fontSize: 11, fontWeight: 700, color: '#fff', background: s.bg,
+    }}>
+      {s.label}
+    </span>
   )
 }
 

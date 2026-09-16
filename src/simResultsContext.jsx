@@ -22,13 +22,27 @@ const SimResultsContext = createContext(null)
 // Reduziert eine simulateSeasonProjections()-Zeile (`row.team.id`) ODER eine
 // Baseline-Zeile (`row.teamId`, s. baselineStore.js) auf dieselbe schlanke
 // Form - Konsumenten (PlayoffWheel etc.) müssen die Quelle nicht kennen.
+// Zusätzliche Felder (Top 6/Play-in/Play-out/Ligaqualifikation/Ø Rang/Ø
+// Punkte/Median/Range) - existieren bereits auf jeder simulateSeasonProjections()-
+// Zeile (siehe playoffSim.js), waren hier nur bisher nicht durchgereicht.
+// Kein neuer Wert, nur ein grösserer Ausschnitt derselben Zeile - genutzt von
+// der Team-Detailseite (Season-Projection-Kompaktansicht).
 function toProbsRow(row) {
   return {
     teamId: row.team ? row.team.id : row.teamId,
     pPlayoffs: row.pPlayoffs,
+    pTop6: row.pTop6,
+    pPlayIn: row.pPlayIn,
     pSemifinal: row.pSemifinal,
     pFinal: row.pFinal,
     pChampion: row.pChampion,
+    pPlayout1314: row.pPlayout1314,
+    pLigaQualifikation: row.pLigaQualifikation,
+    avgRank: row.avgRank,
+    avgPts: row.avgPts,
+    medianPts: row.medianPts,
+    minPts: row.minPts,
+    maxPts: row.maxPts,
   }
 }
 
