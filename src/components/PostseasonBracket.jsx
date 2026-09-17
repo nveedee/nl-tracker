@@ -7,69 +7,74 @@ function fmtPct(v) {
   return Math.round(pct) + '%'
 }
 
-function BracketRow({ label, teamA, teamB, probability, teamById }) {
+function BracketRow({ teamAId, teamBId, winnerId, teamById, gamesPlayed }) {
   return (
     <div className="row spread postseason-bracket-row">
       <div className="row gap-sm" style={{ flex: 1 }}>
-        <TeamBadge team={teamById.get(teamA)} short />
+        <span style={teamAId === winnerId ? { fontWeight: 700 } : undefined}><TeamBadge team={teamById.get(teamAId)} short /></span>
         <span className="muted" style={{ fontSize: 11 }}>vs</span>
-        <TeamBadge team={teamById.get(teamB)} short />
+        <span style={teamBId === winnerId ? { fontWeight: 700 } : undefined}><TeamBadge team={teamById.get(teamBId)} short /></span>
       </div>
-      <span className="muted" style={{ fontSize: 11.5, flex: 'none' }}>{label}: {fmtPct(probability)}</span>
+      <span className="muted" style={{ fontSize: 11.5, flex: 'none' }}>
+        {gamesPlayed ? `${gamesPlayed} Spiele · ` : ''}Sieger: <TeamBadge team={teamById.get(winnerId)} short link={false} />
+      </span>
     </div>
   )
 }
 
-// "Most Likely Bracket" (Punkt 14 im Auftrag): zeigt für die nach Ø-Rang
-// wahrscheinlichste Setzliste (1-8) je Team dessen laut Aggregation
-// (src/postseasonPaths.js) häufigsten Gegner der jeweiligen Runde - bewusst
-// als "wahrscheinlichste Setzliste + häufigste Gegner" gekennzeichnet statt
-// als garantierter Bracket, da sich Setzliste/Rang zwischen Läufen ändert.
-export default function PostseasonBracket({ sim, aggregate, teamById }) {
-  if (!sim || !aggregate) return null
-
-  const bySeed = [...sim.rows].sort((a, b) => a.avgRank - b.avgRank)
-  const top8 = bySeed.slice(0, 8).map((r) => r.team.id)
-  const playInSeeds = bySeed.slice(6, 10).map((r) => r.team.id)
-
-  const withTopOpponent = (teamId, stage) => {
-    const tp = aggregate.teamPaths[teamId]
-    if (!tp) return null
-    const top = tp[stage]?.opponents?.[0]
-    return top ? { opponentId: top.opponentId, probability: top.conditionalProbability } : null
-  }
+// "Most Likely Bracket" (Punkt 14 im Auftrag, korrigiert): der exakt
+// vollständige Bracket-Verlauf (Play-in + QF + SF + Final, jeweils inkl.
+// Sieger), der unter allen Simulationsläufen am häufigsten IDENTISCH auftrat
+// (siehe bracketFromRun()/mostLikelyBracket in src/postseasonPaths.js).
+// Bewusst NICHT aus den häufigsten Einzelgegnern pro Team kombiniert - das
+// garantiert per Konstruktion, dass jedes Team pro Runde nur einmal
+// vorkommt, keine Paarung doppelt auftritt und der gesamte Bracket
+// tatsächlich in genau dieser Form simuliert wurde.
+export default function PostseasonBracket({ aggregate, teamById }) {
+  if (!aggregate?.mostLikelyBracket) return null
+  const b = aggregate.mostLikelyBracket
 
   return (
     <>
-      <SectionHeader title="Most Likely Bracket" caption="Basierend auf der wahrscheinlichsten Setzliste (Ø Rang über alle Läufe) und den je Team häufigsten Gegnern pro Runde - keine feste Garantie, da sich das Seeding zwischen den Läufen verschiebt." />
+      <SectionHeader
+        title="Most Likely Bracket"
+        caption="Der am häufigsten beobachtete vollständige Bracket-Verlauf in den 10'000 Simulationen - keine aus Einzelgegnern kombinierte Paarung."
+      />
       <div className="card card-pad mb">
-        <div className="section-label">Play-in (Rang 7-10, wahrscheinlichste Setzliste)</div>
-        <div className="postseason-bracket-group">
-          {playInSeeds.length === 4 && (
-            <>
-              <BracketRow label="häufigster Sieger" teamA={playInSeeds[0]} teamB={playInSeeds[1]} probability={aggregate.teamPaths[playInSeeds[0]]?.playIn.firstGameWinProbability} teamById={teamById} />
-              <BracketRow label="häufigster Sieger" teamA={playInSeeds[2]} teamB={playInSeeds[3]} probability={aggregate.teamPaths[playInSeeds[2]]?.playIn.firstGameWinProbability} teamById={teamById} />
-            </>
-          )}
+        <div className="muted" style={{ fontSize: 12.5, marginBottom: 12 }}>
+          {b.count.toLocaleString('de-CH')} von {aggregate.runs.toLocaleString('de-CH')} Simulationen · <strong>{fmtPct(b.probability)}</strong>
+          {aggregate.distinctBracketCount > 1 && ` · ${aggregate.distinctBracketCount.toLocaleString('de-CH')} unterschiedliche Brackets beobachtet`}
         </div>
 
-        <div className="section-label" style={{ marginTop: 16 }}>Viertelfinal (häufigste Gegner der Top-8-Setzliste)</div>
+        <div className="section-label">Play-in</div>
         <div className="postseason-bracket-group">
-          {top8.map((id) => {
-            const opp = withTopOpponent(id, 'quarterfinal')
-            if (!opp) return null
-            return <BracketRow key={id} label="häufigster Gegner" teamA={id} teamB={opp.opponentId} probability={opp.probability} teamById={teamById} />
-          })}
+          <BracketRow teamAId={b.playIn.gameA.teamAId} teamBId={b.playIn.gameA.teamBId} winnerId={b.playIn.gameA.winnerId} teamById={teamById} />
+          <BracketRow teamAId={b.playIn.gameB.teamAId} teamBId={b.playIn.gameB.teamBId} winnerId={b.playIn.gameB.winnerId} teamById={teamById} />
+          <BracketRow teamAId={b.playIn.decision.teamAId} teamBId={b.playIn.decision.teamBId} winnerId={b.playIn.decision.winnerId} teamById={teamById} />
         </div>
 
-        <div className="section-label" style={{ marginTop: 16 }}>Halbfinal &amp; Final (häufigste Gegner, aggregiert)</div>
+        <div className="section-label" style={{ marginTop: 16 }}>Viertelfinal</div>
         <div className="postseason-bracket-group">
-          {aggregate.globalMatchups.semifinal.slice(0, 4).map((m) => (
-            <BracketRow key={m.key} label="Halbfinal" teamA={m.teamAId} teamB={m.teamBId} probability={m.probability} teamById={teamById} />
+          {b.quarterfinal.map((s, i) => (
+            <BracketRow key={i} teamAId={s.teamAId} teamBId={s.teamBId} winnerId={s.winnerId} gamesPlayed={s.gamesPlayed} teamById={teamById} />
           ))}
-          {aggregate.globalMatchups.final.slice(0, 3).map((m) => (
-            <BracketRow key={m.key} label="Final" teamA={m.teamAId} teamB={m.teamBId} probability={m.probability} teamById={teamById} />
+        </div>
+
+        <div className="section-label" style={{ marginTop: 16 }}>Halbfinal</div>
+        <div className="postseason-bracket-group">
+          {b.semifinal.map((s, i) => (
+            <BracketRow key={i} teamAId={s.teamAId} teamBId={s.teamBId} winnerId={s.winnerId} gamesPlayed={s.gamesPlayed} teamById={teamById} />
           ))}
+        </div>
+
+        <div className="section-label" style={{ marginTop: 16 }}>Final</div>
+        <div className="postseason-bracket-group">
+          <BracketRow teamAId={b.final.teamAId} teamBId={b.final.teamBId} winnerId={b.final.winnerId} gamesPlayed={b.final.gamesPlayed} teamById={teamById} />
+        </div>
+
+        <div className="row gap-sm" style={{ marginTop: 16, alignItems: 'center' }}>
+          <span className="muted" style={{ fontSize: 12 }}>Meister in diesem Bracket:</span>
+          <strong><TeamBadge team={teamById.get(b.champion)} /></strong>
         </div>
       </div>
     </>

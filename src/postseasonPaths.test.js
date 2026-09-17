@@ -196,3 +196,141 @@ test('aggregatePostseasonPaths(null-ähnliches Ergebnis) liefert null statt zu c
   const simWithoutTracking = simulateSeasonProjections(teams, games, settings, { runs: 300, seed: 1, players })
   assert.equal(aggregatePostseasonPaths(simWithoutTracking, teams), null)
 })
+
+// ---------------------------------------------------------------------------
+// Most Likely Bracket (Korrektur: vollständiger, tatsächlich beobachteter
+// Bracket-Verlauf statt aus Einzelgegner-Marginalen kombiniert - siehe
+// bracketFromRun()/mostLikelyBracket in src/postseasonPaths.js).
+// ---------------------------------------------------------------------------
+
+test('Most Likely Bracket stammt aus einer tatsächlich in postseasonRaw beobachteten Simulation', () => {
+  const sim = run(4000, 55)
+  const agg = aggregatePostseasonPaths(sim, teams)
+  const b = agg.mostLikelyBracket
+  assert.ok(b, 'mostLikelyBracket sollte gesetzt sein')
+
+  const matchesRun = (rec) => {
+    const { gameA, gameB, decision } = rec.playIn
+    if (gameA.higher !== b.playIn.gameA.teamAId || gameA.lower !== b.playIn.gameA.teamBId || gameA.winner !== b.playIn.gameA.winnerId) return false
+    if (gameB.higher !== b.playIn.gameB.teamAId || gameB.lower !== b.playIn.gameB.teamBId || gameB.winner !== b.playIn.gameB.winnerId) return false
+    if (decision.participants[0] !== b.playIn.decision.teamAId || decision.participants[1] !== b.playIn.decision.teamBId || decision.winner !== b.playIn.decision.winnerId) return false
+    const qfMatch = rec.quarterfinal.every((s, i) => s.higher === b.quarterfinal[i].teamAId && s.lower === b.quarterfinal[i].teamBId && s.winner === b.quarterfinal[i].winnerId)
+    if (!qfMatch) return false
+    const sfMatch = rec.semifinal.every((s, i) => s.higher === b.semifinal[i].teamAId && s.lower === b.semifinal[i].teamBId && s.winner === b.semifinal[i].winnerId)
+    if (!sfMatch) return false
+    return rec.final.higher === b.final.teamAId && rec.final.lower === b.final.teamBId && rec.final.winner === b.final.winnerId
+  }
+
+  const matchingRuns = sim.postseasonRaw.filter(matchesRun)
+  assert.ok(matchingRuns.length > 0, 'mindestens ein realer Lauf muss exakt dem Most Likely Bracket entsprechen')
+  assert.equal(matchingRuns.length, b.count, 'Anzahl übereinstimmender Läufe muss exakt b.count entsprechen')
+})
+
+test('Most Likely Bracket: kein Team erscheint zweimal in derselben Runde', () => {
+  const agg = aggregatePostseasonPaths(run(4000, 55), teams)
+  const b = agg.mostLikelyBracket
+
+  const qfTeams = b.quarterfinal.flatMap((s) => [s.teamAId, s.teamBId])
+  assert.equal(new Set(qfTeams).size, 8, 'Viertelfinal muss 8 verschiedene Teams enthalten')
+
+  const sfTeams = b.semifinal.flatMap((s) => [s.teamAId, s.teamBId])
+  assert.equal(new Set(sfTeams).size, 4, 'Halbfinal muss 4 verschiedene Teams enthalten')
+
+  assert.notEqual(b.final.teamAId, b.final.teamBId, 'Final muss zwei verschiedene Teams enthalten')
+
+  const playInFirstRound = [b.playIn.gameA.teamAId, b.playIn.gameA.teamBId, b.playIn.gameB.teamAId, b.playIn.gameB.teamBId]
+  assert.equal(new Set(playInFirstRound).size, 4, 'Play-in-Erstrunde muss 4 verschiedene Teams enthalten')
+  assert.notEqual(b.playIn.decision.teamAId, b.playIn.decision.teamBId, 'Play-in-Entscheidung muss zwei verschiedene Teams enthalten')
+})
+
+test('Most Likely Bracket: keine Paarung A-B und B-A gleichzeitig in derselben Runde', () => {
+  const agg = aggregatePostseasonPaths(run(4000, 55), teams)
+  const b = agg.mostLikelyBracket
+
+  const qfKeys = b.quarterfinal.map((s) => matchupKey(s.teamAId, s.teamBId))
+  assert.equal(new Set(qfKeys).size, qfKeys.length, 'Viertelfinal-Paarungen müssen alle eindeutig sein')
+
+  const sfKeys = b.semifinal.map((s) => matchupKey(s.teamAId, s.teamBId))
+  assert.equal(new Set(sfKeys).size, sfKeys.length, 'Halbfinal-Paarungen müssen alle eindeutig sein')
+})
+
+test('Most Likely Bracket: kein unmögliches Bracket (Play-in-Verlierer nicht im QF, QF/SF/Final-Sieger konsistent fortgeführt)', () => {
+  const agg = aggregatePostseasonPaths(run(4000, 55), teams)
+  const b = agg.mostLikelyBracket
+
+  // Play-in-Entscheidung muss exakt {Verlierer Spiel A, Sieger Spiel B} sein
+  const gameALoser = b.playIn.gameA.winnerId === b.playIn.gameA.teamAId ? b.playIn.gameA.teamBId : b.playIn.gameA.teamAId
+  const decisionParticipants = new Set([b.playIn.decision.teamAId, b.playIn.decision.teamBId])
+  assert.ok(decisionParticipants.has(gameALoser), 'Play-in-Entscheidung muss den Verlierer von Spiel A enthalten')
+  assert.ok(decisionParticipants.has(b.playIn.gameB.winnerId), 'Play-in-Entscheidung muss den Sieger von Spiel B enthalten')
+
+  // Die beiden Play-in-Qualifikanten (Sieger Spiel A + Sieger Entscheidung) müssen im Viertelfinal stehen,
+  // alle vier Play-in-Erstrunden-Teilnehmer, die NICHT qualifiziert sind, dürfen dort nicht auftauchen.
+  const qfTeams = new Set(b.quarterfinal.flatMap((s) => [s.teamAId, s.teamBId]))
+  assert.ok(qfTeams.has(b.playIn.gameA.winnerId), 'Play-in-Sieger Spiel A muss im Viertelfinal stehen')
+  assert.ok(qfTeams.has(b.playIn.decision.winnerId), 'Play-in-Entscheidungssieger muss im Viertelfinal stehen')
+  const eliminatedInPlayIn = [b.playIn.gameA, b.playIn.gameB, b.playIn.decision]
+    .flatMap((g) => [g.teamAId, g.teamBId])
+    .filter((id) => id !== b.playIn.gameA.winnerId && id !== b.playIn.decision.winnerId)
+  for (const id of eliminatedInPlayIn) {
+    assert.ok(!qfTeams.has(id), `im Play-in ausgeschiedenes Team ${id} darf nicht im Viertelfinal stehen`)
+  }
+
+  // Halbfinal-Teilnehmer müssen exakt die 4 Viertelfinal-Sieger sein
+  const qfWinners = new Set(b.quarterfinal.map((s) => s.winnerId))
+  const sfTeams = new Set(b.semifinal.flatMap((s) => [s.teamAId, s.teamBId]))
+  assert.deepEqual(sfTeams, qfWinners, 'Halbfinal-Teilnehmer müssen exakt die Viertelfinal-Sieger sein')
+
+  // Final-Teilnehmer müssen exakt die 2 Halbfinal-Sieger sein
+  const sfWinners = new Set(b.semifinal.map((s) => s.winnerId))
+  const finalTeams = new Set([b.final.teamAId, b.final.teamBId])
+  assert.deepEqual(finalTeams, sfWinners, 'Final-Teilnehmer müssen exakt die Halbfinal-Sieger sein')
+
+  // Meister muss der Final-Sieger sein
+  assert.equal(b.champion, b.final.winnerId, 'Meister muss der Final-Sieger sein')
+})
+
+test('Most Likely Bracket: probability = count / runs', () => {
+  const agg = aggregatePostseasonPaths(run(4000, 55), teams)
+  const b = agg.mostLikelyBracket
+  assert.equal(b.probability, b.count / agg.runs)
+})
+
+test('Most Likely Bracket: bei zwei künstlichen Brackets wird das häufiger beobachtete gewählt', () => {
+  const fakeTeams = Array.from({ length: 14 }, (_, i) => ({ id: `T${i + 1}` }))
+
+  const bracketA = {
+    playIn: {
+      gameA: { higher: 'T7', lower: 'T8', winner: 'T7', loser: 'T8' },
+      gameB: { higher: 'T9', lower: 'T10', winner: 'T9', loser: 'T10' },
+      decision: { participants: ['T8', 'T9'], winner: 'T8', loser: 'T9' },
+    },
+    quarterfinal: [
+      { higher: 'T1', lower: 'T8', winner: 'T1', loser: 'T8', gamesPlayed: 5 },
+      { higher: 'T2', lower: 'T7', winner: 'T2', loser: 'T7', gamesPlayed: 6 },
+      { higher: 'T3', lower: 'T6', winner: 'T3', loser: 'T6', gamesPlayed: 4 },
+      { higher: 'T4', lower: 'T5', winner: 'T4', loser: 'T5', gamesPlayed: 7 },
+    ],
+    semifinal: [
+      { higher: 'T1', lower: 'T4', winner: 'T1', loser: 'T4', gamesPlayed: 5 },
+      { higher: 'T2', lower: 'T3', winner: 'T2', loser: 'T3', gamesPlayed: 6 },
+    ],
+    final: { higher: 'T1', lower: 'T2', winner: 'T1', loser: 'T2', gamesPlayed: 7 },
+    playout: { higher: 'T13', lower: 'T14', winner: 'T13', loser: 'T14', gamesPlayed: 5 },
+  }
+  // Bracket B: identischer Verlauf bis auf den Final-Sieger (T2 statt T1) -
+  // ein anderer kompletter Bracket-Verlauf, seltener beobachtet.
+  const bracketB = {
+    ...bracketA,
+    final: { higher: 'T1', lower: 'T2', winner: 'T2', loser: 'T1', gamesPlayed: 7 },
+  }
+
+  const raw = []
+  for (let i = 0; i < 10; i++) raw.push(i % 5 < 2 ? bracketB : bracketA) // 4x B (i=0,1,5,6), 6x A, interleaved
+
+  const agg = aggregatePostseasonPaths({ postseasonRaw: raw }, fakeTeams)
+  assert.equal(agg.mostLikelyBracket.count, 6)
+  assert.equal(agg.mostLikelyBracket.probability, 0.6)
+  assert.equal(agg.mostLikelyBracket.champion, 'T1')
+  assert.equal(agg.distinctBracketCount, 2)
+})

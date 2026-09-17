@@ -246,7 +246,7 @@ export default function Postseason() {
           )}
 
           <PostseasonMatchups aggregate={aggregate} teamById={teamById} />
-          <PostseasonBracket sim={sim} aggregate={aggregate} teamById={teamById} />
+          <PostseasonBracket aggregate={aggregate} teamById={teamById} />
 
           {issues.length > 0 && (
             <div className="card card-pad mb" style={{ borderColor: '#b4530955' }}>

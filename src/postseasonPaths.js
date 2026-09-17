@@ -46,6 +46,50 @@ function bumpSeriesLength(roundMap, higher, lower, games) {
   entry.counts[games] = (entry.counts[games] || 0) + 1
 }
 
+// Canonical "Paarung=Sieger"-String für eine Serie (z.B. "team_bie:team_lug=team_lug") -
+// Baustein für den Bracket-Signature-Key unten. matchupKey() macht die
+// Paarung selbst unabhängig von der Aufrufreihenfolge (A vs B == B vs A);
+// der Sieger wird zusätzlich angehängt, macht den kompletten Verlauf (nicht
+// nur die Paarung) Teil der Signatur.
+function pairResult(teamA, teamB, winner) {
+  return `${matchupKey(teamA, teamB)}=${winner}`
+}
+
+// Baut aus einem einzelnen Simulationslauf (`rec` aus postseasonRaw) den
+// EXAKTEN, tatsächlich in diesem Lauf entstandenen Bracket-Verlauf - Play-in
+// (alle 3 Spiele: 7v8, 9v10, Entscheidung), Viertelfinal (4 Serien),
+// Halbfinal (2 Serien), Final (1 Serie), je inkl. Sieger. Zwei Läufe mit
+// exakt demselben `key` sind bracket-identisch (gleiche Paarungen UND
+// gleiche Sieger in jeder Runde). Reines Umformen von bereits im Lauf
+// vorhandenen Daten - keine neue Simulation, keine Rekombination aus
+// Team-Marginalen.
+function bracketFromRun(rec) {
+  const { gameA, gameB, decision } = rec.playIn
+  const playIn = {
+    gameA: { teamAId: gameA.higher, teamBId: gameA.lower, winnerId: gameA.winner },
+    gameB: { teamAId: gameB.higher, teamBId: gameB.lower, winnerId: gameB.winner },
+    decision: { teamAId: decision.participants[0], teamBId: decision.participants[1], winnerId: decision.winner },
+  }
+  const quarterfinal = rec.quarterfinal.map((s) => ({ teamAId: s.higher, teamBId: s.lower, winnerId: s.winner, gamesPlayed: s.gamesPlayed }))
+  const semifinal = rec.semifinal.map((s) => ({ teamAId: s.higher, teamBId: s.lower, winnerId: s.winner, gamesPlayed: s.gamesPlayed }))
+  const final = { teamAId: rec.final.higher, teamBId: rec.final.lower, winnerId: rec.final.winner, gamesPlayed: rec.final.gamesPlayed }
+
+  // Reihenfolge der QF-/SF-Paarungen ist nur ein Artefakt der Bracket-Slots
+  // (1v8/2v7/... bzw. Reseeding) und identifiziert den Bracket NICHT
+  // eindeutig - zwei Läufe mit denselben Paarungen in vertauschter Slot-
+  // Reihenfolge sind derselbe reale Bracket. Für den Key deshalb sortiert;
+  // Play-in-Spiele bleiben unsortiert (3 strukturell verschiedene Rollen:
+  // 7v8/9v10/Entscheidung, nicht austauschbar).
+  const key = JSON.stringify([
+    [pairResult(gameA.higher, gameA.lower, gameA.winner), pairResult(gameB.higher, gameB.lower, gameB.winner), pairResult(decision.participants[0], decision.participants[1], decision.winner)],
+    quarterfinal.map((s) => pairResult(s.teamAId, s.teamBId, s.winnerId)).sort(),
+    semifinal.map((s) => pairResult(s.teamAId, s.teamBId, s.winnerId)).sort(),
+    pairResult(final.teamAId, final.teamBId, final.winnerId),
+  ])
+
+  return { key, playIn, quarterfinal, semifinal, final, champion: rec.final.winner }
+}
+
 function newTeamAcc() {
   return {
     playIn: {
@@ -95,8 +139,20 @@ export function aggregatePostseasonPaths(simResult, teams) {
     quarterfinal: new Map(), semifinal: new Map(), final: new Map(), playout: new Map(),
   }
 
+  // Bracket-Signature-Zählung (siehe bracketFromRun() oben): `key` ->
+  // { bracket, count }. `bracket` wird nur beim ERSTEN Auftreten dieses Keys
+  // gespeichert (jeder weitere Lauf mit demselben Key ist per Definition
+  // identisch) - kein Rekonstruieren aus Marginalen, jeder gezählte Bracket
+  // ist ein tatsächlich in genau diesem Lauf simulierter kompletter Verlauf.
+  const bracketCounts = new Map()
+
   for (const rec of raw) {
     const { gameA, gameB, decision } = rec.playIn
+
+    const bracket = bracketFromRun(rec)
+    let bracketEntry = bracketCounts.get(bracket.key)
+    if (!bracketEntry) { bracketEntry = { bracket, count: 0 }; bracketCounts.set(bracket.key, bracketEntry) }
+    bracketEntry.count++
 
     // --- Play-in: beide Erstrunden-Spiele ---
     for (const g of [gameA, gameB]) {
@@ -284,6 +340,21 @@ export function aggregatePostseasonPaths(simResult, teams) {
     })
     .sort((a, b) => b.total - a.total)
 
+  // Most Likely Bracket = der häufigste vollständige Bracket-Key (siehe
+  // bracketFromRun() oben) - NICHT aus Team-Marginalen kombiniert. Bei
+  // Gleichstand deterministischer Tie-Break über den (stabilen, da über
+  // matchupKey()+Sieger gebildeten) Key selbst, damit dasselbe Simulations-
+  // ergebnis immer denselben "Most Likely Bracket" liefert.
+  const bracketEntries = [...bracketCounts.values()].sort((a, b) => b.count - a.count || (a.bracket.key < b.bracket.key ? -1 : 1))
+  const topBracket = bracketEntries[0]
+  const mostLikelyBracket = topBracket
+    ? {
+        ...topBracket.bracket,
+        count: topBracket.count,
+        probability: topBracket.count / runs,
+      }
+    : null
+
   return {
     runs,
     teamPaths,
@@ -299,6 +370,8 @@ export function aggregatePostseasonPaths(simResult, teams) {
       final: seriesLengthOut(seriesLength.final),
       playout: seriesLengthOut(seriesLength.playout),
     },
+    mostLikelyBracket,
+    distinctBracketCount: bracketCounts.size,
   }
 }
 
