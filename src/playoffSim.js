@@ -427,8 +427,11 @@ const BO7_HOME_PATTERN = [true, true, false, false, true, false, true]
 const BO7_WINS_NEEDED = 4
 
 // Simuliert eine Playoff-Serie zwischen zwei Teams, Partie für Partie, mit
-// der unveränderten simulateGameResult()-Logik. Gibt die Team-ID des
-// Serien-Siegers zurück.
+// der unveränderten simulateGameResult()-Logik. Gibt { winnerId, gamesPlayed }
+// zurück - gamesPlayed (4-7) ist reines Auslesen des ohnehin mitgezählten
+// Schleifenzählers `g`, für die Serienlängen-Statistik der Postseason-Paths-
+// Aggregation (siehe trackPaths unten); ändert nichts an Zufallszahlen-
+// Verbrauch/Reihenfolge oder dem Serienergebnis selbst.
 function simulateSeries(rng, betterSeedId, worseSeedId, winsNeeded, homePattern, eloRatings, sogAdjustments, eloStart, homeAdvElo) {
   let betterWins = 0
   let worseWins = 0
@@ -445,7 +448,7 @@ function simulateSeries(rng, betterSeedId, worseSeedId, winsNeeded, homePattern,
     else worseWins++
     g++
   }
-  return betterWins > worseWins ? betterSeedId : worseSeedId
+  return { winnerId: betterWins > worseWins ? betterSeedId : worseSeedId, gamesPlayed: g }
 }
 
 // Nur die Poisson-Regulationstore eines Fixtures (kein OT/SO) - Baustein für
@@ -526,7 +529,7 @@ export function simulateSeasonProjections(
   teams,
   games,
   settings,
-  { runs = SIMULATION_RUNS, seed = 12345, players = [], initialRatings, overrides } = {}
+  { runs = SIMULATION_RUNS, seed = 12345, players = [], initialRatings, overrides, trackPaths = false } = {}
 ) {
   const { fixtures, startPts, startWins, startH2H, eloRatings, eloStart, homeAdvElo, sogAdjustments, overriddenCount } =
     computeFixtures(teams, games, settings, players, initialRatings, overrides)
@@ -600,6 +603,13 @@ export function simulateSeasonProjections(
   })
 
   const rng = new SeededRandom(seed)
+
+  // Postseason-Paths-Rohdaten (Punkt 3 im Feature-Auftrag): NUR gefüllt, wenn
+  // trackPaths=true - reine Zusatzaufzeichnung bereits berechneter lokaler
+  // Werte aus der (unveränderten) Bracket-Simulation unten, kein Einfluss auf
+  // RNG-Verbrauch oder bestehende Rückgabefelder. Aggregation der 10k Records
+  // erfolgt separat in src/postseasonPaths.js (nicht hier - reine Sammlung).
+  const postseasonRaw = trackPaths ? [] : null
 
   for (let sim = 0; sim < runs; sim++) {
     const pts = {}
@@ -731,19 +741,21 @@ export function simulateSeasonProjections(
       ;[b1, b2, b3, b4, b5, b6, b7, b8].forEach((id) => { results[id].playoffs++; results[id].playoffsArr[sim] = 1 })
 
       const qfPairs = [[b1, b8], [b2, b7], [b3, b6], [b4, b5]]
-      const qfWinners = qfPairs.map(([idA, idB]) => {
+      const qfSeries = qfPairs.map(([idA, idB]) => {
         const rankA = rankOf[idA], rankB = rankOf[idB]
         const better = rankA <= rankB ? idA : idB
         const worse = rankA <= rankB ? idB : idA
-        const winner = simulateSeries(rng, better, worse, BO7_WINS_NEEDED, BO7_HOME_PATTERN, ...bracketArgs)
-        return { id: winner, rank: rankOf[winner] }
+        const { winnerId, gamesPlayed } = simulateSeries(rng, better, worse, BO7_WINS_NEEDED, BO7_HOME_PATTERN, ...bracketArgs)
+        return { higher: better, lower: worse, winner: winnerId, loser: winnerId === better ? worse : better, gamesPlayed }
       })
+      const qfWinners = qfSeries.map((s) => ({ id: s.winner, rank: rankOf[s.winner] }))
       qfWinners.forEach((w) => { results[w.id].semifinal++ })
 
       // Halbfinal (Bo7): bester vs. schlechtester Rest, zweitbester vs. drittbester
       qfWinners.sort((a, b) => a.rank - b.rank)
-      const sf1Winner = simulateSeries(rng, qfWinners[0].id, qfWinners[3].id, BO7_WINS_NEEDED, BO7_HOME_PATTERN, ...bracketArgs)
-      const sf2Winner = simulateSeries(rng, qfWinners[1].id, qfWinners[2].id, BO7_WINS_NEEDED, BO7_HOME_PATTERN, ...bracketArgs)
+      const sf1 = simulateSeries(rng, qfWinners[0].id, qfWinners[3].id, BO7_WINS_NEEDED, BO7_HOME_PATTERN, ...bracketArgs)
+      const sf2 = simulateSeries(rng, qfWinners[1].id, qfWinners[2].id, BO7_WINS_NEEDED, BO7_HOME_PATTERN, ...bracketArgs)
+      const sf1Winner = sf1.winnerId, sf2Winner = sf2.winnerId
       results[sf1Winner].final++
       results[sf2Winner].final++
 
@@ -751,7 +763,8 @@ export function simulateSeasonProjections(
       const sf1Rank = rankOf[sf1Winner], sf2Rank = rankOf[sf2Winner]
       const finalBetter = sf1Rank <= sf2Rank ? sf1Winner : sf2Winner
       const finalWorse = sf1Rank <= sf2Rank ? sf2Winner : sf1Winner
-      const champion = simulateSeries(rng, finalBetter, finalWorse, BO7_WINS_NEEDED, BO7_HOME_PATTERN, ...bracketArgs)
+      const finalSeries = simulateSeries(rng, finalBetter, finalWorse, BO7_WINS_NEEDED, BO7_HOME_PATTERN, ...bracketArgs)
+      const champion = finalSeries.winnerId
       results[champion].champion++
       results[champion].championArr[sim] = 1
 
@@ -759,10 +772,29 @@ export function simulateSeasonProjections(
       // Swiss-League-Meister (nicht Teil des Datenmodells - hier zählt nur
       // die Wahrscheinlichkeit, dort antreten zu müssen, nicht deren Ausgang).
       const s13 = seedOrder[12], s14 = seedOrder[13]
-      const playoutWinner = simulateSeries(rng, s13, s14, BO7_WINS_NEEDED, BO7_HOME_PATTERN, ...bracketArgs)
+      const playoutSeries = simulateSeries(rng, s13, s14, BO7_WINS_NEEDED, BO7_HOME_PATTERN, ...bracketArgs)
+      const playoutWinner = playoutSeries.winnerId
       const playoutLoser = playoutWinner === s13 ? s14 : s13
       results[playoutLoser].ligaqualifikation++
       results[playoutLoser].ligaqualArr[sim] = 1
+
+      if (postseasonRaw) {
+        const gameBLoser = winnerB === s9 ? s10 : s9
+        postseasonRaw.push({
+          playIn: {
+            gameA: { higher: s7, lower: s8, winner: winnerA, loser: loserA },
+            gameB: { higher: s9, lower: s10, winner: winnerB, loser: gameBLoser },
+            decision: { participants: [loserA, winnerB], winner: decisionWinner, loser: decisionWinner === loserA ? winnerB : loserA },
+          },
+          quarterfinal: qfSeries,
+          semifinal: [
+            { higher: qfWinners[0].id, lower: qfWinners[3].id, winner: sf1Winner, loser: sf1Winner === qfWinners[0].id ? qfWinners[3].id : qfWinners[0].id, gamesPlayed: sf1.gamesPlayed },
+            { higher: qfWinners[1].id, lower: qfWinners[2].id, winner: sf2Winner, loser: sf2Winner === qfWinners[1].id ? qfWinners[2].id : qfWinners[1].id, gamesPlayed: sf2.gamesPlayed },
+          ],
+          final: { higher: finalBetter, lower: finalWorse, winner: champion, loser: champion === finalBetter ? finalWorse : finalBetter, gamesPlayed: finalSeries.gamesPlayed },
+          playout: { higher: s13, lower: s14, winner: playoutWinner, loser: playoutLoser, gamesPlayed: playoutSeries.gamesPlayed },
+        })
+      }
     }
   }
 
@@ -833,6 +865,7 @@ export function simulateSeasonProjections(
     bracketSimulated: canRunBracket,
     rows,
     raw,
+    postseasonRaw,
     metadata: {
       simulation: 'calibrated_10k',
       factors: [

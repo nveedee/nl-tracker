@@ -15,6 +15,7 @@ All statements below were verified against the actual source in this repository 
 | Power Ranking (4-component blended score incl. shots-allowed adjustment) | ✅ Implemented |
 | Monte-Carlo season projection (10k runs) incl. full playoff bracket, play-in, play-out, ligaqualification | ✅ Implemented |
 | Playoff Probability Wheel (radial visualization) | ✅ Implemented |
+| Postseason Paths / Most Likely Matchups (opponent/path/bracket analytics from the same 10k-run simulation) | ✅ Implemented |
 | Bracket probability cards (champion/top6/playoffs/play-in/play-out/ligaqual) | ✅ Implemented |
 | Position/Rank distribution matrix | ✅ Implemented |
 | What-If simulator (fix outcomes of open games) | ✅ Implemented |
@@ -66,7 +67,8 @@ Routing is defined in `src/App.jsx` (React Router `Routes`/`Route`), with a sing
 14. **Teams & Kader** (`/teams`, `src/pages/Teams.jsx`) — Team list with roster-size chips, links to Team Detail.
 15. **Team Detail** (`/teams/:id`, `src/pages/TeamDetail.jsx`) — Roster CRUD, team form, home/away splits, multi-season history, schedule strength, roster/depth analytics (Player Impact Score aggregation).
 16. **Player Detail** (`/players/:id`, `src/pages/PlayerDetail.jsx`) — Career summary, YoY development, trend classification, Impact Score + history, rolling form, home/away split, opponent breakdown, team-stint breakdown, market value trend.
-17. **Settings/Einstellungen** (`/settings`, `src/pages/Settings.jsx`) — Season name/ELO params, prediction-model toggles (market-value prior, rest-days), NL-API sync card, JSON export/import, reset (all or games-only).
+17b. **Postseason Paths** (`/postseason`, `src/pages/Postseason.jsx`) — Selbständiger 10k-Lauf von `simulateSeasonProjections({ trackPaths: true })` (identische Simulation wie Season Projections, keine zweite Engine); aggregiert einmalig über `aggregatePostseasonPaths()` (`src/postseasonPaths.js`) zu Most-Likely-Opponents (Play-in/QF/SF/Final, absolute + conditional %), Most-Likely-Complete-Path je Team (nur tatsächlich beobachtete Pfade, nicht kombiniert), globalen Most-Likely-Matchups je Runde inkl. Play-out, Serienlängen-Verteilung, Play-in-Analytics (1./2. Chance) und einer "Most Likely Bracket"-Ansicht. UI rechnet ausschliesslich auf dem einmal aggregierten Ergebnis, kein Re-Simulieren pro Interaktion.
+18. **Settings/Einstellungen** (`/settings`, `src/pages/Settings.jsx`) — Season name/ELO params, prediction-model toggles (market-value prior, rest-days), NL-API sync card, JSON export/import, reset (all or games-only).
 
 ## Components / Visualizations
 

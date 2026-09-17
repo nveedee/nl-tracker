@@ -8,6 +8,7 @@ import Standings from './pages/Standings.jsx'
 import EloRanking from './pages/EloRanking.jsx'
 import PowerRankings from './pages/PowerRankings.jsx'
 import PlayoffOdds from './pages/PlayoffOdds.jsx'
+import Postseason from './pages/Postseason.jsx'
 import Goalies from './pages/Goalies.jsx'
 import HeadToHead from './pages/HeadToHead.jsx'
 import Teams from './pages/Teams.jsx'
@@ -38,6 +39,7 @@ const primaryNav = [
   { to: '/elo', label: 'ELO' },
   { to: '/power', label: 'Power Ranking' },
   { to: '/playoff-odds', label: 'Playoff Odds' },
+  { to: '/postseason', label: 'Postseason Paths' },
   { to: '/players', label: 'Spieler' },
   { to: '/goalies', label: 'Torhüter' },
   { to: '/head-to-head', label: 'H2H' },
@@ -159,6 +161,7 @@ export default function App() {
             <Route path="/elo" element={<EloRanking />} />
             <Route path="/power" element={<PowerRankings />} />
             <Route path="/playoff-odds" element={<PlayoffOdds />} />
+            <Route path="/postseason" element={<Postseason />} />
             <Route path="/goalies" element={<Goalies />} />
             <Route path="/head-to-head" element={<HeadToHead />} />
             <Route path="/model-performance" element={<ModelPerformance />} />
