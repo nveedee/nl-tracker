@@ -84,7 +84,7 @@ export function careerSummary(seasons) {
 // eine Saison fälschlich in zwei "Saisons" aufspalten. Fasst Einträge mit
 // gleichem `season`-Wert zu einem kombinierten Saison-Total zusammen (Team =
 // letzter Stint dieser Saison).
-function mergeSeasonSplits(seasons) {
+export function mergeSeasonSplits(seasons) {
   const bySeason = new Map()
   for (const s of seasons || []) {
     if (!bySeason.has(s.season)) {

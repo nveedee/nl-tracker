@@ -2,24 +2,20 @@ import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useData } from '../DataContext.jsx'
 import { TeamBadge, MarketValueTrend } from '../components/ui.jsx'
-import { fmtPct, fmtNum, plusMinusStr, ageFromBirthdate, fmtChf } from '../stats.js'
+import { fmtPct, fmtNum, plusMinusStr, ageFromBirthdate, fmtChf, fmtSec } from '../stats.js'
 import { hasEnoughHistoryForChart, computeMarketValueChange } from '../marketValueHistory.js'
 import {
   usePlayerHistory, usePositionBaselines, getPlayerSeasons, seasonRates, careerSummary, yoyDevelopment,
   computeImpactScore, computePercentile, classifyTrend, recentPpg, POSITION_LABEL,
   buildCurrentSeasonRecord, computeSeasonImpactScore, computeImpactScoreHistory, computeRollingForm,
   TREND_MIN_LATEST_GP, resolveGameTeam, computeHomeAwaySplit, computeOpponentBreakdown, computeTeamStints,
+  mergeSeasonSplits,
 } from '../playerHistory.js'
 
 const posLabel = { G: 'Torhüter', D: 'Verteidiger', F: 'Stürmer' }
 const shootsLabel = { L: 'schiesst L', R: 'schiesst R' }
 
 function fmt2(v) { return v == null ? '–' : v.toFixed(2) }
-function fmtSec(v) {
-  if (v == null) return '–'
-  const m = Math.floor(v / 60), s = Math.round(v % 60)
-  return `${m}:${String(s).padStart(2, '0')}`
-}
 
 export default function PlayerDetail() {
   const { id } = useParams()
@@ -84,8 +80,19 @@ export default function PlayerDetail() {
     () => getPlayerSeasons(playerHistoryData, id),
     [playerHistoryData, id]
   )
+  // Für reine Saison-für-Saison-QUICKVIEWS (Kacheln "Aktuelle Saison vs.
+  // Historie" unten) EINE Zeile pro Saison, auch bei unterjährigem
+  // Vereinswechsel (sonst zwei Kacheln mit identischem Saison-Label "2024/25"
+  // - verwirrend). Die ROHE Saison-Historie-Tabelle weiter unten zeigt
+  // weiterhin jeden Team-Stint einzeln (gewünscht, siehe dortiger Kommentar).
+  const mergedHistorySeasons = useMemo(() => mergeSeasonSplits(historySeasons), [historySeasons])
   const career = useMemo(() => careerSummary(historySeasons), [historySeasons])
-  const yoy = useMemo(() => yoyDevelopment(historySeasons), [historySeasons])
+  // TREND_MIN_LATEST_GP-Schwelle (dieselbe wie bei seasonYoy/classifyTrend
+  // unten) auch hier respektieren - sonst könnte eine wegen Verletzung o.ä.
+  // extrem kurze jüngste Archiv-Saison (z.B. 1 Spiel) eine grosse, aber nicht
+  // belastbare %-Veränderung "gegenüber Vorjahr" anzeigen. Bugfix, keine neue
+  // Methodik - yoyDevelopment() unterstützt diesen Parameter bereits.
+  const yoy = useMemo(() => yoyDevelopment(historySeasons, TREND_MIN_LATEST_GP), [historySeasons])
   const posLabelHist = POSITION_LABEL[player.position] // 'Stürmer'|'Verteidiger'|'Torhüter'
   const impact = useMemo(
     () => (!goalie && baselines ? computeImpactScore(historySeasons, posLabelHist, baselines) : null),
@@ -132,6 +139,11 @@ export default function PlayerDetail() {
     () => (currentSeasonRecord ? [...historySeasons, currentSeasonRecord] : historySeasons),
     [historySeasons, currentSeasonRecord]
   )
+  // Für den Saisonverlauf-CHART (SkaterChart/GoalieChart unten) EINE
+  // X-Achsen-Position pro Saison, auch bei unterjährigem Vereinswechsel -
+  // sonst zwei Punkte mit identischem Saison-Label (Zickzack-Artefakt statt
+  // einer sauberen Linie). Gleiche Aggregation wie mergedHistorySeasons oben.
+  const mergedCombinedSeasons = useMemo(() => mergeSeasonSplits(combinedSeasons), [combinedSeasons])
   // Vorjahresvergleich der LAUFENDEN Saison - erst ab TREND_MIN_LATEST_GP
   // Spielen dieser Saison (sonst würde 1 frühes Spiel eine irreführend
   // grosse %-Veränderung zeigen).
@@ -179,6 +191,23 @@ export default function PlayerDetail() {
     })
     return rows
   }, [historySeasons, histSort, histDir])
+
+  // Saisons mit unterjährigem Vereinswechsel (mehrere Team-Stints im Archiv-
+  // Export, siehe mergeSeasonSplits()/Kommentar in playerHistory.js) - für die
+  // rohe Saison-Historie-Tabelle unten: Rohdaten bleiben unverändert (jeder
+  // Stint bleibt eine eigene Zeile), aber (a) ein Chip markiert betroffene
+  // Zeilen unabhängig von der Sortierung, (b) bei Sortierung nach Saison wird
+  // zusätzlich eine Summenzeile je Saison eingefügt (mergeSeasonSplits() ist
+  // dieselbe, bereits für Trend/YoY genutzte Aggregation - kein neuer Wert).
+  const splitSeasonCounts = useMemo(() => {
+    const counts = new Map()
+    for (const s of historySeasons) counts.set(s.season, (counts.get(s.season) || 0) + 1)
+    return counts
+  }, [historySeasons])
+  const mergedSeasonTotals = useMemo(() => {
+    const merged = mergeSeasonSplits(historySeasons)
+    return new Map(merged.map((m) => [m.season, m]))
+  }, [historySeasons])
 
   const sortHist = (key) => {
     if (key === histSort) setHistDir((d) => (d === 'asc' ? 'desc' : 'asc'))
@@ -256,6 +285,16 @@ export default function PlayerDetail() {
                 )
               })()}
             </>
+          ) : player.marketValueHistory?.length === 2 ? (
+            // Genau 2 Snapshots: technisch schon eine Differenz, aber noch keine
+            // Kurve/kein Trend (MIN_ENTRIES_FOR_CHART=3, siehe marketValueHistory.js) -
+            // kompakte Rohwert-Zeile statt Chart, klar als nicht aussagekräftig markiert.
+            <div className="row spread" style={{ fontSize: 12.5, flexWrap: 'wrap', gap: 6 }}>
+              <span className="muted">
+                {player.marketValueHistory[0].date}: {fmtChf(player.marketValueHistory[0].marketValue)} → {player.marketValueHistory[1].date}: {fmtChf(player.marketValueHistory[1].marketValue)} CHF
+              </span>
+              <span className="chip" style={{ fontSize: 10 }}>n=2 – noch nicht aussagekräftig</span>
+            </div>
           ) : (
             <div className="muted" style={{ fontSize: 12.5 }}>
               Sammelt Verlaufsdaten – aussagekräftig ab einigen Tagen ({player.marketValueHistory?.length || 0} von mindestens 3 Snapshots).
@@ -268,13 +307,18 @@ export default function PlayerDetail() {
       {!goalie && historySeasons.length > 0 && (
         <div className="card card-pad mb">
           <h2 className="mb">Aktuelle Saison vs. Historie</h2>
-          <div className="grid" style={{ gridTemplateColumns: `repeat(${Math.min(historySeasons.length + 1, 5)}, 1fr)`, gap: 10 }}>
+          <div className="grid" style={{ gridTemplateColumns: `repeat(${Math.min(mergedHistorySeasons.length + 1, 5)}, 1fr)`, gap: 10 }}>
             <div className="tile">
-              <div className="label">{data.settings?.seasonName?.split(' ').pop() || 'Aktuell'}</div>
+              <div className="row spread" style={{ alignItems: 'baseline' }}>
+                <div className="label">{data.settings?.seasonName?.split(' ').pop() || 'Aktuell'}</div>
+                {stat && stat.gp > 0 && stat.gp < TREND_MIN_LATEST_GP && (
+                  <span className="chip" style={{ fontSize: 9.5 }} title={`Erst ${stat.gp} Spiel${stat.gp === 1 ? '' : 'e'} diese Saison - geringe Aussagekraft`}>n={stat.gp}</span>
+                )}
+              </div>
               <div className="value mono" style={{ fontSize: 18 }}>{fmt2(stat && stat.gp > 0 ? stat.points / stat.gp : 0)}</div>
               <div className="muted" style={{ fontSize: 10.5 }}>Punkte/Spiel</div>
             </div>
-            {[...historySeasons].reverse().slice(0, 4).map((s) => (
+            {[...mergedHistorySeasons].reverse().slice(0, 4).map((s) => (
               <div className="tile" key={s.season}>
                 <div className="label">{s.season}</div>
                 <div className="value mono" style={{ fontSize: 18 }}>{fmt2(seasonRates(s).ppg)}</div>
@@ -282,11 +326,15 @@ export default function PlayerDetail() {
               </div>
             ))}
           </div>
-          {yoy && (
+          {yoy ? (
             <div className="muted mt" style={{ fontSize: 12.5 }}>
               <strong className={yoy.pctChange >= 0 ? 'good' : 'bad'}>
                 {yoy.pctChange >= 0 ? '+' : ''}{yoy.pctChange.toFixed(0)}%
-              </strong> gegenüber Vorjahr ({yoy.prev.season}: {fmt2(yoy.prevPpg)} → {yoy.latest.season}: {fmt2(yoy.latestPpg)} Pkt/Sp.)
+              </strong> gegenüber Vorjahr ({yoy.prev.season}: {fmt2(yoy.prevPpg)} → {yoy.latest.season}: {fmt2(yoy.latestPpg)} Pkt/Sp., bezogen auf abgeschlossene Archiv-Saisons, nicht auf {currentSeasonLabel || 'die laufende Saison'})
+            </div>
+          ) : latestSeason && latestSeason.gp < TREND_MIN_LATEST_GP && (
+            <div className="muted mt" style={{ fontSize: 11 }}>
+              Vorjahresvergleich erst ab {TREND_MIN_LATEST_GP} Spielen der jüngsten Archiv-Saison verfügbar ({latestSeason.season}: {latestSeason.gp}).
             </div>
           )}
         </div>
@@ -385,13 +433,29 @@ export default function PlayerDetail() {
         </div>
       )}
 
+      {/* Formkurve über die laufende Saison (Abschnitt 2) - wählbare
+          Kennzahl, X-Achse = Spielnummer (chronologisch), plus gleitender
+          5er-/10er-Schnitt. Nur Feldspieler (Torhüter-Kennzahlen sind andere
+          Grössen - SV%/GTS -, kein Punkte-Analog). Bewusst hier (statt ganz
+          unten) - aktuelle Saison hat Priorität vor der Mehrsaison-Historie. */}
+      {!goalie && logAsc.length >= 3 && <GameFormChart log={logAsc} />}
+
       {/* Player Analytics: Impact Score, Trend, Positionsvergleich */}
       {!goalie && (impact || trend || percentiles) && (
         <div className="card card-pad mb">
           <h2 className="mb">Player Analytics</h2>
           <div className="grid grid-2 mb" style={{ gap: 14 }}>
             <div className="card card-pad">
-              <div className="section-label">Impact Score (Karriere)</div>
+              <div className="row gap-sm" style={{ alignItems: 'baseline' }}>
+                <div className="section-label" style={{ marginBottom: 0 }}>Impact Score (Karriere)</div>
+                <span
+                  className="muted"
+                  style={{ fontSize: 11, cursor: 'help', borderBottom: '1px dotted currentColor' }}
+                  title="Positions-relatives Perzentil (0-100): z-normalisiert je Stürmer/Verteidiger aus Karriere-P/GP, TOI/GP, +/-/GP und SOG/GP (gleichgewichtetes Mittel), über die Normalverteilung in ein Perzentil umgerechnet. 50 = Positionsdurchschnitt. Erst ab 20 Karriere-Spielen berechnet."
+                >
+                  ⓘ was ist das?
+                </span>
+              </div>
               {impact ? (
                 <>
                   <div className="value mono" style={{ fontSize: 30 }}>{impact.score.toFixed(1)}</div>
@@ -414,7 +478,9 @@ export default function PlayerDetail() {
               )}
             </div>
             <div className="card card-pad">
-              <div className="section-label">Trend</div>
+              <div className="section-label" title="Vergleicht die letzte ABGESCHLOSSENE Archiv-Saison mit dem Karriere-Niveau davor - bezieht sich NICHT auf die laufende Saison (siehe 'Saisontrend' oben für 2026/27).">
+                Karriere-Trend (Saison-zu-Saison)
+              </div>
               {trend ? (
                 <>
                   <div style={{ fontSize: 18, fontWeight: 800 }} className={trend.label.includes('steigend') ? 'good' : trend.label === 'fallend' ? 'bad' : ''}>
@@ -422,6 +488,9 @@ export default function PlayerDetail() {
                   </div>
                   <div className="muted" style={{ fontSize: 11.5 }}>
                     {trend.latestSeason}: {fmt2(trend.latestPpg)} P/GP vs. Karriere davor: {fmt2(trend.careerPpgExclLatest)} P/GP
+                  </div>
+                  <div className="muted" style={{ fontSize: 10.5, marginTop: 2 }}>
+                    Historischer Vergleich, nicht die laufende Saison {currentSeasonLabel || ''}.
                   </div>
                 </>
               ) : (
@@ -449,228 +518,17 @@ export default function PlayerDetail() {
         </div>
       )}
 
-      {/* Saisonverlauf-Chart (inkl. laufender Saison, sofern schon Spiele
-          vorhanden - mergeSeasonSplits() in seasonRates/computeImpactScoreHistory
-          verhindert einen künstlichen Sprung bei unterjährigem Vereinswechsel) */}
-      {combinedSeasons.length >= 2 && (
-        <div className="card card-pad mb">
-          <h2 className="mb">Saisonverlauf</h2>
-          {goalie ? <GoalieChart seasons={historySeasons} /> : <SkaterChart seasons={combinedSeasons} />}
-        </div>
-      )}
-
-      {/* Impact-Score-Verlauf über die Saisons */}
-      {!goalie && impactHistory.length >= 2 && (
-        <div className="card card-pad mb">
-          <h2 className="mb">Impact Score – Verlauf</h2>
-          <ImpactChart rows={impactHistory} />
-        </div>
-      )}
-
-      {/* Karriere-Zusammenfassung */}
-      {career && (
-        <div className="card card-pad mb">
-          <h2 className="mb">Karriere-Zusammenfassung</h2>
-          <div className="tiles" style={{ gridTemplateColumns: goalie ? 'repeat(4, 1fr)' : 'repeat(4, 1fr)' }}>
-            {goalie ? (
-              <>
-                <Tile label="NL-Spiele" value={career.gp} />
-                <Tile label="Saisons" value={career.seasonCount} />
-                <Tile label="Teams" value={career.teamCount} />
-                <Tile label="Ø Saisons/Team" value={fmt2(career.seasonCount / career.teamCount)} />
-              </>
-            ) : (
-              <>
-                <Tile label="NL-Spiele" value={career.gp} />
-                <Tile label="NL-Tore" value={career.goals} />
-                <Tile label="NL-Assists" value={career.assists} />
-                <Tile label="NL-Punkte" value={career.points} />
-                <Tile label="Karriere P/GP" value={fmt2(career.careerPpg)} />
-                <Tile label="Saisons" value={career.seasonCount} />
-                <Tile label="Teams" value={career.teamCount} />
-                {career.bestByPoints && <Tile label={`Beste Saison (${career.bestByPoints.season})`} value={`${career.bestByPoints.points} Pkt`} />}
-              </>
-            )}
-          </div>
-          <div className="muted mt" style={{ fontSize: 11 }}>
-            Basierend auf historischen NL-Archivdaten ({playerHistoryData?.seasonsIncluded?.[0]}–{playerHistoryData?.seasonsIncluded?.at(-1)}). Saison-Totale können Playoff-Spiele enthalten – reguläre Saison und Playoffs sind in den Archivdaten nicht zuverlässig unterscheidbar, daher keine separate Playoff-Historie.
-          </div>
-        </div>
-      )}
-
-      {/* Teams über die Jahre */}
-      {teamsByHistory.length > 0 && (
-        <div className="card card-pad mb">
-          <h2 className="mb">Teams</h2>
-          <div className="grid grid-2" style={{ gap: 6 }}>
-            {teamsByHistory.map((t, i) => (
-              <div key={i} className="row spread" style={{ padding: '5px 0', borderBottom: i < teamsByHistory.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                <span className="muted" style={{ fontFamily: 'var(--mono)', fontSize: 12.5 }}>{t.season}</span>
-                <TeamBadge team={t.team} short />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Historische Saison-für-Saison-Tabelle */}
-      {historySeasons.length > 0 && (
-        <div className="card mb">
-          <div className="card-pad" style={{ paddingBottom: 6 }}><h2 style={{ margin: 0 }}>Saison-Historie</h2></div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th className="left sortable" onClick={() => sortHist('season')}>Saison{sortInd('season')}</th>
-                  <th className="left sortable" onClick={() => sortHist('team')}>Team{sortInd('team')}</th>
-                  <th className="num sortable" onClick={() => sortHist('gp')}>GP{sortInd('gp')}</th>
-                  {goalie ? (
-                    <>
-                      <th className="num sortable" onClick={() => sortHist('svpct')}>SV%{sortInd('svpct')}</th>
-                      <th className="num sortable" onClick={() => sortHist('gaa')}>GTS{sortInd('gaa')}</th>
-                      <th className="num sortable" onClick={() => sortHist('saves')}>Paraden{sortInd('saves')}</th>
-                    </>
-                  ) : (
-                    <>
-                      <th className="num sortable" onClick={() => sortHist('goals')}>T{sortInd('goals')}</th>
-                      <th className="num sortable" onClick={() => sortHist('assists')}>A{sortInd('assists')}</th>
-                      <th className="num sortable" onClick={() => sortHist('points')}>P{sortInd('points')}</th>
-                      <th className="num sortable" onClick={() => sortHist('ppg')}>P/GP{sortInd('ppg')}</th>
-                      <th className="num sortable" onClick={() => sortHist('sog')}>SOG{sortInd('sog')}</th>
-                      <th className="num sortable" onClick={() => sortHist('toipg')}>TOI/GP{sortInd('toipg')}</th>
-                      <th className="num sortable" onClick={() => sortHist('plusMinus')}>+/–{sortInd('plusMinus')}</th>
-                    </>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {sortedHistory.map((s) => {
-                  const t = data.teams.find((x) => x.id === s.teamId)
-                  const r = seasonRates(s)
-                  const svp = s.shotsAgainst > 0 ? s.saves / s.shotsAgainst : null
-                  const gaa = s.gp > 0 ? s.goalsAgainst / s.gp : null
-                  return (
-                    <tr key={s.season + s.teamId}>
-                      <td className="left" style={{ fontFamily: 'var(--mono)' }}>{s.season}</td>
-                      <td className="left">{t ? <TeamBadge team={t} short /> : <span className="muted">–</span>}</td>
-                      <td className="num">{s.gp}</td>
-                      {goalie ? (
-                        <>
-                          <td className="num">{fmtPct(svp)}</td>
-                          <td className="num">{fmtNum(gaa)}</td>
-                          <td className="num">{s.saves}</td>
-                        </>
-                      ) : (
-                        <>
-                          <td className="num">{s.goals}</td>
-                          <td className="num">{s.assists}</td>
-                          <td className="num"><strong>{s.points}</strong></td>
-                          <td className="num">{fmt2(r.ppg)}</td>
-                          <td className="num">{s.sog}</td>
-                          <td className="num">{fmtSec(r.toipg)}</td>
-                          <td className="num">{plusMinusStr(s.plusMinus)}</td>
-                        </>
-                      )}
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Formkurve über die laufende Saison (Abschnitt 2) - wählbare
-          Kennzahl, X-Achse = Spielnummer (chronologisch), plus gleitender
-          5er-/10er-Schnitt. Nur Feldspieler (Torhüter-Kennzahlen sind andere
-          Grössen - SV%/GTS -, kein Punkte-Analog). */}
-      {!goalie && logAsc.length >= 3 && <GameFormChart log={logAsc} />}
-
-      {/* Game-by-Game Impact (Abschnitt 3): bewusst NICHT implementiert.
-          Der validierte Impact Score (siehe oben, Karriere/Saison) beruht auf
-          Jahr-zu-Jahr-Stabilität (Spearman-Korrelation) als Validierungs-
-          methode - das funktioniert auf Einzelspiel-Ebene nicht analog, da
-          es dort kein "Jahr-zu-Jahr"-Äquivalent gibt (Spiel-zu-Spiel-
-          Korrelation misst nur Serien-Persistenz, ein anderes, deutlich
-          verrauschteres Signal). Jede Gewichtungs-Kombination aus G/A/SOG/
-          TOI/+- auf Spiel-Ebene wäre im Kern eine geratene Formel (analog zur
-          bekannten, aber nicht aus diesen Daten hergeleiteten NHL-"Game
-          Score"-Formel) - daher konsequent weggelassen statt erfunden. Die
-          rohen Box-Score-Werte je Spiel (Game Log unten) sind die ehrliche,
-          nicht-erfundene Leistungskennzahl pro Spiel. */}
-
-      {/* Heim/Auswärts-Split (Abschnitt 5) */}
-      {!goalie && homeAwaySplit && (
-        <div className="card card-pad mb">
-          <h2 className="mb">Heim / Auswärts</h2>
-          <div className="grid grid-2" style={{ gap: 14 }}>
-            <HomeAwayCard label="Heim" split={homeAwaySplit.home} fmt2={fmt2} />
-            <HomeAwayCard label="Auswärts" split={homeAwaySplit.away} fmt2={fmt2} />
-          </div>
-        </div>
-      )}
-
-      {/* Gegner-Auswertung (Abschnitt 6) */}
-      {!goalie && opponentBreakdown.length > 0 && (
-        <div className="card mb">
-          <div className="card-pad" style={{ paddingBottom: 6 }}>
-            <h2 style={{ margin: 0 }}>Gegen welche Teams produziert {player.name.split(' ')[0]} am meisten?</h2>
-            <div className="sub">Ab 2 Spielen gegen denselben Gegner</div>
-          </div>
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th className="left">Gegner</th><th className="num">GP</th><th className="num">P</th><th className="num">P/GP</th></tr></thead>
-              <tbody>
-                {opponentBreakdown.map((r) => (
-                  <tr key={r.opp.id}>
-                    <td className="left"><TeamBadge team={r.opp} short /></td>
-                    <td className="num">{r.gp}</td>
-                    <td className="num">{r.points}</td>
-                    <td className="num"><strong>{fmt2(r.ppg)}</strong></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Team-Stints innerhalb der laufenden Saison (Abschnitt 7) - nur bei
-          mehr als einem sicher zugeordneten Team bzw. unsicheren Spielen
-          angezeigt, siehe resolveGameTeam()/computeTeamStints() für die
-          Datenmodell-Grenze bei unterjährigem Vereinswechsel. */}
-      {!goalie && teamStints && (teamStints.hasMultipleTeams || teamStints.uncertainGames > 0) && (
-        <div className="card card-pad mb">
-          <h2 className="mb">Teams (laufende Saison)</h2>
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th className="left">Team</th><th className="num">GP</th><th className="num">T</th><th className="num">A</th><th className="num">P</th><th className="num">P/GP</th></tr></thead>
-              <tbody>
-                {teamStints.stints.map((st) => (
-                  <tr key={st.teamId}>
-                    <td className="left">{st.team ? <TeamBadge team={st.team} short /> : <span className="muted">{st.teamId}</span>}</td>
-                    <td className="num">{st.gp}</td>
-                    <td className="num">{st.goals}</td>
-                    <td className="num">{st.assists}</td>
-                    <td className="num"><strong>{st.points}</strong></td>
-                    <td className="num">{fmt2(st.ppg)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {teamStints.uncertainGames > 0 && (
-            <div className="muted mt" style={{ fontSize: 11 }}>
-              {teamStints.uncertainGames} Spiel{teamStints.uncertainGames === 1 ? '' : 'e'} keinem Team sicher zuordenbar (Vereinswechsel seither - das aktuelle Datenmodell speichert keine Team-Zugehörigkeit je Spiel, daher hier nicht geraten statt falsch zugeordnet).
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="card">
+      {/* Game Log - wichtigste Detailansicht der laufenden Saison, bewusst
+          direkt nach Player Analytics platziert (statt ganz unten nach der
+          gesamten Mehrsaison-Historie) - siehe Reihenfolge-Prinzip oben:
+          aktuelle Saison vor historischen Detaildaten. */}
+      <div className="card mb" style={{ borderColor: 'var(--accent)' }}>
         <div className="card-pad" style={{ paddingBottom: 6 }}>
-          <div className="row spread wrap" style={{ gap: 10 }}>
-            <h2 style={{ margin: 0 }}>Game Log ({currentSeasonLabel || data.settings?.seasonName || 'Aktuelle Saison'})</h2>
+          <div className="row spread wrap" style={{ gap: 10, alignItems: 'baseline' }}>
+            <div className="row gap-sm" style={{ alignItems: 'baseline' }}>
+              <h2 style={{ margin: 0 }}>Game Log</h2>
+              <span className="chip" style={{ fontSize: 10 }}>{currentSeasonLabel || data.settings?.seasonName || 'Aktuelle Saison'}</span>
+            </div>
             {log.length > 0 && !goalie && (
               <div className="row gap-sm wrap">
                 <select style={{ width: 'auto' }} value={logHaFilter} onChange={(e) => setLogHaFilter(e.target.value)}>
@@ -752,6 +610,290 @@ export default function PlayerDetail() {
           </div>
         )}
       </div>
+
+      {/* Game-by-Game Impact (Abschnitt 3): bewusst NICHT implementiert.
+          Der validierte Impact Score (siehe oben, Karriere/Saison) beruht auf
+          Jahr-zu-Jahr-Stabilität (Spearman-Korrelation) als Validierungs-
+          methode - das funktioniert auf Einzelspiel-Ebene nicht analog, da
+          es dort kein "Jahr-zu-Jahr"-Äquivalent gibt (Spiel-zu-Spiel-
+          Korrelation misst nur Serien-Persistenz, ein anderes, deutlich
+          verrauschteres Signal). Jede Gewichtungs-Kombination aus G/A/SOG/
+          TOI/+- auf Spiel-Ebene wäre im Kern eine geratene Formel (analog zur
+          bekannten, aber nicht aus diesen Daten hergeleiteten NHL-"Game
+          Score"-Formel) - daher konsequent weggelassen statt erfunden. Die
+          rohen Box-Score-Werte je Spiel (Game Log oben) sind die ehrliche,
+          nicht-erfundene Leistungskennzahl pro Spiel. */}
+
+      {/* Heim/Auswärts-Split (Abschnitt 5) - bei sehr wenigen Spielen insgesamt
+          (< 3) bewusst NICHT als volle Zweispalten-Ansicht, sondern kompakte
+          Zeile: zwei prominente Kacheln für z.B. 1 Heim- + 0 Auswärtsspiele
+          würden eine Aussagekraft suggerieren, die bei n=1 nicht besteht. */}
+      {!goalie && homeAwaySplit && (() => {
+        const totalGp = (homeAwaySplit.home?.gp || 0) + (homeAwaySplit.away?.gp || 0)
+        if (totalGp < 3) {
+          return (
+            <div className="card card-pad mb">
+              <div className="row spread" style={{ alignItems: 'baseline', flexWrap: 'wrap', gap: 6 }}>
+                <h2 style={{ margin: 0 }}>Heim / Auswärts</h2>
+                <span className="chip" style={{ fontSize: 10 }}>n={totalGp} – geringe Aussagekraft</span>
+              </div>
+              <div className="muted mt" style={{ fontSize: 12.5 }}>
+                Heim {homeAwaySplit.home?.gp || 0} Sp. ({fmt2(homeAwaySplit.home?.ppg)} P/GP) · Auswärts {homeAwaySplit.away?.gp || 0} Sp. ({fmt2(homeAwaySplit.away?.ppg)} P/GP)
+              </div>
+            </div>
+          )
+        }
+        return (
+          <div className="card card-pad mb">
+            <h2 className="mb">Heim / Auswärts</h2>
+            <div className="grid grid-2" style={{ gap: 14 }}>
+              <HomeAwayCard label="Heim" split={homeAwaySplit.home} fmt2={fmt2} />
+              <HomeAwayCard label="Auswärts" split={homeAwaySplit.away} fmt2={fmt2} />
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Gegner-Auswertung (Abschnitt 6) */}
+      {!goalie && opponentBreakdown.length > 0 && (
+        <div className="card mb">
+          <div className="card-pad" style={{ paddingBottom: 6 }}>
+            <h2 style={{ margin: 0 }}>Gegen welche Teams produziert {player.name.split(' ')[0]} am meisten?</h2>
+            <div className="sub">Ab 2 Spielen gegen denselben Gegner</div>
+          </div>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th className="left">Gegner</th><th className="num">GP</th><th className="num">P</th><th className="num">P/GP</th></tr></thead>
+              <tbody>
+                {opponentBreakdown.map((r) => (
+                  <tr key={r.opp.id}>
+                    <td className="left"><TeamBadge team={r.opp} short /></td>
+                    <td className="num">{r.gp}</td>
+                    <td className="num">{r.points}</td>
+                    <td className="num"><strong>{fmt2(r.ppg)}</strong></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Team-Stints innerhalb der laufenden Saison (Abschnitt 7) - nur bei
+          mehr als einem sicher zugeordneten Team bzw. unsicheren Spielen
+          angezeigt, siehe resolveGameTeam()/computeTeamStints() für die
+          Datenmodell-Grenze bei unterjährigem Vereinswechsel. */}
+      {!goalie && teamStints && (teamStints.hasMultipleTeams || teamStints.uncertainGames > 0) && (
+        <div className="card card-pad mb">
+          <h2 className="mb">Teams (laufende Saison)</h2>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th className="left">Team</th><th className="num">GP</th><th className="num">T</th><th className="num">A</th><th className="num">P</th><th className="num">P/GP</th></tr></thead>
+              <tbody>
+                {teamStints.stints.map((st) => (
+                  <tr key={st.teamId}>
+                    <td className="left">{st.team ? <TeamBadge team={st.team} short /> : <span className="muted">{st.teamId}</span>}</td>
+                    <td className="num">{st.gp}</td>
+                    <td className="num">{st.goals}</td>
+                    <td className="num">{st.assists}</td>
+                    <td className="num"><strong>{st.points}</strong></td>
+                    <td className="num">{fmt2(st.ppg)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {teamStints.uncertainGames > 0 && (
+            <div className="muted mt" style={{ fontSize: 11 }}>
+              {teamStints.uncertainGames} Spiel{teamStints.uncertainGames === 1 ? '' : 'e'} keinem Team sicher zuordenbar (Vereinswechsel seither - das aktuelle Datenmodell speichert keine Team-Zugehörigkeit je Spiel, daher hier nicht geraten statt falsch zugeordnet).
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Historie & Karriere - alles ab hier bezieht sich auf vergangene,
+          abgeschlossene Saisons (Mehrsaison-Charts/Karrierewerte/Archiv-
+          Tabelle), bewusst unterhalb der aktuellen Saison/Form/Player
+          Analytics/Game Log platziert (Priorisierung, siehe Auftrag). */}
+      <div className="section-label" style={{ marginTop: 4, fontSize: 12, letterSpacing: '0.04em' }}>Historie &amp; Karriere</div>
+
+      {/* Saisonverlauf-Chart (inkl. laufender Saison, sofern schon Spiele
+          vorhanden - mergeSeasonSplits() in seasonRates/computeImpactScoreHistory
+          verhindert einen künstlichen Sprung bei unterjährigem Vereinswechsel) */}
+      {mergedCombinedSeasons.length >= 2 && (
+        <div className="card card-pad mb">
+          <div className="row gap-sm mb" style={{ alignItems: 'baseline' }}>
+            <h2 style={{ margin: 0 }}>Saisonverlauf</h2>
+            {mergedCombinedSeasons.length === 2 && <span className="chip" style={{ fontSize: 10 }}>nur 2 Saisons – geringe Aussagekraft</span>}
+          </div>
+          {goalie ? <GoalieChart seasons={mergedHistorySeasons} /> : <SkaterChart seasons={mergedCombinedSeasons} />}
+        </div>
+      )}
+
+      {/* Impact-Score-Verlauf über die Saisons */}
+      {!goalie && impactHistory.length >= 2 && (
+        <div className="card card-pad mb">
+          <div className="row gap-sm mb" style={{ alignItems: 'baseline' }}>
+            <h2 style={{ margin: 0 }}>Impact Score – Verlauf</h2>
+            {impactHistory.length === 2 && <span className="chip" style={{ fontSize: 10 }}>nur 2 Saisons – geringe Aussagekraft</span>}
+          </div>
+          <ImpactChart rows={impactHistory} />
+        </div>
+      )}
+
+      {/* Karriere-Zusammenfassung */}
+      {career && (
+        <div className="card card-pad mb">
+          <h2 className="mb">Karriere-Zusammenfassung</h2>
+          <div className="tiles" style={{ gridTemplateColumns: goalie ? 'repeat(4, 1fr)' : 'repeat(4, 1fr)' }}>
+            {goalie ? (
+              <>
+                <Tile label="NL-Spiele" value={career.gp} />
+                <Tile label="Saisons" value={career.seasonCount} />
+                <Tile label="Teams" value={career.teamCount} />
+                <Tile label="Ø Saisons/Team" value={fmt2(career.seasonCount / career.teamCount)} />
+              </>
+            ) : (
+              <>
+                <Tile label="NL-Spiele" value={career.gp} />
+                <Tile label="NL-Tore" value={career.goals} />
+                <Tile label="NL-Assists" value={career.assists} />
+                <Tile label="NL-Punkte" value={career.points} />
+                <Tile label="Karriere P/GP" value={fmt2(career.careerPpg)} />
+                <Tile label="Saisons" value={career.seasonCount} />
+                <Tile label="Teams" value={career.teamCount} />
+                {career.bestByPoints && <Tile label={`Beste Saison (${career.bestByPoints.season})`} value={`${career.bestByPoints.points} Pkt`} />}
+              </>
+            )}
+          </div>
+          <div className="muted mt" style={{ fontSize: 11 }}>
+            Basierend auf historischen NL-Archivdaten ({playerHistoryData?.seasonsIncluded?.[0]}–{playerHistoryData?.seasonsIncluded?.at(-1)}). Saison-Totale können Playoff-Spiele enthalten – reguläre Saison und Playoffs sind in den Archivdaten nicht zuverlässig unterscheidbar, daher keine separate Playoff-Historie.
+          </div>
+        </div>
+      )}
+
+      {/* Teams über die Jahre */}
+      {teamsByHistory.length > 0 && (
+        <div className="card card-pad mb">
+          <h2 className="mb">Teams</h2>
+          <div className="grid grid-2" style={{ gap: 6 }}>
+            {teamsByHistory.map((t, i) => (
+              <div key={i} className="row spread" style={{ padding: '5px 0', borderBottom: i < teamsByHistory.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                <span className="muted" style={{ fontFamily: 'var(--mono)', fontSize: 12.5 }}>{t.season}</span>
+                <TeamBadge team={t.team} short />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Historische Saison-für-Saison-Tabelle */}
+      {historySeasons.length > 0 && (
+        <div className="card mb">
+          <div className="card-pad" style={{ paddingBottom: 6 }}><h2 style={{ margin: 0 }}>Saison-Historie</h2></div>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th className="left sortable" onClick={() => sortHist('season')}>Saison{sortInd('season')}</th>
+                  <th className="left sortable" onClick={() => sortHist('team')}>Team{sortInd('team')}</th>
+                  <th className="num sortable" onClick={() => sortHist('gp')}>GP{sortInd('gp')}</th>
+                  {goalie ? (
+                    <>
+                      <th className="num sortable" onClick={() => sortHist('svpct')}>SV%{sortInd('svpct')}</th>
+                      <th className="num sortable" onClick={() => sortHist('gaa')}>GTS{sortInd('gaa')}</th>
+                      <th className="num sortable" onClick={() => sortHist('saves')}>Paraden{sortInd('saves')}</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="num sortable" onClick={() => sortHist('goals')}>T{sortInd('goals')}</th>
+                      <th className="num sortable" onClick={() => sortHist('assists')}>A{sortInd('assists')}</th>
+                      <th className="num sortable" onClick={() => sortHist('points')}>P{sortInd('points')}</th>
+                      <th className="num sortable" onClick={() => sortHist('ppg')}>P/GP{sortInd('ppg')}</th>
+                      <th className="num sortable" onClick={() => sortHist('sog')}>SOG{sortInd('sog')}</th>
+                      <th className="num sortable" onClick={() => sortHist('toipg')}>TOI/GP{sortInd('toipg')}</th>
+                      <th className="num sortable" onClick={() => sortHist('plusMinus')}>+/–{sortInd('plusMinus')}</th>
+                    </>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {sortedHistory.flatMap((s, i) => {
+                  const t = data.teams.find((x) => x.id === s.teamId)
+                  const r = seasonRates(s)
+                  const svp = s.shotsAgainst > 0 ? s.saves / s.shotsAgainst : null
+                  const gaa = s.gp > 0 ? s.goalsAgainst / s.gp : null
+                  const isSplit = (splitSeasonCounts.get(s.season) || 0) > 1
+                  const nextSameSeason = histSort === 'season' && sortedHistory[i + 1]?.season === s.season
+                  const row = (
+                    <tr key={s.season + s.teamId}>
+                      <td className="left" style={{ fontFamily: 'var(--mono)' }}>{s.season}</td>
+                      <td className="left">
+                        <span className="row gap-sm" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                          {t ? <TeamBadge team={t} short /> : <span className="muted">–</span>}
+                          {isSplit && (
+                            <span className="chip" style={{ fontSize: 9 }} title="Vereinswechsel innerhalb dieser Saison - siehe Summenzeile bei Sortierung nach Saison">Wechsel</span>
+                          )}
+                        </span>
+                      </td>
+                      <td className="num">{s.gp}</td>
+                      {goalie ? (
+                        <>
+                          <td className="num">{fmtPct(svp)}</td>
+                          <td className="num">{fmtNum(gaa)}</td>
+                          <td className="num">{s.saves}</td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="num">{s.goals}</td>
+                          <td className="num">{s.assists}</td>
+                          <td className="num"><strong>{s.points}</strong></td>
+                          <td className="num">{fmt2(r.ppg)}</td>
+                          <td className="num">{s.sog}</td>
+                          <td className="num">{fmtSec(r.toipg)}</td>
+                          <td className="num">{plusMinusStr(s.plusMinus)}</td>
+                        </>
+                      )}
+                    </tr>
+                  )
+                  // Summenzeile nur bei Sortierung nach Saison, direkt nach dem
+                  // letzten Stint einer Split-Saison - Rohzeilen bleiben unverändert.
+                  if (isSplit && !nextSameSeason && histSort === 'season') {
+                    const m = mergedSeasonTotals.get(s.season)
+                    const mr = m ? seasonRates(m) : null
+                    return [row, (
+                      <tr key={s.season + '-total'} className="muted" style={{ fontStyle: 'italic', background: 'var(--bg-elev-2)' }}>
+                        <td className="left" style={{ fontFamily: 'var(--mono)' }}>Σ {s.season}</td>
+                        <td className="left">Gesamt ({splitSeasonCounts.get(s.season)} Teams)</td>
+                        <td className="num">{m?.gp}</td>
+                        {goalie ? (
+                          <>
+                            <td className="num">{fmtPct(m?.shotsAgainst > 0 ? m.saves / m.shotsAgainst : null)}</td>
+                            <td className="num">{fmtNum(m?.gp > 0 ? m.goalsAgainst / m.gp : null)}</td>
+                            <td className="num">{m?.saves}</td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="num">{m?.goals}</td>
+                            <td className="num">{m?.assists}</td>
+                            <td className="num">{m?.points}</td>
+                            <td className="num">{fmt2(mr?.ppg)}</td>
+                            <td className="num">{m?.sog}</td>
+                            <td className="num">{fmtSec(mr?.toipg)}</td>
+                            <td className="num">{plusMinusStr(m?.plusMinus ?? 0)}</td>
+                          </>
+                        )}
+                      </tr>
+                    )]
+                  }
+                  return [row]
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
     </>
   )
 }

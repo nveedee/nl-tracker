@@ -222,6 +222,21 @@ export function fmtNum(v, digits = 2) {
   return v.toFixed(digits)
 }
 
+// TOI-Sekunden -> "m:ss". Zentral hier (statt lokal je Seite), damit die
+// Formatierung nur an einer Stelle korrekt sein muss. Bugfix: `v` ist bei
+// Pro-Spiel-Schnitten (z.B. toiSec/GP) meist NICHT ganzzahlig - rundet man
+// erst die Minuten ab und DANACH `v % 60`, kann das Sekunden-Restglied auf
+// 60 aufrunden (z.B. v=539.6 -> m=8, s=round(59.6)=60 -> "8:60"). Fix: zuerst
+// die GESAMTEN Sekunden runden, danach erst in m/s zerlegen - `s` liegt dann
+// durch Ganzzahl-Modulo garantiert in [0,59].
+export function fmtSec(v) {
+  if (v == null) return '–'
+  const total = Math.round(v)
+  const m = Math.floor(total / 60)
+  const s = total % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
 export function plusMinusStr(v) {
   if (v > 0) return '+' + v
   return String(v)
