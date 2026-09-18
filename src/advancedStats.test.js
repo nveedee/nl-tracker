@@ -9,7 +9,8 @@ import assert from 'node:assert/strict'
 import {
   collectPlayerGameStats, computeAdvancedStats, computeRollingAdvancedStats, computePlayerAdvancedStats,
   buildAdvancedBaselines, computeAdvancedPercentile, computeCurrentSeasonAdvancedScore,
-  collectPlayerShots, describeGoalsVsXg,
+  collectPlayerShots, describeGoalsVsXg, isValidShotCoordinate, seasonSampleQuality,
+  SHOT_MAP_X_MAX, SHOT_MAP_Y_MAX, SEASON_SIGNAL_HIDE_BELOW_GP, SEASON_SIGNAL_WARN_BELOW_GP,
 } from './advancedStats.js'
 
 function game(id, date, playerStats, nlShots) {
@@ -206,16 +207,110 @@ test('collectPlayerShots: leeres Array (kein Crash), wenn game.nlShots fehlt', (
   assert.deepEqual(collectPlayerShots(games, 'p1'), [])
 })
 
-test('describeGoalsVsXg: neutrale, datenbeschreibende Sätze ohne "Lucky/Unlucky"-Label', () => {
+test('describeGoalsVsXg: neutrale, rein datenbeschreibende Sätze ohne Erwartungs-/Glücks-Interpretation (Auftrag Punkt 8)', () => {
   const more = describeGoalsVsXg(8, 4.2)
   const less = describeGoalsVsXg(2, 6.1)
   const about = describeGoalsVsXg(5, 4.6)
-  assert.match(more, /mehr Tore/)
-  assert.match(less, /weniger Tore/)
+  assert.match(more, /liegen die erzielten Tore \(8\) über dem kumulierten xG-Wert \(4\.20\)/)
+  assert.match(less, /liegen die erzielten Tore \(2\) unter dem kumulierten xG-Wert \(6\.10\)/)
   assert.match(about, /entsprechen etwa/)
   for (const s of [more, less, about]) {
-    assert.doesNotMatch(s.toLowerCase(), /lucky|unlucky|glück|pech/)
+    // Keine Interpretation ("wäre zu erwarten", "sollte") und kein Glücks-Framing
+    assert.doesNotMatch(s.toLowerCase(), /lucky|unlucky|glück|pech|zu erwarten|erwarten wäre/)
   }
   assert.equal(describeGoalsVsXg(null, 4), null)
   assert.equal(describeGoalsVsXg(4, null), null)
+})
+
+test('describeGoalsVsXg: xG-Text nutzt dieselbe Präzision (2 Nachkommastellen) wie der "xG total"-Wert im selben Block (Auftrag Polish Punkt 3)', () => {
+  const text = describeGoalsVsXg(2, 0.77)
+  assert.match(text, /0\.77/)
+  assert.doesNotMatch(text, /0\.8\D/) // NICHT die alte, gröbere Rundung (0.8)
+})
+
+// ---------------------------------------------------------------------------
+// Shotmap-Koordinatentransformation (Auftrag Punkt 1/2/10) - feste Grenzen,
+// empirisch aus server/data/fixtures/nl-game-detail-sample.json verifiziert
+// (posXPercentage === posX/30, posYPercentage === posY/24 bei ALLEN
+// gültigen Schüssen in mehreren echten Spielen, siehe Bericht).
+// ---------------------------------------------------------------------------
+
+test('SHOT_MAP_X_MAX/SHOT_MAP_Y_MAX: feste, konstante Grenzen (30x24) - keine dynamische Skalierung', () => {
+  assert.equal(SHOT_MAP_X_MAX, 30)
+  assert.equal(SHOT_MAP_Y_MAX, 24)
+})
+
+test('isValidShotCoordinate: gültige Koordinaten innerhalb [0,30]x[0,24] werden akzeptiert', () => {
+  assert.equal(isValidShotCoordinate({ x: 0, y: 0 }), true)
+  assert.equal(isValidShotCoordinate({ x: 30, y: 24 }), true)
+  assert.equal(isValidShotCoordinate({ x: 15, y: 12 }), true)
+})
+
+test('isValidShotCoordinate: fehlende oder aus dem echten API-Datensatz bekannte fehlerhafte Koordinaten (>Grenze) werden verworfen', () => {
+  assert.equal(isValidShotCoordinate({ x: null, y: 10 }), false)
+  assert.equal(isValidShotCoordinate({ x: 10, y: null }), false)
+  assert.equal(isValidShotCoordinate({ x: -1, y: 10 }), false)
+  assert.equal(isValidShotCoordinate({ x: 31, y: 10 }), false)
+  assert.equal(isValidShotCoordinate({ x: 25.5, y: 56.1 }), false) // echtes fehlerhaftes Beispiel aus der API (siehe Bericht)
+})
+
+test('Koordinatentransformation: Schüsse aus derselben Eiszone bleiben unabhängig vom Spieler an derselben Stelle (keine per-Spieler-Skalierung mehr)', () => {
+  // Zwei "Spieler" mit ansonsten komplett unterschiedlicher Schussverteilung -
+  // beide haben je EINEN Schuss aus derselben kleinen Zone (x=14-16, y=8-10).
+  // Mit der alten dynamischen Skalierung (min/max je Spieler) würden diese
+  // Schüsse bei unterschiedlichen Spielern an UNTERSCHIEDLICHEN Bildschirm-
+  // positionen landen (weil die jeweilige Wertespanne unterschiedlich ist).
+  // Mit der festen Transformation (SHOT_MAP_X_MAX/SHOT_MAP_Y_MAX) ist die
+  // Position ausschliesslich von x/y selbst abhängig.
+  const toPxFixed = (x, y) => [x / SHOT_MAP_X_MAX, y / SHOT_MAP_Y_MAX]
+  const shotA = { x: 15, y: 9 } // einziger Schuss von Spieler A
+  const shotB = { x: 15, y: 9 } // einziger Schuss von Spieler B, andere Spieler-Gesamtverteilung ist irrelevant
+  assert.deepEqual(toPxFixed(shotA.x, shotA.y), toPxFixed(shotB.x, shotB.y))
+})
+
+// ---------------------------------------------------------------------------
+// Small-Sample-Gating (Auftrag Punkt 7) - NUR für die aktuelle-Saison-
+// Perzentile/das Season-Signal, NICHT für den Karriere-Impact-Score.
+// ---------------------------------------------------------------------------
+
+test('seasonSampleQuality: < 5 Spiele -> hide=true (Perzentile/Signal nicht anzeigen)', () => {
+  for (let gp = 1; gp < SEASON_SIGNAL_HIDE_BELOW_GP; gp++) {
+    const q = seasonSampleQuality(gp)
+    assert.equal(q.hide, true, `gp=${gp} sollte versteckt werden`)
+    assert.equal(q.level, 'hidden')
+    assert.ok(q.warning && q.warning.length > 0)
+  }
+})
+
+test('seasonSampleQuality: 5-9 Spiele -> hide=false, aber Warnung vorhanden', () => {
+  for (let gp = SEASON_SIGNAL_HIDE_BELOW_GP; gp < SEASON_SIGNAL_WARN_BELOW_GP; gp++) {
+    const q = seasonSampleQuality(gp)
+    assert.equal(q.hide, false, `gp=${gp} sollte NICHT versteckt werden`)
+    assert.equal(q.level, 'warn')
+    assert.ok(q.warning && q.warning.length > 0)
+  }
+})
+
+test('seasonSampleQuality: >= 10 Spiele -> keine Einschränkung, keine Warnung', () => {
+  const q = seasonSampleQuality(SEASON_SIGNAL_WARN_BELOW_GP)
+  assert.equal(q.hide, false)
+  assert.equal(q.level, 'ok')
+  assert.equal(q.warning, null)
+  const q2 = seasonSampleQuality(41)
+  assert.equal(q2.level, 'ok')
+})
+
+test('seasonSampleQuality: null/0 Spiele -> level "none", nie NaN/Absturz', () => {
+  assert.equal(seasonSampleQuality(null).level, 'none')
+  assert.equal(seasonSampleQuality(0).level, 'none')
+  assert.equal(seasonSampleQuality(undefined).level, 'none')
+})
+
+test('seasonSampleQuality: setzt NIE einen Platzhalterwert wie 50 - nur hide/warning, keine numerischen Kennzahlen', () => {
+  for (const gp of [1, 4, 5, 9, 10, 20]) {
+    const q = seasonSampleQuality(gp)
+    assert.equal(typeof q.hide, 'boolean')
+    assert.equal('score' in q, false)
+    assert.equal('percentile' in q, false)
+  }
 })

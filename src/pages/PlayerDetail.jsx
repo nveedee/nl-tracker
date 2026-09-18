@@ -13,7 +13,7 @@ import {
 } from '../playerHistory.js'
 import {
   computePlayerAdvancedStats, buildAdvancedBaselines, computeAdvancedPercentile,
-  computeCurrentSeasonAdvancedScore, collectPlayerShots,
+  computeCurrentSeasonAdvancedScore, collectPlayerShots, seasonSampleQuality,
 } from '../advancedStats.js'
 import AdvancedAnalyticsCard from '../components/AdvancedAnalyticsCard.jsx'
 import ShotMap from '../components/ShotMap.jsx'
@@ -186,6 +186,10 @@ export default function PlayerDetail() {
     [goalie, advanced, posLabelHist, advancedBaselines]
   )
   const playerShots = useMemo(() => (!goalie ? collectPlayerShots(data.games, id) : []), [goalie, data.games, id])
+  // Small-Sample-Gating (Auftrag Punkt 7) - gilt NUR für die aktuelle-Saison-
+  // Perzentile/das Season-Signal unten, NICHT für den karrierevalidierten
+  // Impact Score/dessen Perzentile weiter oben (siehe advancedStats.js).
+  const seasonSample = useMemo(() => seasonSampleQuality(advanced.season?.gp), [advanced])
 
   const [histSort, setHistSort] = useState('season')
   const [histDir, setHistDir] = useState('desc')
@@ -577,15 +581,24 @@ export default function PlayerDetail() {
           {!goalie && advanced.season && (posLabelHist === 'Stürmer' || posLabelHist === 'Verteidiger') && (
             <>
               <div className="section-label" style={{ marginTop: 14 }}>Vergleich mit {posLabelHist === 'Stürmer' ? 'Stürmern' : 'Verteidigern'} (aktuelle Saison, erweiterte Kennzahlen)</div>
-              <PercentileRow label="P/GP" value={advanced.season.pointsPerGame} pct={computeAdvancedPercentile(advanced.season.pointsPerGame, posLabelHist, 'pointsPerGame', advancedBaselines)} baselines={advancedBaselines} position={posLabelHist} statKey="pointsPerGame" fmt={fmt2} />
-              <PercentileRow label="SOG/GP" value={advanced.season.sogPerGame} pct={computeAdvancedPercentile(advanced.season.sogPerGame, posLabelHist, 'sogPerGame', advancedBaselines)} baselines={advancedBaselines} position={posLabelHist} statKey="sogPerGame" fmt={fmt2} />
-              <PercentileRow label="TOI/GP" value={advanced.season.toiPerGame} pct={computeAdvancedPercentile(advanced.season.toiPerGame, posLabelHist, 'toiPerGame', advancedBaselines)} baselines={advancedBaselines} position={posLabelHist} statKey="toiPerGame" fmt={fmtSec} />
-              <PercentileRow label="xG/GP" value={advanced.season.xgPerGame} pct={computeAdvancedPercentile(advanced.season.xgPerGame, posLabelHist, 'xgPerGame', advancedBaselines)} baselines={advancedBaselines} position={posLabelHist} statKey="xgPerGame" fmt={fmt2} />
-              <PercentileRow label="Faceoff-%" value={advanced.season.faceoffPercentage} pct={computeAdvancedPercentile(advanced.season.faceoffPercentage, posLabelHist, 'faceoffPercentage', advancedBaselines)} baselines={advancedBaselines} position={posLabelHist} statKey="faceoffPercentage" fmt={fmtPct} />
-              {currentSeasonScore && (
-                <div className="muted mt" style={{ fontSize: 11 }}>
-                  Season-Signal (xG/GP, SOG/GP, TOI/GP, PP-/PK-TOI, Faceoff-%, Blocks/GP - {currentSeasonScore.componentsUsed} Komponenten): <strong style={{ color: 'var(--text)' }}>{currentSeasonScore.score.toFixed(1)}</strong>. Ergänzt den Karriere-Impact-Score oben, ersetzt ihn nicht.
-                </div>
+              {seasonSample.hide ? (
+                <div className="muted mt" style={{ fontSize: 12 }}>{seasonSample.warning}</div>
+              ) : (
+                <>
+                  {seasonSample.warning && (
+                    <div className="muted mt" style={{ fontSize: 11, fontStyle: 'italic' }}>{seasonSample.warning}</div>
+                  )}
+                  <PercentileRow label="P/GP" value={advanced.season.pointsPerGame} pct={computeAdvancedPercentile(advanced.season.pointsPerGame, posLabelHist, 'pointsPerGame', advancedBaselines)} baselines={advancedBaselines} position={posLabelHist} statKey="pointsPerGame" fmt={fmt2} />
+                  <PercentileRow label="SOG/GP" value={advanced.season.sogPerGame} pct={computeAdvancedPercentile(advanced.season.sogPerGame, posLabelHist, 'sogPerGame', advancedBaselines)} baselines={advancedBaselines} position={posLabelHist} statKey="sogPerGame" fmt={fmt2} />
+                  <PercentileRow label="TOI/GP" value={advanced.season.toiPerGame} pct={computeAdvancedPercentile(advanced.season.toiPerGame, posLabelHist, 'toiPerGame', advancedBaselines)} baselines={advancedBaselines} position={posLabelHist} statKey="toiPerGame" fmt={fmtSec} />
+                  <PercentileRow label="xG/GP" value={advanced.season.xgPerGame} pct={computeAdvancedPercentile(advanced.season.xgPerGame, posLabelHist, 'xgPerGame', advancedBaselines)} baselines={advancedBaselines} position={posLabelHist} statKey="xgPerGame" fmt={fmt2} />
+                  <PercentileRow label="Faceoff-%" value={advanced.season.faceoffPercentage} pct={computeAdvancedPercentile(advanced.season.faceoffPercentage, posLabelHist, 'faceoffPercentage', advancedBaselines)} baselines={advancedBaselines} position={posLabelHist} statKey="faceoffPercentage" fmt={fmtPct} />
+                  {currentSeasonScore && (
+                    <div className="muted mt" style={{ fontSize: 11 }}>
+                      Season-Signal (xG/GP, SOG/GP, TOI/GP, PP-/PK-TOI, Faceoff-%, Blocks/GP - {currentSeasonScore.componentsUsed} Komponenten): <strong style={{ color: 'var(--text)' }}>{currentSeasonScore.score.toFixed(1)}</strong>. Ergänzt den Karriere-Impact-Score oben, ersetzt ihn nicht.
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}

@@ -254,6 +254,33 @@ export function computeCurrentSeasonAdvancedScore(season, position, baselines) {
 // "korrigiert" oder erfunden).
 // ---------------------------------------------------------------------------
 
+// Feste Koordinatengrenzen der National-League-API (empirisch verifiziert,
+// siehe Bericht: raw.posXPercentage === raw.posX / 30 und
+// raw.posYPercentage === raw.posY / 24 bei ALLEN gültigen Schüssen in
+// mehreren realen, abgeschlossenen Spielen - X = seitliche Position über
+// die Eisbreite [0,30] (deckt sich exakt mit der offiziellen 30m-Breite
+// eines Schweizer/europäischen Rinks), Y = Tiefe ab Torlinie in Richtung
+// Angriffszone [0,24]. KEINE Heim-/Auswärts- oder Drittel-Spiegelung nötig
+// (X/Y-Wertebereiche bleiben für ein Team über alle 3 Drittel stabil, Tor-
+// Events beider Teams verteilen sich über denselben Wertebereich statt in
+// zwei getrennte Hälften zu zerfallen - die API liefert die Koordinaten
+// bereits in einer einheitlichen, angreiferrelativen Ausrichtung).
+export const SHOT_MAP_X_MAX = 30
+export const SHOT_MAP_Y_MAX = 24
+
+// Manche Schüsse tragen fehlerhafte Rohkoordinaten aus der API selbst
+// (posXPercentage/posYPercentage > 1, verifiziert an echten Spielen - ein
+// Datenqualitätsproblem der Quelle, kein Rechenfehler hier) - diese müssen
+// aus der Shotmap-Darstellung gefiltert werden statt sie zu clampen oder
+// als echte Position zu vertrauen.
+export function isValidShotCoordinate(shot) {
+  return (
+    shot?.x != null && shot?.y != null &&
+    shot.x >= 0 && shot.x <= SHOT_MAP_X_MAX &&
+    shot.y >= 0 && shot.y <= SHOT_MAP_Y_MAX
+  )
+}
+
 export function collectPlayerShots(games, playerId) {
   const shots = []
   for (const g of games || []) {
@@ -268,16 +295,62 @@ export function collectPlayerShots(games, playerId) {
   return shots
 }
 
-// Neutrale, rein datenbeschreibende Formulierung (Auftrag Punkt 4 - explizit
-// KEINE Labels wie "Lucky"/"Unlucky"). `threshold`: unterhalb dieser
-// Differenz (Standard 1 Tor) gilt die Bilanz als ungefähr im Rahmen des
-// xG-Werts - vermeidet eine Aussage bei einer Differenz von z.B. 0.2 Toren,
-// die keine erkennbare Tendenz zeigt.
+// Neutrale, rein datenbeschreibende Formulierung (Auftrag Punkt 4/8 -
+// explizit KEINE Labels wie "Lucky"/"Unlucky", KEINE Interpretation im
+// Sinne von Erwartung/Überperformance - gerade bei kleiner Spielanzahl (z.B.
+// n=1) ist "mehr Tore als zu erwarten wäre" eine zu starke Aussage für eine
+// Kennzahl, die noch kaum statistisches Gewicht hat. Beschreibt nur das
+// Verhältnis der beiden Werte zueinander, ohne es zu bewerten). `threshold`:
+// unterhalb dieser Differenz (Standard 1 Tor) gilt die Bilanz als ungefähr
+// im Rahmen des xG-Werts - vermeidet eine Aussage bei einer Differenz von
+// z.B. 0.2 Toren, die keine erkennbare Tendenz zeigt.
 export function describeGoalsVsXg(goals, xg, threshold = 1) {
   if (goals == null || xg == null) return null
   const diff = goals - xg
-  const xgLabel = xg.toFixed(1)
+  // 2 Nachkommastellen - dieselbe Präzision wie der "xG total"-Wert im
+  // selben Advanced-Analytics-Block (AdvancedAnalyticsCard.jsx, fmt2()) -
+  // sonst weicht der Text (z.B. "0.8") optisch vom danebenstehenden Wert
+  // (z.B. "0.77") ab, obwohl beide dieselbe Zahl meinen.
+  const xgLabel = xg.toFixed(2)
   if (Math.abs(diff) < threshold) return `Die erzielten Tore (${goals}) entsprechen etwa dem kumulierten xG-Wert (${xgLabel}).`
-  if (diff > 0) return `Der Spieler erzielt aktuell mehr Tore (${goals}) als aufgrund seines kumulierten xG-Werts (${xgLabel}) zu erwarten wäre.`
-  return `Der Spieler erzielt aktuell weniger Tore (${goals}) als aufgrund seines kumulierten xG-Werts (${xgLabel}) zu erwarten wäre.`
+  if (diff > 0) return `In den bisher erfassten Spielen liegen die erzielten Tore (${goals}) über dem kumulierten xG-Wert (${xgLabel}).`
+  return `In den bisher erfassten Spielen liegen die erzielten Tore (${goals}) unter dem kumulierten xG-Wert (${xgLabel}).`
+}
+
+// ---------------------------------------------------------------------------
+// SMALL-SAMPLE-GATING (Auftrag Punkt 7) - für die AKTUELLE Saison, spiel-
+// basierten Perzentile/das "Season-Signal" oben (NICHT für den karriere-
+// validierten Impact Score in src/playerHistory.js, der bleibt unangetastet,
+// siehe Kommentar dort). Nach wenigen Spielen sind einzelne Ausreisser
+// (z.B. 1 Tor bei 1 Spiel) statistisch bedeutungslos, aber optisch extrem
+// (100. Perzentil) - das ist technisch korrekt, aber analytisch irreführend.
+// Bewusst KEIN neutraler Platzhalterwert wie 50 (das wäre selbst erfunden/
+// geraten) - stattdessen wird die betroffene UI ganz ausgeblendet (< 5
+// Spiele) bzw. mit einer Warnung versehen (< 10 Spiele).
+// ---------------------------------------------------------------------------
+
+export const SEASON_SIGNAL_HIDE_BELOW_GP = 5
+export const SEASON_SIGNAL_WARN_BELOW_GP = 10
+
+// `gp` = Anzahl Spiele mit Game-Detail-Daten dieser Saison (advanced.season.gp).
+// `level`: 'none' (keine Daten), 'hidden' (< 5 Spiele - Perzentile/Signal
+// nicht anzeigen), 'warn' (5-9 Spiele - anzeigen, aber mit Hinweis), 'ok'
+// (>= 10 Spiele - keine Einschränkung).
+export function seasonSampleQuality(gp) {
+  if (gp == null || gp <= 0) return { level: 'none', hide: true, warning: null }
+  if (gp < SEASON_SIGNAL_HIDE_BELOW_GP) {
+    return {
+      level: 'hidden',
+      hide: true,
+      warning: `Kleine Stichprobe (${gp} Spiel${gp === 1 ? '' : 'e'}) - Perzentile und Season-Signal dieser Saison werden erst ab ${SEASON_SIGNAL_HIDE_BELOW_GP} Spielen angezeigt.`,
+    }
+  }
+  if (gp < SEASON_SIGNAL_WARN_BELOW_GP) {
+    return {
+      level: 'warn',
+      hide: false,
+      warning: `Geringe Stichprobengrösse (${gp} Spiele) - Perzentile und Season-Signal dieser Saison sind noch wenig belastbar.`,
+    }
+  }
+  return { level: 'ok', hide: false, warning: null }
 }

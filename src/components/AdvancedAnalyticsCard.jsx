@@ -24,8 +24,8 @@ function Stat({ label, value, accent }) {
   )
 }
 
-function SectionLabel({ children }) {
-  return <div className="section-label" style={{ marginTop: 16 }}>{children}</div>
+function SectionLabel({ children, first }) {
+  return <div className="section-label" style={{ marginTop: first ? 12 : 16 }}>{children}</div>
 }
 
 // Horizontaler, segmentierter Balken für die Ice-Time-Aufteilung (EQ/PP/PK) -
@@ -54,13 +54,14 @@ function IceTimeBar({ eq, pp, pk }) {
 export default function AdvancedAnalyticsCard({ season }) {
   if (!season) return null
 
+  const hasPerformance = [season.raw.points, season.raw.goals, season.raw.assists].some((v) => v != null)
   const hasXg = season.xg != null
   const hasIceTimeSplit = season.eqToiPerGame != null || season.ppToiPerGame != null || season.pkToiPerGame != null
   const hasSpecialTeams = [season.raw.powerplayGoals, season.raw.powerplayAssists, season.raw.shorthandedGoals, season.raw.shorthandedAssists, season.raw.gameWinningGoals].some((v) => v != null)
   const hasFaceoffs = season.raw.faceoffsTotal != null && season.raw.faceoffsTotal > 0
   const hasDefense = [season.raw.blockedShots, season.raw.plusMinus, season.raw.pim].some((v) => v != null)
 
-  if (!hasXg && !hasIceTimeSplit && !hasSpecialTeams && !hasFaceoffs && !hasDefense) return null
+  if (!hasPerformance && !hasXg && !hasIceTimeSplit && !hasSpecialTeams && !hasFaceoffs && !hasDefense) return null
 
   const xgInterpretation = hasXg ? describeGoalsVsXg(season.raw.goals, season.xg) : null
 
@@ -69,17 +70,40 @@ export default function AdvancedAnalyticsCard({ season }) {
       <h2 className="mb">Advanced Analytics</h2>
       <div className="muted" style={{ fontSize: 11 }}>Basierend auf {season.gp} Spiel{season.gp === 1 ? '' : 'en'} mit National-League-Detaildaten dieser Saison.</div>
 
+      {/* Visuelle Hierarchie (Polish Punkt 5): Performance -> Shooting/xG ->
+          Ice Time -> Special Teams -> Faceoffs -> Defensive - reine
+          Neugruppierung bereits vorhandener Werte, keine neuen Kennzahlen. */}
+      {hasPerformance && (
+        <>
+          <SectionLabel first>Performance</SectionLabel>
+          <div className="grid grid-4" style={{ gap: 10, marginTop: 8 }}>
+            <Stat label="Punkte" value={season.raw.points ?? '–'} accent />
+            <Stat label="P/GP" value={fmt2(season.pointsPerGame)} />
+            <Stat label="Tore/GP" value={fmt2(season.goalsPerGame)} />
+            <Stat label="Assists/GP" value={fmt2(season.assistsPerGame)} />
+          </div>
+        </>
+      )}
+
       {hasXg && (
         <>
-          <SectionLabel>xG</SectionLabel>
+          <SectionLabel>Shooting &amp; xG</SectionLabel>
+          {/* Begriffsklarheit (Polish Punkt 2): Shot-Events = alle rohen
+              Schuss-Versuche (GOAL+SOG+MISS+BLOCK), SOG = tatsächliche Shots
+              on Goal INKLUSIVE Tore (verifiziert an echten API-Boxscore-
+              Zeilen, siehe Bericht: raw "sog"-Feld = GOAL- + SOG-Typ-Schüsse
+              zusammen), Schussquote = Tore / SOG. "Schüsse (Versuche)" hiess
+              vorher irreführend ähnlich wie SOG, obwohl es eine andere,
+              GRÖSSERE Menge ist (schliesst MISS/BLOCK mit ein). */}
           <div className="grid grid-4" style={{ gap: 10, marginTop: 8 }}>
+            <Stat label="Shot-Events" value={season.raw.shotAttempts ?? '–'} />
+            <Stat label="SOG" value={season.raw.sog ?? '–'} />
+            <Stat label="Tore" value={season.raw.goals ?? '–'} />
+            <Stat label="Schussquote" value={fmtPct1(season.shootingPercentage)} accent />
             <Stat label="xG total" value={fmt2(season.xg)} accent />
             <Stat label="xG/GP" value={fmt2(season.xgPerGame)} />
             <Stat label="xG/Schuss" value={fmt2(season.xgPerShot)} />
             <Stat label="Tore − xG" value={season.goalsMinusXg == null ? '–' : (season.goalsMinusXg > 0 ? '+' : '') + season.goalsMinusXg.toFixed(2)} />
-            <Stat label="Tore" value={season.raw.goals ?? '–'} />
-            <Stat label="Schüsse (Versuche)" value={season.raw.shotAttempts ?? '–'} />
-            <Stat label="Schuss-%" value={fmtPct1(season.shootingPercentage)} />
           </div>
           {xgInterpretation && <div className="muted mt" style={{ fontSize: 12, fontStyle: 'italic' }}>{xgInterpretation}</div>}
         </>
@@ -139,7 +163,7 @@ export default function AdvancedAnalyticsCard({ season }) {
 
       {hasDefense && (
         <>
-          <SectionLabel>Defensive Contribution</SectionLabel>
+          <SectionLabel>Defensive</SectionLabel>
           <div className="grid grid-4" style={{ gap: 10, marginTop: 8 }}>
             <Stat label="Blocked Shots" value={season.raw.blockedShots ?? '–'} />
             <Stat label="Blocks/GP" value={fmt2(season.blockedShotsPerGame)} />
