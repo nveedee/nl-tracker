@@ -1,0 +1,250 @@
+{
+  "period": {
+    "from": "2017/18",
+    "to": "2025/26"
+  },
+  "games": 3224,
+  "skaterRows": 127669,
+  "goalieRows": 6830,
+  "modelA": {
+    "n": 1605,
+    "accuracy": 0.5925233644859813,
+    "brier": 0.23751896904003658,
+    "logloss": 0.6684345880510609
+  },
+  "modelB": {
+    "n": 1590,
+    "accuracy": 0.5786163522012578,
+    "brier": 0.23870141033627448,
+    "logloss": 0.6704116445729468
+  },
+  "modelC": {
+    "n": 1590,
+    "accuracy": 0.5911949685534591,
+    "brier": 0.23457728287622567,
+    "logloss": 0.661536521783318
+  },
+  "correlationAllSeasons": {
+    "Punkte nächstes Spiel": {
+      "A) Career only": {
+        "r": 0.26472591079633073,
+        "n": 107873
+      },
+      "B) Current season only": {
+        "r": 0.280520873616491,
+        "n": 123060
+      },
+      "C) Current + Form (kein Career-Anteil)": {
+        "r": 0.30361990808129713,
+        "n": 124025
+      },
+      "D) Full rating (overall)": {
+        "r": 0.2982939652335058,
+        "n": 123893
+      }
+    },
+    "Tore nächstes Spiel": {
+      "A) Career only": {
+        "r": 0.15948668124939339,
+        "n": 107873
+      },
+      "B) Current season only": {
+        "r": 0.17228925556569333,
+        "n": 123060
+      },
+      "C) Current + Form (kein Career-Anteil)": {
+        "r": 0.18950686784159948,
+        "n": 124025
+      },
+      "D) Full rating (overall)": {
+        "r": 0.18374726719679266,
+        "n": 123893
+      }
+    },
+    "Assists nächstes Spiel": {
+      "A) Career only": {
+        "r": 0.22311210682428742,
+        "n": 107873
+      },
+      "B) Current season only": {
+        "r": 0.23385994003827063,
+        "n": 123060
+      },
+      "C) Current + Form (kein Career-Anteil)": {
+        "r": 0.2508297649844515,
+        "n": 124025
+      },
+      "D) Full rating (overall)": {
+        "r": 0.24828492796569016,
+        "n": 123893
+      }
+    },
+    "SOG nächstes Spiel": {
+      "A) Career only": {
+        "r": 0.3532194328523257,
+        "n": 107873
+      },
+      "B) Current season only": {
+        "r": 0.3816808638217316,
+        "n": 123060
+      },
+      "C) Current + Form (kein Career-Anteil)": {
+        "r": 0.4209392265205233,
+        "n": 124025
+      },
+      "D) Full rating (overall)": {
+        "r": 0.409155926514682,
+        "n": 123893
+      }
+    },
+    "TOI nächstes Spiel (Sek.)": {
+      "A) Career only": {
+        "r": 0.6566482557879959,
+        "n": 107873
+      },
+      "B) Current season only": {
+        "r": 0.7265355342017995,
+        "n": 123060
+      },
+      "C) Current + Form (kein Career-Anteil)": {
+        "r": 0.7370511326637701,
+        "n": 124025
+      },
+      "D) Full rating (overall)": {
+        "r": 0.7383985525973483,
+        "n": 123893
+      }
+    }
+  },
+  "correlationValidation": {
+    "Punkte nächstes Spiel": {
+      "A) Career only": {
+        "r": 0.2663329409547393,
+        "n": 56817
+      },
+      "B) Current season only": {
+        "r": 0.28267094617161537,
+        "n": 61634
+      },
+      "C) Current + Form (kein Career-Anteil)": {
+        "r": 0.30448425997679657,
+        "n": 62215
+      },
+      "D) Full rating (overall)": {
+        "r": 0.3000569724746669,
+        "n": 62145
+      }
+    },
+    "Tore nächstes Spiel": {
+      "A) Career only": {
+        "r": 0.15887573326527343,
+        "n": 56817
+      },
+      "B) Current season only": {
+        "r": 0.17419133794185807,
+        "n": 61634
+      },
+      "C) Current + Form (kein Career-Anteil)": {
+        "r": 0.19025264871695136,
+        "n": 62215
+      },
+      "D) Full rating (overall)": {
+        "r": 0.1848274362896717,
+        "n": 62145
+      }
+    },
+    "Assists nächstes Spiel": {
+      "A) Career only": {
+        "r": 0.22469417325952323,
+        "n": 56817
+      },
+      "B) Current season only": {
+        "r": 0.234388458625216,
+        "n": 61634
+      },
+      "C) Current + Form (kein Career-Anteil)": {
+        "r": 0.25050131897241945,
+        "n": 62215
+      },
+      "D) Full rating (overall)": {
+        "r": 0.24890509716488668,
+        "n": 62145
+      }
+    },
+    "SOG nächstes Spiel": {
+      "A) Career only": {
+        "r": 0.35482612689501536,
+        "n": 56817
+      },
+      "B) Current season only": {
+        "r": 0.38033967971755633,
+        "n": 61634
+      },
+      "C) Current + Form (kein Career-Anteil)": {
+        "r": 0.4188455818591048,
+        "n": 62215
+      },
+      "D) Full rating (overall)": {
+        "r": 0.4089981762420721,
+        "n": 62145
+      }
+    },
+    "TOI nächstes Spiel (Sek.)": {
+      "A) Career only": {
+        "r": 0.6488266369458844,
+        "n": 56817
+      },
+      "B) Current season only": {
+        "r": 0.7211822360782277,
+        "n": 61634
+      },
+      "C) Current + Form (kein Career-Anteil)": {
+        "r": 0.7310993803666465,
+        "n": 62215
+      },
+      "D) Full rating (overall)": {
+        "r": 0.7342610792025797,
+        "n": 62145
+      }
+    }
+  },
+  "weightVariants": [
+    {
+      "name": "aktuell (heuristisch)",
+      "rTrain": {
+        "r": 0.29732138190386975,
+        "n": 38610
+      },
+      "rVal": {
+        "r": 0.3000569724746669,
+        "n": 62145
+      }
+    },
+    {
+      "name": "gleichgewichtet",
+      "rTrain": {
+        "r": 0.2943570388866989,
+        "n": 38610
+      },
+      "rVal": {
+        "r": 0.29462781727977383,
+        "n": 62145
+      }
+    },
+    {
+      "name": "defense-lastiger (konservativ)",
+      "rTrain": {
+        "r": 0.2865756381276519,
+        "n": 38610
+      },
+      "rVal": {
+        "r": 0.28883136655774416,
+        "n": 62145
+      }
+    }
+  ],
+  "stability": {
+    "n": 59558,
+    "mean": 1.4690620907350782
+  }
+}
