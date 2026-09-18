@@ -189,6 +189,11 @@ export function ensurePredictionSnapshots(db, { now = new Date(), log } = {}) {
       soProbability: round(mc.pSO, 4),
       eloHome: Math.round(eloRatings[g.homeTeamId] ?? eloStart),
       eloAway: Math.round(eloRatings[g.awayTeamId] ?? eloStart),
+      // Phase 1 Player-Rating-Integration (siehe src/playerRatingAdjustment.js) -
+      // separat von eloHome/eloAway geführt (Variante B), bei Default-Gewicht 0
+      // immer 0 und ohne Effekt auf pHomeWin/expectedGoals.
+      playerRatingAdjHome: round(fixture.playerRatingAdjHome, 2),
+      playerRatingAdjAway: round(fixture.playerRatingAdjAway, 2),
       powerHome: powerByTeam[g.homeTeamId]?.powerScore ?? null,
       powerAway: powerByTeam[g.awayTeamId]?.powerScore ?? null,
       modelVersion: buildModelVersion(priorSource, restAdjustment !== 0),

@@ -34,6 +34,7 @@
 import { isFinalGame, computeStandings, buildHeadToHeadPointsMap, compareTiebreak } from './stats.js'
 import { computeElo, homeWinProbability, ELO_CONFIG } from './elo.js'
 import { OT_SHARE_OF_TIES } from './liveProbability.js'
+import { computePlayerRatingEloAdjustments, PLAYER_RATING_ADJUSTMENT } from './playerRatingAdjustment.js'
 
 export const SIMULATION_RUNS = 10000
 
@@ -200,12 +201,22 @@ function poissonSample(rng, lambda) {
 // identische Formel/Werte) - wird jetzt zusätzlich von simulateSeasonProjections()
 // wiederverwendet, um Playoff-Bracket-Partien mit EXAKT derselben Team-
 // stärke-Logik wie die Regular-Season-Spiele zu bilden (keine neue Formel).
-function buildFixture(homeId, awayId, eloRatings, sogAdjustments, eloStart, homeAdvElo) {
+// `playerRatingAdjustments` (Phase 1 der Player-Rating-Integration, siehe
+// src/playerRatingAdjustment.js): additive ELO-Punkte je Team, Default-
+// Gewicht 0 -> bei weight=0 ist `playerRatingAdjHome`/`playerRatingAdjAway`
+// immer 0 und `pHome` mathematisch IDENTISCH zum bisherigen Verhalten.
+// WICHTIG (Variante B, siehe Analyse-Bericht): der Anteil wird NICHT in
+// eloHome/eloAway "versteckt", sondern fliesst nur in die pHome-Berechnung
+// ein UND wird zusätzlich als eigenes, benanntes Feld zurückgegeben - so
+// bleibt er separat inspizier-/abschaltbar (z.B. für Snapshots/Monitoring).
+function buildFixture(homeId, awayId, eloRatings, sogAdjustments, playerRatingAdjustments, eloStart, homeAdvElo) {
   const eloHome = (eloRatings[homeId] ?? eloStart) + (sogAdjustments[homeId] ?? 0)
   const eloAway = (eloRatings[awayId] ?? eloStart) + (sogAdjustments[awayId] ?? 0)
-  const pHome = homeWinProbability(eloHome, eloAway, homeAdvElo)
+  const playerRatingAdjHome = playerRatingAdjustments?.[homeId] ?? 0
+  const playerRatingAdjAway = playerRatingAdjustments?.[awayId] ?? 0
+  const pHome = homeWinProbability(eloHome + playerRatingAdjHome, eloAway + playerRatingAdjAway, homeAdvElo)
   const { expHome, expAway } = expectedGoals(pHome)
-  return { home: homeId, away: awayId, pHome, expHome, expAway }
+  return { home: homeId, away: awayId, pHome, expHome, expAway, playerRatingAdjHome, playerRatingAdjAway }
 }
 
 // Bereitet für alle `status: 'scheduled'`-Einträge in `games` die eingefrorene
@@ -280,16 +291,25 @@ export function computeFixtures(teams, games, settings, players = [], initialRat
 
   const sogAdjustments = computeSogAllowedEloAdjustments(teams, finalGames, players)
 
+  // Player-Rating-Adjustierung (Phase 1, siehe src/playerRatingAdjustment.js) -
+  // GENAU EIN Aufruf für den gesamten Batch (nicht pro Fixture), identisches
+  // Performance-Muster wie sogAdjustments oben. `settings.playerRatingWeight`
+  // überschreibt den Default (0 = deaktiviert), exakt wie eloK/homeAdvantage
+  // bereits heute über `settings` überschreibbar sind.
+  const playerRatingAdjustments = computePlayerRatingEloAdjustments(teams, finalGames, players, {
+    weight: settings?.playerRatingWeight ?? PLAYER_RATING_ADJUSTMENT.weight,
+  })
+
   // gameId/date sind rein informativ (Zuordnung zu einem konkreten Spielplan-
   // Eintrag für die PER-MATCH-FORECAST-Anzeige) - fliessen in keine Formel
   // ein und werden von simulateSeasonProjections() ignoriert.
   const fixtures = scheduled.map((g) => ({
-    ...buildFixture(g.homeTeamId, g.awayTeamId, eloRatings, sogAdjustments, eloStart, homeAdvElo),
+    ...buildFixture(g.homeTeamId, g.awayTeamId, eloRatings, sogAdjustments, playerRatingAdjustments, eloStart, homeAdvElo),
     gameId: g.id,
     date: g.date,
   }))
 
-  return { fixtures, startPts, startWins, startH2H, eloRatings, eloStart, homeAdvElo, sogAdjustments, overriddenCount: overriddenGames.length }
+  return { fixtures, startPts, startWins, startH2H, eloRatings, eloStart, homeAdvElo, sogAdjustments, playerRatingAdjustments, overriddenCount: overriddenGames.length }
 }
 
 const FORECAST_GOAL_TRUNCATION = 30 // Poisson(k>30; λ<=6) numerisch vernachlässigbar (<1e-12)
@@ -353,6 +373,10 @@ export function computeMatchForecasts(teams, games, settings, players = [], init
         expAwayGoals: f.expAway,
         eloHome: eloRatings[f.home] ?? eloStart,
         eloAway: eloRatings[f.away] ?? eloStart,
+        // Phase 1 Player-Rating-Integration (siehe src/playerRatingAdjustment.js) -
+        // separat von eloHome/eloAway (Variante B), bei Default-Gewicht 0 immer 0.
+        playerRatingAdjHome: f.playerRatingAdjHome,
+        playerRatingAdjAway: f.playerRatingAdjAway,
       }
     })
     .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
@@ -432,7 +456,7 @@ const BO7_WINS_NEEDED = 4
 // Schleifenzählers `g`, für die Serienlängen-Statistik der Postseason-Paths-
 // Aggregation (siehe trackPaths unten); ändert nichts an Zufallszahlen-
 // Verbrauch/Reihenfolge oder dem Serienergebnis selbst.
-function simulateSeries(rng, betterSeedId, worseSeedId, winsNeeded, homePattern, eloRatings, sogAdjustments, eloStart, homeAdvElo) {
+function simulateSeries(rng, betterSeedId, worseSeedId, winsNeeded, homePattern, eloRatings, sogAdjustments, playerRatingAdjustments, eloStart, homeAdvElo) {
   let betterWins = 0
   let worseWins = 0
   let g = 0
@@ -440,7 +464,7 @@ function simulateSeries(rng, betterSeedId, worseSeedId, winsNeeded, homePattern,
     const betterHosts = homePattern[g] ?? true
     const homeId = betterHosts ? betterSeedId : worseSeedId
     const awayId = betterHosts ? worseSeedId : betterSeedId
-    const fixture = buildFixture(homeId, awayId, eloRatings, sogAdjustments, eloStart, homeAdvElo)
+    const fixture = buildFixture(homeId, awayId, eloRatings, sogAdjustments, playerRatingAdjustments, eloStart, homeAdvElo)
     const res = simulateGameResult(rng, fixture)
     const homeWon = res.homeGoals > res.awayGoals
     const winnerId = homeWon ? homeId : awayId
@@ -468,11 +492,11 @@ function simulateRegulationGoals(rng, fixture) {
 // Rückspiel (Gewinn-Wahrscheinlichkeit wie gehabt aus der ELO-Heimsieg-
 // Wahrscheinlichkeit des Rückspiel-Fixtures). Gibt die Team-ID des Siegers
 // zurück.
-function simulateTwoLegSeries(rng, betterId, worseId, eloRatings, sogAdjustments, eloStart, homeAdvElo) {
-  const leg1 = buildFixture(worseId, betterId, eloRatings, sogAdjustments, eloStart, homeAdvElo)
+function simulateTwoLegSeries(rng, betterId, worseId, eloRatings, sogAdjustments, playerRatingAdjustments, eloStart, homeAdvElo) {
+  const leg1 = buildFixture(worseId, betterId, eloRatings, sogAdjustments, playerRatingAdjustments, eloStart, homeAdvElo)
   const leg1Goals = simulateRegulationGoals(rng, leg1) // home=worseId, away=betterId
 
-  const leg2 = buildFixture(betterId, worseId, eloRatings, sogAdjustments, eloStart, homeAdvElo)
+  const leg2 = buildFixture(betterId, worseId, eloRatings, sogAdjustments, playerRatingAdjustments, eloStart, homeAdvElo)
   const leg2Goals = simulateRegulationGoals(rng, leg2) // home=betterId, away=worseId
 
   const betterAgg = leg1Goals.awayGoals + leg2Goals.homeGoals
@@ -490,10 +514,10 @@ function simulateTwoLegSeries(rng, betterId, worseId, eloRatings, sogAdjustments
 // Team-IDs als erstes übergeben wird - so lässt sich derselbe Helper für
 // beliebige Play-in-Paarungen (auch mit bereits ermittelten Vorrunden-
 // Siegern) verwenden.
-function twoLegWinner(rng, idA, idB, rankOf, eloRatings, sogAdjustments, eloStart, homeAdvElo) {
+function twoLegWinner(rng, idA, idB, rankOf, eloRatings, sogAdjustments, playerRatingAdjustments, eloStart, homeAdvElo) {
   const better = rankOf[idA] <= rankOf[idB] ? idA : idB
   const worse = better === idA ? idB : idA
-  return simulateTwoLegSeries(rng, better, worse, eloRatings, sogAdjustments, eloStart, homeAdvElo)
+  return simulateTwoLegSeries(rng, better, worse, eloRatings, sogAdjustments, playerRatingAdjustments, eloStart, homeAdvElo)
 }
 
 // ============================================================================
@@ -531,7 +555,7 @@ export function simulateSeasonProjections(
   settings,
   { runs = SIMULATION_RUNS, seed = 12345, players = [], initialRatings, overrides, trackPaths = false } = {}
 ) {
-  const { fixtures, startPts, startWins, startH2H, eloRatings, eloStart, homeAdvElo, sogAdjustments, overriddenCount } =
+  const { fixtures, startPts, startWins, startH2H, eloRatings, eloStart, homeAdvElo, sogAdjustments, playerRatingAdjustments, overriddenCount } =
     computeFixtures(teams, games, settings, players, initialRatings, overrides)
 
   // Ohne offene, noch zu simulierende Spiele UND ohne What-if-Vorgaben gibt
@@ -721,7 +745,7 @@ export function simulateSeasonProjections(
       const seedOrder = order.map((o) => o.id) // seedOrder[0] = Rang 1, ... (Index 0-basiert)
       const rankOf = {}
       seedOrder.forEach((id, i) => { rankOf[id] = i + 1 })
-      const bracketArgs = [eloRatings, sogAdjustments, eloStart, homeAdvElo]
+      const bracketArgs = [eloRatings, sogAdjustments, playerRatingAdjustments, eloStart, homeAdvElo]
 
       // Play-in (Hin-/Rückspiel + Sudden-Death, KEIN Best-of-3):
       //   Spiel A: 7 vs. 8 -> Sieger direkt VF (Bracket-Seed 7)

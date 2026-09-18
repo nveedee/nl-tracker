@@ -15,6 +15,10 @@ import {
   computePlayerAdvancedStats, buildAdvancedBaselines, computeAdvancedPercentile,
   computeCurrentSeasonAdvancedScore, collectPlayerShots, seasonSampleQuality,
 } from '../advancedStats.js'
+import {
+  calculatePlayerRating, buildSkaterRatingBaselines, buildGoalieRatingBaselines, buildGoalieCareerBaseline,
+} from '../playerRating.js'
+import { dataQualityLabel, positionGroupLabel, buildRatingBreakdown } from '../playerRatingDisplay.js'
 import AdvancedAnalyticsCard from '../components/AdvancedAnalyticsCard.jsx'
 import ShotMap from '../components/ShotMap.jsx'
 
@@ -190,6 +194,40 @@ export default function PlayerDetail() {
   // Perzentile/das Season-Signal unten, NICHT für den karrierevalidierten
   // Impact Score/dessen Perzentile weiter oben (siehe advancedStats.js).
   const seasonSample = useMemo(() => seasonSampleQuality(advanced.season?.gp), [advanced])
+
+  // ---------------------------------------------------------------------
+  // PLAYER RATING (analytisches Rating, unabhängig vom Prediction-Modell -
+  // src/playerRating.js, KEINE Änderung an der Rating-Logik selbst hier).
+  // Baselines je Positionstyp EINMAL memoisiert (nicht pro Render neu
+  // gebaut, identisches Muster wie advancedBaselines/baselines oben) und an
+  // calculatePlayerRating() durchgereicht, damit dort keine teure
+  // Liga-weite Baseline pro Aufruf neu berechnet wird.
+  // ---------------------------------------------------------------------
+  const skaterRatingBaselines = useMemo(
+    () => (!goalie ? buildSkaterRatingBaselines(data.players, data.games) : null),
+    [goalie, data.players, data.games]
+  )
+  const goalieRatingBaselines = useMemo(
+    () => (goalie ? buildGoalieRatingBaselines(data.players, data.games) : null),
+    [goalie, data.players, data.games]
+  )
+  const goalieCareerBaseline = useMemo(
+    () => (goalie && playerHistoryData ? buildGoalieCareerBaseline(playerHistoryData) : null),
+    [goalie, playerHistoryData]
+  )
+  const playerRating = useMemo(
+    () => calculatePlayerRating(player.id, data.games, {
+      players: data.players,
+      playerHistoryData,
+      careerBaselines: goalie ? undefined : baselines,
+      skaterBaselines: skaterRatingBaselines,
+      goalieBaselines: goalieRatingBaselines,
+      goalieCareerBaseline,
+    }),
+    [player, data.games, data.players, playerHistoryData, goalie, baselines, skaterRatingBaselines, goalieRatingBaselines, goalieCareerBaseline]
+  )
+  const ratingBreakdown = useMemo(() => buildRatingBreakdown(playerRating), [playerRating])
+  const ratingDataQuality = playerRating ? dataQualityLabel(playerRating.confidence) : null
 
   const [histSort, setHistSort] = useState('season')
   const [histDir, setHistDir] = useState('desc')
@@ -487,6 +525,19 @@ export default function PlayerDetail() {
               </tbody>
             </table>
           </div>
+          {/* Form-Rating (Player Rating, Auftrag Punkt 4) - ERGÄNZT die
+              Rohwert-Tabelle oben um EINE aggregierte, positionsrelative
+              Zahl, statt einer neuen Form-Card. Nur wenn genug Spiele für
+              ein Form-Fenster vorliegen (siehe src/playerRating.js -
+              Form erst ab 5 Spielen dieser Saison). */}
+          {playerRating?.form != null && (
+            <div className="card-pad" style={{ paddingTop: 0 }}>
+              <div className="muted" style={{ fontSize: 11.5 }}>
+                Form-Rating (Player Rating): <strong style={{ color: 'var(--text)' }}>{playerRating.form.toFixed(1)}</strong>
+                <span> · Perzentil unter allen {positionGroupLabel(playerRating.position)}</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -496,6 +547,65 @@ export default function PlayerDetail() {
           Grössen - SV%/GTS -, kein Punkte-Analog). Bewusst hier (statt ganz
           unten) - aktuelle Saison hat Priorität vor der Mehrsaison-Historie. */}
       {!goalie && logAsc.length >= 3 && <GameFormChart log={logAsc} />}
+
+      {/* PLAYER RATING (analytisches Rating, unabhängig vom Prediction-
+          Modell - src/playerRating.js). Bewusst NEBEN/VOR dem bestehenden
+          Impact Score + Season-Signal platziert (nicht ersetzt) - beide
+          sollen vorerst direkt vergleichbar bleiben, bis das neue Rating
+          manuell geprüft ist. Für Feldspieler UND Torhüter (eigener,
+          gleich aufgebauter Block je nach `playerRating.position`). */}
+      {playerRating && (
+        <div className="card card-pad mb">
+          <div className="row gap-sm" style={{ alignItems: 'baseline' }}>
+            <h2 style={{ margin: 0 }}>{goalie ? 'Goalie Rating' : 'Player Rating'}</h2>
+            <span
+              className="muted"
+              style={{ fontSize: 11, cursor: 'help', borderBottom: '1px dotted currentColor' }}
+              title="Kombiniert Karriere, aktuelle Saison und Form - je nach Anzahl bisher gespielter Spiele dieser Saison unterschiedlich gewichtet (wenige Spiele: Karriere dominiert; mehr Spiele: aktuelle Saison/Form zählen stärker)."
+            >
+              ⓘ was ist das?
+            </span>
+          </div>
+          <div className="muted" style={{ fontSize: 11, marginTop: 2 }}>Analytisches Rating — unabhängig vom Prediction-Modell</div>
+
+          {playerRating.overall == null ? (
+            <div className="muted mt" style={{ fontSize: 12.5 }}>Noch zu wenig Daten für ein Rating.</div>
+          ) : (
+            <>
+              <div className="row" style={{ gap: 16, alignItems: 'baseline', flexWrap: 'wrap', marginTop: 10 }}>
+                <div className="value mono" style={{ fontSize: 30 }}>{playerRating.overall.toFixed(1)}</div>
+                {ratingDataQuality && (
+                  <span
+                    className="chip"
+                    style={{ fontSize: 10.5, cursor: 'help' }}
+                    title="Beschreibt, wie viele Daten und historische Spiele dieses Rating stützen. Kein Vorhersagewert."
+                  >
+                    Datengrundlage: {ratingDataQuality}
+                  </span>
+                )}
+              </div>
+              <div className="muted" style={{ fontSize: 11.5 }}>
+                Perzentil unter allen {positionGroupLabel(playerRating.position)}
+                {playerRating.sampleSize?.currentSeasonGp != null && ` · ${playerRating.sampleSize.currentSeasonGp} Spiel${playerRating.sampleSize.currentSeasonGp === 1 ? '' : 'e'} dieser Saison`}
+              </div>
+
+              {ratingBreakdown.length > 0 && (
+                <div style={{ marginTop: 14 }}>
+                  {ratingBreakdown.map((row) => (
+                    <div key={row.key} className="row" style={{ fontSize: 12.5, marginBottom: 8 }}>
+                      <span className="muted" style={{ minWidth: 110 }}>{row.label}</span>
+                      <div className="bar-track" style={{ flex: 1 }}>
+                        <div className="bar-fill" style={{ width: `${Math.min(Math.max(row.value, 0), 100)}%` }} />
+                      </div>
+                      <span style={{ minWidth: 42, textAlign: 'right', fontFamily: 'var(--mono)' }}>{row.value.toFixed(1)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {/* Player Analytics: Impact Score, Trend, Positionsvergleich */}
       {!goalie && (impact || trend || percentiles) && (

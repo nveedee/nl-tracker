@@ -1,0 +1,272 @@
+{
+  "validationSeasons": [
+    "2022/23",
+    "2023/24",
+    "2024/25",
+    "2025/26"
+  ],
+  "withoutCareerData": {
+    "validationGames": 1605,
+    "gamesWithRatingDiff": 1579,
+    "weights": [
+      {
+        "weight": 0,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.5925233644859813,
+          "brier": 0.23751896904003658,
+          "logloss": 0.6684345880510609
+        },
+        "deltaLogloss": 0
+      },
+      {
+        "weight": 0.05,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.5931464174454829,
+          "brier": 0.23754667703429272,
+          "logloss": 0.6685200317512894
+        },
+        "deltaLogloss": 0.00008544370022844916
+      },
+      {
+        "weight": 0.1,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.594392523364486,
+          "brier": 0.2375798602413828,
+          "logloss": 0.6686181637210339
+        },
+        "deltaLogloss": 0.00018357566997295738
+      },
+      {
+        "weight": 0.15,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.5956386292834891,
+          "brier": 0.2376184793465235,
+          "logloss": 0.6687289485801042
+        },
+        "deltaLogloss": 0.0002943605290433027
+      },
+      {
+        "weight": 0.2,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.5962616822429907,
+          "brier": 0.2376624935128807,
+          "logloss": 0.6688523499937652
+        },
+        "deltaLogloss": 0.0004177619427042645
+      },
+      {
+        "weight": 0.25,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.5937694704049844,
+          "brier": 0.23771186040708484,
+          "logloss": 0.6689883306850726
+        },
+        "deltaLogloss": 0.0005537426340116447
+      }
+    ]
+  },
+  "withCareerData": {
+    "validationGames": 1605,
+    "gamesWithRatingDiff": 1579,
+    "weights": [
+      {
+        "weight": 0,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.5925233644859813,
+          "brier": 0.23751896904003658,
+          "logloss": 0.6684345880510609
+        },
+        "deltaLogloss": 0
+      },
+      {
+        "weight": 0.05,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.5925233644859813,
+          "brier": 0.23757469779626894,
+          "logloss": 0.6685844708539369
+        },
+        "deltaLogloss": 0.000149882802875978
+      },
+      {
+        "weight": 0.1,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.5912772585669782,
+          "brier": 0.23763524581099635,
+          "logloss": 0.668746304385954
+        },
+        "deltaLogloss": 0.00031171633489301964
+      },
+      {
+        "weight": 0.15,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.5912772585669782,
+          "brier": 0.2377005614744194,
+          "logloss": 0.6689200442580422
+        },
+        "deltaLogloss": 0.0004854562069812607
+      },
+      {
+        "weight": 0.2,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.5925233644859813,
+          "brier": 0.23777059276915982,
+          "logloss": 0.6691056456418568
+        },
+        "deltaLogloss": 0.0006710575907958871
+      },
+      {
+        "weight": 0.25,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.5912772585669782,
+          "brier": 0.23784528730035123,
+          "logloss": 0.6693030632828306
+        },
+        "deltaLogloss": 0.0008684752317696942
+      }
+    ]
+  },
+  "diagnosticFDSeparated": {
+    "validationGames": 1605,
+    "gamesWithRatingDiff": 1579,
+    "weights": [
+      {
+        "weight": 0,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.5925233644859813,
+          "brier": 0.23751896904003658,
+          "logloss": 0.6684345880510609
+        },
+        "deltaLogloss": 0
+      },
+      {
+        "weight": 0.05,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.5931464174454829,
+          "brier": 0.2375463551897703,
+          "logloss": 0.6685194324916974
+        },
+        "deltaLogloss": 0.0000848444406365001
+      },
+      {
+        "weight": 0.1,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.594392523364486,
+          "brier": 0.23757904369520125,
+          "logloss": 0.6686165820258037
+        },
+        "deltaLogloss": 0.00018199397474272239
+      },
+      {
+        "weight": 0.15,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.5950155763239875,
+          "brier": 0.2376169973897766,
+          "logloss": 0.6687260032374449
+        },
+        "deltaLogloss": 0.0002914151863839809
+      },
+      {
+        "weight": 0.2,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.5968847352024922,
+          "brier": 0.23766017763686922,
+          "logloss": 0.6688476617959604
+        },
+        "deltaLogloss": 0.000413073744899517
+      },
+      {
+        "weight": 0.25,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.5937694704049844,
+          "brier": 0.2377085443512656,
+          "logloss": 0.6689815224668321
+        },
+        "deltaLogloss": 0.0005469344157711387
+      }
+    ]
+  },
+  "diagnosticNoSpecialTeams": {
+    "validationGames": 1605,
+    "gamesWithRatingDiff": 1579,
+    "weights": [
+      {
+        "weight": 0,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.5925233644859813,
+          "brier": 0.23751896904003658,
+          "logloss": 0.6684345880510609
+        },
+        "deltaLogloss": 0
+      },
+      {
+        "weight": 0.05,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.5937694704049844,
+          "brier": 0.237547585891488,
+          "logloss": 0.6685191265149861
+        },
+        "deltaLogloss": 0.00008453846392519893
+      },
+      {
+        "weight": 0.1,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.5956386292834891,
+          "brier": 0.2375816710642583,
+          "logloss": 0.6686163635718695
+        },
+        "deltaLogloss": 0.00018177552080855808
+      },
+      {
+        "weight": 0.15,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.5956386292834891,
+          "brier": 0.23762118320442654,
+          "logloss": 0.6687262635124583
+        },
+        "deltaLogloss": 0.0002916754613974115
+      },
+      {
+        "weight": 0.2,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.5950155763239875,
+          "brier": 0.2376660795380977,
+          "logloss": 0.6688487897305524
+        },
+        "deltaLogloss": 0.000414201679491466
+      },
+      {
+        "weight": 0.25,
+        "overall": {
+          "n": 1605,
+          "accuracy": 0.5950155763239875,
+          "brier": 0.23771631589712428,
+          "logloss": 0.6689839047352292
+        },
+        "deltaLogloss": 0.000549316684168244
+      }
+    ]
+  }
+}

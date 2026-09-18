@@ -20,6 +20,9 @@ import {
   buildCurrentSeasonRecord, computeImpactScore, POSITION_LABEL,
 } from '../playerHistory.js'
 import { computeLeagueMarketMovers } from '../marketValueHistory.js'
+import {
+  calculatePlayerRating, buildSkaterRatingBaselines, buildGoalieRatingBaselines, buildGoalieCareerBaseline,
+} from '../playerRating.js'
 
 const MARKET_MOVERS_WINDOW_DAYS = 14
 const posLabel = { G: 'G', D: 'D', F: 'F' }
@@ -66,6 +69,14 @@ export default function PlayerRankings() {
   const currentSeasonLabel = data.settings?.seasonName?.match(/\d{4}\/\d{2}/)?.[0] || null
   const statById = useMemo(() => Object.fromEntries(derived.playerStats.map((s) => [s.player.id, s])), [derived.playerStats])
   const teamMap = useMemo(() => Object.fromEntries(data.teams.map((t) => [t.id, t])), [data.teams])
+
+  // Player-Rating-Baselines (src/playerRating.js) - EINMAL für die ganze
+  // Liga gebaut (unabhängig von mode/Filtern), nicht pro Tabellenzeile neu
+  // berechnet. Analytisches Rating, unabhängig vom Prediction-Modell -
+  // KEINE Änderung an der Rating-Logik selbst.
+  const skaterRatingBaselines = useMemo(() => buildSkaterRatingBaselines(data.players, data.games), [data.players, data.games])
+  const goalieRatingBaselines = useMemo(() => buildGoalieRatingBaselines(data.players, data.games), [data.players, data.games])
+  const goalieCareerBaseline = useMemo(() => (playerHistoryData ? buildGoalieCareerBaseline(playerHistoryData) : null), [playerHistoryData])
 
   // 1) Hero: reine Kaderzahlen (ALLE data.players, unabhängig von
   // Saison-Spielstatistiken) + wie viele davon schon verwertbare Stats haben.
@@ -196,8 +207,16 @@ export default function PlayerRankings() {
       impact: (mode === 'skater' && baselines && playerHistoryData)
         ? computeImpactScore(getPlayerSeasons(playerHistoryData, r.player.id), POSITION_LABEL[r.player.position], baselines)
         : null,
+      rating: calculatePlayerRating(r.player.id, data.games, {
+        players: data.players,
+        playerHistoryData,
+        careerBaselines: mode === 'skater' ? baselines : undefined,
+        skaterBaselines: mode === 'skater' ? skaterRatingBaselines : undefined,
+        goalieBaselines: mode === 'goalie' ? goalieRatingBaselines : undefined,
+        goalieCareerBaseline: mode === 'goalie' ? goalieCareerBaseline : undefined,
+      }),
     }))
-  }, [filtered, mode, baselines, playerHistoryData])
+  }, [filtered, mode, baselines, playerHistoryData, data.games, data.players, skaterRatingBaselines, goalieRatingBaselines, goalieCareerBaseline])
 
   const nameCell = (r) => (
     <span className="row gap-sm">
@@ -238,6 +257,8 @@ export default function PlayerRankings() {
       render: (r) => <span style={{ color: r.plusMinus > 0 ? 'var(--good)' : r.plusMinus < 0 ? 'var(--bad)' : 'inherit' }}>{plusMinusStr(r.plusMinus)}</span> },
     { key: 'impact', label: 'Impact', num: true, title: 'Positions-relatives Karriere-Perzentil (0-100)',
       value: (r) => r.impact?.score ?? -1, render: (r) => r.impact ? r.impact.score.toFixed(1) : <span className="muted">–</span> },
+    { key: 'rating', label: 'Rating', num: true, title: 'Player Rating (analytisch, unabhängig vom Prediction-Modell) - kombiniert Karriere/aktuelle Saison/Form je nach Spielanzahl.',
+      value: (r) => r.rating?.overall ?? -1, render: (r) => r.rating?.overall != null ? r.rating.overall.toFixed(1) : <span className="muted">–</span> },
     marketValueCol,
   ]
 
@@ -252,6 +273,8 @@ export default function PlayerRankings() {
     { key: 'gaa', label: 'GTS', num: true, title: 'Gegentorschnitt', value: (r) => r.gaa ?? 99, render: (r) => fmtNum(r.gaa) },
     { key: 'saves', label: 'Paraden', num: true },
     { key: 'shutouts', label: 'SO', num: true },
+    { key: 'rating', label: 'Rating', num: true, title: 'Goalie Rating (analytisch, unabhängig vom Prediction-Modell) - kombiniert Karriere/aktuelle Saison/Form je nach Spielanzahl.',
+      value: (r) => r.rating?.overall ?? -1, render: (r) => r.rating?.overall != null ? r.rating.overall.toFixed(1) : <span className="muted">–</span> },
     marketValueCol,
   ]
 
@@ -411,6 +434,7 @@ export default function PlayerRankings() {
       {/* 6) Spieler vergleichen */}
       <PlayerCompare
         data={data} statById={statById} playerHistoryData={playerHistoryData} baselines={baselines}
+        skaterRatingBaselines={skaterRatingBaselines}
         currentSeasonLabel={currentSeasonLabel}
         a={compareA} b={compareB} setA={setCompareA} setB={setCompareB}
       />
@@ -512,7 +536,7 @@ function MarketRow({ player, team, children }) {
 // 6) Spieler vergleichen - eigene, immer sichtbare Sektion (kein verstecktes
 // Toggle mehr) mit klarem "A vs. B"-Aufbau. Nur Feldspieler (Impact Score/
 // SOG/TOI sind für Torhüter nicht definiert, siehe playerHistory.js).
-function PlayerCompare({ data, statById, playerHistoryData, baselines, currentSeasonLabel, a, b, setA, setB }) {
+function PlayerCompare({ data, statById, playerHistoryData, baselines, skaterRatingBaselines, currentSeasonLabel, a, b, setA, setB }) {
   const skaters = useMemo(
     () => [...data.players].filter((p) => p.position !== 'G').sort((x, y) => x.name.localeCompare(y.name)),
     [data.players]
@@ -525,7 +549,12 @@ function PlayerCompare({ data, statById, playerHistoryData, baselines, currentSe
     const stat = statById[playerId]
     const seasons = getPlayerSeasons(playerHistoryData, playerId)
     const impact = baselines ? computeImpactScore(seasons, POSITION_LABEL[player.position], baselines) : null
-    return { player, team: teamMap[player.teamId], stat, impact }
+    // Player Rating (analytisch, unabhängig vom Prediction-Modell) - siehe
+    // src/playerRating.js, KEINE Änderung an der Rating-Logik hier.
+    const rating = calculatePlayerRating(player.id, data.games, {
+      players: data.players, playerHistoryData, careerBaselines: baselines, skaterBaselines: skaterRatingBaselines,
+    })
+    return { player, team: teamMap[player.teamId], stat, impact, rating }
   }
   const A = a ? build(a) : null
   const B = b ? build(b) : null
@@ -573,6 +602,7 @@ function PlayerCompare({ data, statById, playerHistoryData, baselines, currentSe
                 <CompareRow label="SOG" v1={A.stat?.sog} v2={B.stat?.sog} fmt={(v) => v} />
                 <CompareRow label="+/–" v1={A.stat?.plusMinus ?? 0} v2={B.stat?.plusMinus ?? 0} fmt={plusMinusStr} />
                 <CompareRow label="Impact Score (Karriere)" v1={A.impact?.score} v2={B.impact?.score} fmt={(v) => v.toFixed(1)} />
+                <CompareRow label="Player Rating" v1={A.rating?.overall} v2={B.rating?.overall} fmt={(v) => v.toFixed(1)} />
                 <CompareRow label="Marktwert" v1={A.player.marketValue} v2={B.player.marketValue} fmt={fmtChf} />
               </tbody>
             </table>

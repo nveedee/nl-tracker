@@ -54,6 +54,8 @@ function fromSnapshot(snapshot) {
     expAwayGoals: snapshot.expectedAwayGoals,
     eloHome: snapshot.eloHome,
     eloAway: snapshot.eloAway,
+    playerRatingAdjHome: snapshot.playerRatingAdjHome ?? null,
+    playerRatingAdjAway: snapshot.playerRatingAdjAway ?? null,
     createdAt: snapshot.createdAt,
     modelVersion: snapshot.modelVersion,
     seed: snapshot.seed,
@@ -78,6 +80,8 @@ function fromLiveForecast(f) {
     expAwayGoals: f.expAwayGoals ?? null,
     eloHome: f.eloHome ?? null,
     eloAway: f.eloAway ?? null,
+    playerRatingAdjHome: f.playerRatingAdjHome ?? null,
+    playerRatingAdjAway: f.playerRatingAdjAway ?? null,
   }
 }
 
@@ -116,6 +120,8 @@ export function withPregamePredictions(forecasts, predictions) {
       expAwayGoals: p.expAwayGoals,
       eloHome: p.eloHome,
       eloAway: p.eloAway,
+      playerRatingAdjHome: p.playerRatingAdjHome,
+      playerRatingAdjAway: p.playerRatingAdjAway,
       predictionSource: p.source,
     }
   })
