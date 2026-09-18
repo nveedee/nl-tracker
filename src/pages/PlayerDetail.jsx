@@ -602,6 +602,18 @@ export default function PlayerDetail() {
                   ))}
                 </div>
               )}
+              {/* Bei Torhütern liefert calculatePlayerRating() KEINEN
+                  0-100-Career-Score (anders als bei Feldspielern, wo
+                  components.careerImpactScore existiert) - nur die rohen
+                  Karriere-Kennzahlen components.careerSavePct/careerGaa.
+                  Wird hier NUR angezeigt (kein neuer Wert berechnet), nicht
+                  als Balken (keine 0-100-Skala vorhanden). */}
+              {goalie && playerRating.components?.careerSavePct != null && (
+                <div className="muted mt" style={{ fontSize: 11.5 }}>
+                  Career (Archiv): SV% {(playerRating.components.careerSavePct * 100).toFixed(1)}%
+                  {playerRating.components.careerGaa != null && ` · GTS ${playerRating.components.careerGaa.toFixed(2)}`}
+                </div>
+              )}
             </>
           )}
         </div>
