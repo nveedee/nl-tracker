@@ -4,6 +4,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import sihfSync from './scripts/sync-sihf.cjs'
 import { runNlSync, readNlSyncStatus, DEFAULT_NL_SYNC_INTERVAL_MIN } from './sync.js'
+import { runNlGameDetailSync } from './nlGameDetailSync.js'
 import { pollLiveGames, ensureFreshLiveState, getAllLiveStates, LIVE_POLL_INTERVAL_MS } from './liveSync.js'
 
 const { runSync: runSihfSync, readSyncStatus } = sihfSync
@@ -183,7 +184,17 @@ app.post('/api/sync-nl', async (_req, res) => {
   const logs = []
   try {
     const summary = await runNlSync({ write: true, log: (...a) => logs.push(a.join(' ')) })
-    res.json({ ...summary, logs })
+    // Game-Detail-Sync (server/nlGameDetailSync.js) läuft NACH dem Basis-Sync,
+    // in einem eigenen try/catch: schlägt er fehl, bleibt die eigentliche
+    // NL-Sync-Antwort (Teams/Spieler/Spielplan) davon unberührt - siehe
+    // Sicherheitsprinzipien dort.
+    let gameDetailSummary = null
+    try {
+      gameDetailSummary = await runNlGameDetailSync({ write: true, log: (...a) => logs.push(a.join(' ')) })
+    } catch (e) {
+      logs.push(`[NL GAME DETAIL] Fehler: ${e.message}`)
+    }
+    res.json({ ...summary, gameDetail: gameDetailSummary, logs })
   } catch (e) {
     res.status(502).json({ error: 'National-League-API momentan nicht erreichbar oder Team-Mapping fehlgeschlagen.', message: e.message, logs })
   } finally {
@@ -372,7 +383,12 @@ app.listen(PORT, () => {
     if (nlSyncRunning) return
     nlSyncRunning = true
     runNlSync({ write: true, log: (...a) => console.log('[NL SYNC]', ...a) })
-      .catch((e) => console.error('[NL SYNC] Fehler:', e.message))
+      // Game-Detail-Sync (server/nlGameDetailSync.js) läuft NUR nach einem
+      // erfolgreichen Basis-Sync (sonst z.B. unnötige Requests, während die
+      // API insgesamt down ist) - eigener Fehlerpfad, ein fehlschlagendes
+      // Game-Detail darf den nächsten Basis-Sync-Poll nie verhindern.
+      .then(() => runNlGameDetailSync({ write: true, log: (...a) => console.log('[NL GAME DETAIL]', ...a) }))
+      .catch((e) => console.error('[NL SYNC/GAME DETAIL] Fehler:', e.message))
       .finally(() => { nlSyncRunning = false })
   }
   pollNl()

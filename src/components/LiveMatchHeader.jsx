@@ -5,7 +5,26 @@
 // Hero-Layout). Rein präsentational, `live` hat die Form aus
 // src/liveDemoData.js.
 // ---------------------------------------------------------------------------
+import { useState } from 'react'
+import { getTeamLogoPath } from '../teamLogos.js'
+
+// Zeigt das zentrale Team-Logo (src/teamLogos.js) innerhalb des bestehenden
+// .live-team-mark-Kreises, sobald eine Logo-Datei vorhanden ist. Fällt
+// exakt auf das bisherige Aussehen zurück (Farbrand + Kürzel), solange kein
+// Logo hinterlegt ist ODER die Datei (noch) fehlt (onError) - kein kaputtes
+// Bild-Icon.
 function TeamMark({ team }) {
+  const [failed, setFailed] = useState(false)
+  const path = getTeamLogoPath(team.id)
+  if (path && !failed) {
+    return (
+      <img
+        src={path} alt="" width={26} height={26} loading="lazy" decoding="async"
+        className="live-team-mark" style={{ objectFit: 'contain', border: 'none', background: 'transparent', padding: 0 }}
+        onError={() => setFailed(true)}
+      />
+    )
+  }
   return (
     <span className="live-team-mark" style={{ borderColor: team.color }}>
       {team.short}

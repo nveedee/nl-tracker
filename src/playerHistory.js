@@ -144,12 +144,16 @@ export function yoyDevelopment(seasons, minLatestGp = 0) {
 const IMPACT_MIN_CAREER_GP = 20 // unter dieser Schwelle kein Score (zu kleine Stichprobe)
 const RATE_KEYS = ['ppg', 'gpg', 'apg', 'toipg', 'sogpg', 'pmpg']
 
-function mean(a) { return a.length ? a.reduce((s, v) => s + v, 0) / a.length : null }
-function stdDev(a, m) { return a.length ? Math.sqrt(mean(a.map((v) => (v - m) ** 2))) || 1 : 1 }
+// Exportiert (statt rein lokal), damit src/advancedStats.js dieselbe
+// Statistik-Basis (Mittel/Std/Normalverteilungs-CDF) für die NEUEN,
+// spielbasierten Perzentile wiederverwenden kann, ohne die Formel zu
+// duplizieren - reine Sichtbarkeitsänderung, kein Verhalten geändert.
+export function mean(a) { return a.length ? a.reduce((s, v) => s + v, 0) / a.length : null }
+export function stdDev(a, m) { return a.length ? Math.sqrt(mean(a.map((v) => (v - m) ** 2))) || 1 : 1 }
 
 // Standardnormalverteilung CDF (Abramowitz-Stegun-Näherung) - wandelt einen
 // z-Wert in ein Perzentil (0-1) um, für eine intuitiv lesbare 0-100-Skala.
-function normalCdf(z) {
+export function normalCdf(z) {
   const t = 1 / (1 + 0.2316419 * Math.abs(z))
   const d = 0.3989423 * Math.exp((-z * z) / 2)
   let p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))))

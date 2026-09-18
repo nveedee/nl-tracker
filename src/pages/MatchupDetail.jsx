@@ -12,6 +12,7 @@ import { useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useData } from '../DataContext.jsx'
 import { TeamBadge } from '../components/ui.jsx'
+import TeamLogo from '../components/TeamLogo.jsx'
 import { isFinalGame, computeStandings, computeHomeSplits } from '../stats.js'
 import { computePowerRankings } from '../powerRankings.js'
 import { homeWinProbability, ELO_CONFIG } from '../elo.js'
@@ -486,7 +487,7 @@ export default function MatchupDetail() {
                 <h1 style={{ fontSize: 20 }}>
                   <Link to={`/teams/${homeTeam.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{homeTeam.name}</Link>
                 </h1>
-                <span className="dot" style={{ background: homeTeam.color, width: 18, height: 18 }} />
+                <TeamLogo team={homeTeam} size={32} />
               </div>
             </div>
             <div style={{ fontSize: played ? 30 : 18, fontWeight: 800, minWidth: 110, fontFamily: 'var(--mono)' }}>
@@ -498,7 +499,7 @@ export default function MatchupDetail() {
             <div style={{ flex: 1, textAlign: 'left' }}>
               <div className="muted" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', marginBottom: 8 }}>AUSWÄRTS</div>
               <div className="row gap-sm">
-                <span className="dot" style={{ background: awayTeam.color, width: 18, height: 18 }} />
+                <TeamLogo team={awayTeam} size={32} />
                 <h1 style={{ fontSize: 20 }}>
                   <Link to={`/teams/${awayTeam.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{awayTeam.name}</Link>
                 </h1>

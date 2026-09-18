@@ -11,6 +11,12 @@ import {
   TREND_MIN_LATEST_GP, resolveGameTeam, computeHomeAwaySplit, computeOpponentBreakdown, computeTeamStints,
   mergeSeasonSplits,
 } from '../playerHistory.js'
+import {
+  computePlayerAdvancedStats, buildAdvancedBaselines, computeAdvancedPercentile,
+  computeCurrentSeasonAdvancedScore, collectPlayerShots,
+} from '../advancedStats.js'
+import AdvancedAnalyticsCard from '../components/AdvancedAnalyticsCard.jsx'
+import ShotMap from '../components/ShotMap.jsx'
 
 const posLabel = { G: 'Torhüter', D: 'Verteidiger', F: 'Stürmer' }
 const shootsLabel = { L: 'schiesst L', R: 'schiesst R' }
@@ -164,6 +170,23 @@ export default function PlayerDetail() {
   const rollingForm5 = useMemo(() => (!goalie ? computeRollingForm(log, 5) : null), [goalie, log])
   const rollingForm10 = useMemo(() => (!goalie ? computeRollingForm(log, 10) : null), [goalie, log])
 
+  // --- Advanced Analytics (National-League-Game-Detail-Daten, siehe
+  // src/advancedStats.js) - Saison-/Last-5/Last-10-Kennzahlen, Positions-
+  // Baseline+Perzentile, Schuss-Rohdaten für die Shotmap. Bewusst über
+  // useMemo an data.games/data.players gebunden (nicht bei jedem Render neu
+  // berechnet, siehe Auftrag Punkt 13 - dieselbe Memoization-Strategie wie
+  // usePositionBaselines()/baselines oben). `advanced` wird auch für
+  // Torhüter berechnet (liefert dort nur toiPerGame aus toiSecNl, alle
+  // Skater-Felder bleiben null - kein Sonderfall nötig, siehe
+  // computeAdvancedStats()).
+  const advanced = useMemo(() => computePlayerAdvancedStats(data.games, id), [data.games, id])
+  const advancedBaselines = useMemo(() => buildAdvancedBaselines(data.players, data.games), [data.players, data.games])
+  const currentSeasonScore = useMemo(
+    () => (!goalie ? computeCurrentSeasonAdvancedScore(advanced.season, posLabelHist, advancedBaselines) : null),
+    [goalie, advanced, posLabelHist, advancedBaselines]
+  )
+  const playerShots = useMemo(() => (!goalie ? collectPlayerShots(data.games, id) : []), [goalie, data.games, id])
+
   const [histSort, setHistSort] = useState('season')
   const [histDir, setHistDir] = useState('desc')
   const sortedHistory = useMemo(() => {
@@ -257,6 +280,35 @@ export default function PlayerDetail() {
           />
         )}
       </div>
+
+      {/* Advanced-Header (Auftrag Punkt 1) - kompakte Zeile mit den
+          wichtigsten Rate-Kennzahlen aus src/advancedStats.js, direkt unter
+          den Basis-Tiles. Jede Kachel nur, wenn der Wert tatsächlich
+          vorhanden ist (keine "–"-Kacheln für fehlende Daten). */}
+      {(() => {
+        const s = advanced.season
+        if (goalie) {
+          const tiles = [
+            stat?.savePct != null && <Tile key="sv" label="Fangquote" value={fmtPct(stat.savePct)} />,
+            stat?.gaa != null && <Tile key="gaa" label="GAA" value={fmtNum(stat.gaa)} />,
+            stat?.saves != null && <Tile key="saves" label="Paraden" value={stat.saves} />,
+            stat?.shutouts != null && <Tile key="so" label="Shutouts" value={stat.shutouts} />,
+            s?.toiPerGame != null && <Tile key="toi" label="TOI/GP" value={fmtSec(s.toiPerGame)} />,
+          ].filter(Boolean)
+          return tiles.length > 0 && <div className="tiles mb">{tiles}</div>
+        }
+        const tiles = [
+          impact?.score != null && <Tile key="impact" label="Impact Score" value={impact.score.toFixed(1)} />,
+          s?.pointsPerGame != null && <Tile key="pgp" label="P/GP" value={fmt2(s.pointsPerGame)} />,
+          s?.goalsPerGame != null && <Tile key="ggp" label="G/GP" value={fmt2(s.goalsPerGame)} />,
+          s?.assistsPerGame != null && <Tile key="agp" label="A/GP" value={fmt2(s.assistsPerGame)} />,
+          s?.sogPerGame != null && <Tile key="sogp" label="SOG/GP" value={fmt2(s.sogPerGame)} />,
+          s?.toiPerGame != null && <Tile key="toi" label="TOI/GP" value={fmtSec(s.toiPerGame)} />,
+          s?.xg != null && <Tile key="xg" label="xG" value={fmt2(s.xg)} />,
+          s?.goalsMinusXg != null && <Tile key="gmxg" label="Tore − xG" value={(s.goalsMinusXg > 0 ? '+' : '') + s.goalsMinusXg.toFixed(2)} />,
+        ].filter(Boolean)
+        return tiles.length > 0 && <div className="tiles mb">{tiles}</div>
+      })()}
 
       {/* Marktwert-Verlauf (player.marketValueHistory, server/sync.js) - rein
           additive Anzeige, ein Snapshot pro Kalendertag seit Einführung
@@ -411,11 +463,11 @@ export default function PlayerDetail() {
           <div className="table-wrap">
             <table>
               <thead>
-                <tr><th className="left">Zeitraum</th><th className="num">GP</th><th className="num">G</th><th className="num">A</th><th className="num">P</th><th className="num">P/GP</th><th className="num">SOG</th><th className="num">TOI/GP</th></tr>
+                <tr><th className="left">Zeitraum</th><th className="num">GP</th><th className="num">G</th><th className="num">A</th><th className="num">P</th><th className="num">P/GP</th><th className="num">SOG</th><th className="num">TOI/GP</th><th className="num">xG/GP</th><th className="num">Tore−xG</th></tr>
               </thead>
               <tbody>
-                <FormRow label="Letzte 5 Spiele" f={rollingForm5} fmtSec={fmtSec} fmt2={fmt2} />
-                <FormRow label="Letzte 10 Spiele" f={rollingForm10} fmtSec={fmtSec} fmt2={fmt2} />
+                <FormRow label="Letzte 5 Spiele" f={rollingForm5} fmtSec={fmtSec} fmt2={fmt2} xg={advanced.last5} />
+                <FormRow label="Letzte 10 Spiele" f={rollingForm10} fmtSec={fmtSec} fmt2={fmt2} xg={advanced.last10} />
                 {currentSeasonRecord && (
                   <FormRow
                     label={`Saison ${currentSeasonLabel || ''}`}
@@ -425,6 +477,7 @@ export default function PlayerDetail() {
                       sog: currentSeasonRecord.sog, toipg: seasonRates(currentSeasonRecord).toipg,
                     }}
                     fmtSec={fmtSec} fmt2={fmt2}
+                    xg={advanced.season}
                   />
                 )}
               </tbody>
@@ -515,8 +568,31 @@ export default function PlayerDetail() {
               {percentiles.sogpg != null && <PercentileRow label="SOG/Spiel" value={seasonRates(latestSeason).sogpg} pct={percentiles.sogpg} baselines={baselines} position={posLabelHist} statKey="sogpg" fmt={fmt2} />}
             </>
           )}
+
+          {/* Positionsvergleich AKTUELLE Saison (Auftrag Punkt 10) - eigene,
+              klar getrennte Baseline aus src/advancedStats.js (Game-Detail-
+              Daten dieser Saison, siehe Kommentar dort) statt des
+              Karriere-Archivs oben. Wiederverwendet dieselbe
+              <PercentileRow>-Komponente (identisches Baseline-Format). */}
+          {!goalie && advanced.season && (posLabelHist === 'Stürmer' || posLabelHist === 'Verteidiger') && (
+            <>
+              <div className="section-label" style={{ marginTop: 14 }}>Vergleich mit {posLabelHist === 'Stürmer' ? 'Stürmern' : 'Verteidigern'} (aktuelle Saison, erweiterte Kennzahlen)</div>
+              <PercentileRow label="P/GP" value={advanced.season.pointsPerGame} pct={computeAdvancedPercentile(advanced.season.pointsPerGame, posLabelHist, 'pointsPerGame', advancedBaselines)} baselines={advancedBaselines} position={posLabelHist} statKey="pointsPerGame" fmt={fmt2} />
+              <PercentileRow label="SOG/GP" value={advanced.season.sogPerGame} pct={computeAdvancedPercentile(advanced.season.sogPerGame, posLabelHist, 'sogPerGame', advancedBaselines)} baselines={advancedBaselines} position={posLabelHist} statKey="sogPerGame" fmt={fmt2} />
+              <PercentileRow label="TOI/GP" value={advanced.season.toiPerGame} pct={computeAdvancedPercentile(advanced.season.toiPerGame, posLabelHist, 'toiPerGame', advancedBaselines)} baselines={advancedBaselines} position={posLabelHist} statKey="toiPerGame" fmt={fmtSec} />
+              <PercentileRow label="xG/GP" value={advanced.season.xgPerGame} pct={computeAdvancedPercentile(advanced.season.xgPerGame, posLabelHist, 'xgPerGame', advancedBaselines)} baselines={advancedBaselines} position={posLabelHist} statKey="xgPerGame" fmt={fmt2} />
+              <PercentileRow label="Faceoff-%" value={advanced.season.faceoffPercentage} pct={computeAdvancedPercentile(advanced.season.faceoffPercentage, posLabelHist, 'faceoffPercentage', advancedBaselines)} baselines={advancedBaselines} position={posLabelHist} statKey="faceoffPercentage" fmt={fmtPct} />
+              {currentSeasonScore && (
+                <div className="muted mt" style={{ fontSize: 11 }}>
+                  Season-Signal (xG/GP, SOG/GP, TOI/GP, PP-/PK-TOI, Faceoff-%, Blocks/GP - {currentSeasonScore.componentsUsed} Komponenten): <strong style={{ color: 'var(--text)' }}>{currentSeasonScore.score.toFixed(1)}</strong>. Ergänzt den Karriere-Impact-Score oben, ersetzt ihn nicht.
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
+
+      <AdvancedAnalyticsCard season={advanced.season} />
 
       {/* Game Log - wichtigste Detailansicht der laufenden Saison, bewusst
           direkt nach Player Analytics platziert (statt ganz unten nach der
@@ -610,6 +686,17 @@ export default function PlayerDetail() {
           </div>
         )}
       </div>
+
+      {/* Shotmap (Auftrag Punkt 3) - reine Rohdaten aus game.nlShots (siehe
+          src/advancedStats.js::collectPlayerShots), keine erfundenen
+          Positionen. Nur für Feldspieler (Torhüter haben keine eigenen
+          Schuss-Events). */}
+      {!goalie && (
+        <div className="card card-pad mb">
+          <h2 className="mb">Shotmap</h2>
+          <ShotMap shots={playerShots} />
+        </div>
+      )}
 
       {/* Game-by-Game Impact (Abschnitt 3): bewusst NICHT implementiert.
           Der validierte Impact Score (siehe oben, Karriere/Saison) beruht auf
@@ -905,9 +992,13 @@ function Tile({ label, value }) {
 // Eine Zeile der Form-Splits-Tabelle (letzte 5 / letzte 10 / Saison) - `f`
 // ist null, solange nicht genug Spiele vorhanden sind ("computeRollingForm"
 // liefert dann null statt einer Berechnung auf zu wenig Datenbasis).
-function FormRow({ label, f, fmtSec, fmt2 }) {
+// `xg` (optional, Auftrag Punkt 2: xG/GP + Tore−xG je Zeitraum) - separat aus
+// src/advancedStats.js befüllt (andere Datenquelle/Fenster als `f`), daher
+// eigenständig optional statt in `f` reingemischt; fehlt sie (kein
+// Game-Detail-Sync für diese Spiele), zeigen die beiden Spalten "–" statt 0.
+function FormRow({ label, f, fmtSec, fmt2, xg }) {
   if (!f) return (
-    <tr><td className="left">{label}</td><td className="num muted" colSpan={7} style={{ textAlign: 'left' }}>zu wenig Spiele</td></tr>
+    <tr><td className="left">{label}</td><td className="num muted" colSpan={9} style={{ textAlign: 'left' }}>zu wenig Spiele</td></tr>
   )
   return (
     <tr>
@@ -919,6 +1010,8 @@ function FormRow({ label, f, fmtSec, fmt2 }) {
       <td className="num">{fmt2(f.ppg)}</td>
       <td className="num">{f.sog ?? <span className="muted">–</span>}</td>
       <td className="num">{f.toipg != null ? fmtSec(f.toipg) : <span className="muted">–</span>}</td>
+      <td className="num">{xg?.xgPerGame != null ? fmt2(xg.xgPerGame) : <span className="muted">–</span>}</td>
+      <td className="num">{xg?.goalsMinusXg != null ? <span className={xg.goalsMinusXg >= 0 ? 'good' : 'bad'}>{(xg.goalsMinusXg > 0 ? '+' : '') + xg.goalsMinusXg.toFixed(2)}</span> : <span className="muted">–</span>}</td>
     </tr>
   )
 }
@@ -955,6 +1048,11 @@ const FORM_METRICS = [
   { key: 'assists', label: 'Assists', get: (s) => Number(s.assists) || 0 },
   { key: 'sog', label: 'SOG', get: (s) => (s.sog != null ? Number(s.sog) : null) },
   { key: 'toi', label: 'TOI', get: (s) => (s.toiSec != null ? Number(s.toiSec) / 60 : null) },
+  // xG (Auftrag Punkt 9) - kommt aus dem additiv gemergten game.playerStats[].xg
+  // (server/nlGameDetailSync.js), daher nur für Spiele mit Game-Detail-Sync
+  // vorhanden - fehlende Werte liefern null (siehe avail-Filter im Chart
+  // unten), keine 0 vorgetäuscht.
+  { key: 'xg', label: 'xG', get: (s) => (s.xg != null ? Number(s.xg) : null) },
 ]
 function rollingAvg(values, n) {
   return values.map((_, i) => {
@@ -993,7 +1091,11 @@ function GameFormChart({ log }) {
       <div style={{ overflowX: 'auto' }}>
         <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ minWidth: 480 }}>
           <line x1={pad.l} x2={W - pad.r} y1={y(0)} y2={y(0)} stroke="var(--border)" />
-          {dots.map((d) => <circle key={d.i} cx={x(d.i)} cy={y(d.v)} r="2.2" fill="var(--text-faint)" />)}
+          {dots.map((d) => {
+            const toi = log[d.i]?.s?.toiSec
+            const title = `${log[d.i]?.game?.date || ''}: ${def.label} ${d.v}${toi != null ? ` · TOI ${Math.floor(toi / 60)}:${String(Math.round(toi % 60)).padStart(2, '0')}` : ''}`
+            return <circle key={d.i} cx={x(d.i)} cy={y(d.v)} r="2.2" fill="var(--text-faint)"><title>{title}</title></circle>
+          })}
           <path d={linePath(roll10)} fill="none" stroke="var(--text-dim)" strokeWidth="2" />
           <path d={linePath(roll5)} fill="none" stroke="var(--accent)" strokeWidth="2.5" />
         </svg>

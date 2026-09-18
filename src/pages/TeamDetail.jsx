@@ -19,6 +19,7 @@ import { useMemo, useRef, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useData } from '../DataContext.jsx'
 import { TeamBadge, Modal, toast, SortableTable, MarketValueTrend } from '../components/ui.jsx'
+import TeamLogo from '../components/TeamLogo.jsx'
 import {
   fmtPct, fmtNum, fmtChf, plusMinusStr, computeHomeSplits,
   isFinalGame,
@@ -350,7 +351,7 @@ export default function TeamDetail() {
       <div className="page-head">
         <div>
           <div className="row gap-sm"><Link className="muted" to="/teams">Teams</Link><span className="muted">/</span></div>
-          <h1 className="row gap-sm"><span className="dot" style={{ background: team.color, width: 16, height: 16 }} />{team.name}</h1>
+          <h1 className="row gap-sm"><TeamLogo team={team} size={32} />{team.name}</h1>
           <div className="sub">{team.short} · {players.length} Spieler im Kader</div>
         </div>
         <div className="row gap-sm">

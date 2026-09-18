@@ -1,12 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import TeamLogo from './TeamLogo.jsx'
 
-// Team-Badge mit Farbpunkt
+// Team-Badge - zentrale Team-Darstellung (Logo, mit Farbpunkt-Fallback über
+// TeamLogo.jsx, siehe src/teamLogos.js), von hier aus in der ganzen App
+// wiederverwendet (Tabelle, Spielplan, ELO, Power Ranking, Predictions,
+// Match Detail, Charts, Team Selector, Tooltips, Team Cards, What-if/
+// Simulation - siehe Aufrufer). Keine einzelnen hardcodierten Logo-Pfade in
+// anderen Komponenten nötig.
 export function TeamBadge({ team, link = true, short = false }) {
   if (!team) return <span className="muted">–</span>
   const inner = (
     <span className="team-badge">
-      <span className="dot" style={{ background: team.color }} />
+      <TeamLogo team={team} size={18} />
       {short ? team.short : team.name}
     </span>
   )
