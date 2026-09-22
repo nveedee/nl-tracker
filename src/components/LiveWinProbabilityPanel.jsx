@@ -149,6 +149,19 @@ export default function LiveWinProbabilityPanel({ homeTeam, awayTeam, probabilit
         <span className="chip" style={{ color: 'var(--text-dim)', fontSize: 10 }}>{sourceLabel}</span>
       </div>
 
+      {/* OT/SO: die Quote ist ab hier bewusst der eingefrorene Pre-Game-Split
+          (siehe liveProbability.js::computeLiveWinProbability, OT/SO-Zweig -
+          UNVERÄNDERT) - die Chart-Linie wandert zwar mit der echten
+          Wanduhrzeit weiter (siehe liveGameClient.js::otElapsedMinutes-
+          Tracking), bildet aber ab hier KEINE tor-für-tor-Dynamik mehr ab.
+          Klare Kennzeichnung, damit eine flache Linie nicht wie ein Fehler
+          wirkt. */}
+      {(probability.phase === 'OT' || probability.phase === 'SO') && (
+        <div className="chip live-prob-ot-frozen-note" style={{ marginBottom: 6, fontSize: 10.5 }}>
+          {probability.phase === 'OT' ? 'Overtime' : 'Penaltyschiessen'} · Quote seit Ende der Regulationszeit eingefroren (Pre-Game-Modell, keine OT/SO-Tor-Dynamik)
+        </div>
+      )}
+
       {/* "Jetzt" - IMMER der letzte Snapshot, unabhängig vom Hover/Pin.
           BEWUSST ZWEI GETRENNTE ZEILEN (nicht mehr eine gemeinsame 3er-
           Aufzählung): Final Win Probability (Heim+Auswärts = 100%, inkl.

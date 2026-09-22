@@ -368,6 +368,26 @@ function parseLiveTeamStats(raw) {
 // parseSihfGame). Liefert einen Live-Snapshot unabhängig vom Spielstatus
 // (scheduled/live/final) - der Aufrufer (liveSync.js) entscheidet anhand von
 // `status`, ob/wie er das Ergebnis weiterverwendet.
+// SIHF markiert ein in OT/Penaltyschiessen entschiedenes Spiel zunächst mit
+// "Ende*" (Sternchen) statt "Ende", solange das Resultat offiziell noch
+// unbestätigt ist - erst nach dieser Bestätigung (typischerweise wenige
+// Stunden später) wechselt raw.status.name auf das exakte "Ende", das
+// determineLocalStatus() oben erkennt (siehe dortiger Kommentar: bewusst
+// NUR das exakte "Ende", um nie ein Zwischenresultat als DB-final zu
+// übernehmen - dieses Gate bleibt für parseSihfGame()/den DB-Endstand
+// UNVERÄNDERT). Für die reine Live-Anzeige ist diese Vorsicht unnötig:
+// percent===100 heisst so oder so, dass SIHF keine weiteren Live-Ereignisse
+// mehr liefert. Ohne diese Erkennung bliebe genau ein in OT/SO
+// entschiedenes Spiel für das gesamte Zeitfenster bis zur offiziellen
+// Bestätigung fälschlich im Live-Cache als `status:'live'`/`phase:'OT'`
+// stehen - inkl. der dafür vorgesehenen eingefrorenen Pre-Game-Quote
+// (siehe liveProbability.js::computeLiveWinProbability, OT/SO-Zweig), die
+// dadurch nie mehr aktualisiert wird und wie "hängengeblieben bei ~50/50"
+// wirkt, obwohl das Spiel längst zu Ende ist.
+function isLiveGameOver(rawStatus) {
+  return !!rawStatus && rawStatus.percent === 100 && /^Ende/.test(rawStatus.name || '')
+}
+
 function parseLiveSnapshot(raw) {
   const statusInfo = determineLocalStatus(raw.status) // unverändert wiederverwendet (keine zweite Status-Formel)
   const homeSihfTeamId = raw.details && raw.details.homeTeam && raw.details.homeTeam.id
@@ -376,7 +396,7 @@ function parseLiveSnapshot(raw) {
   const awayTeamId = SIHF_TO_TEAM_ID[awaySihfTeamId]
 
   const isCanceled = !!(raw.status && raw.status.canceled)
-  const status = statusInfo.local === 'final'
+  const status = (statusInfo.local === 'final' || isLiveGameOver(raw.status))
     ? 'final'
     : (raw.status && raw.status.percent > 0 && !isCanceled ? 'live' : 'scheduled')
 

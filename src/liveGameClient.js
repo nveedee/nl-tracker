@@ -53,15 +53,33 @@ function buildEvents(liveState, homeTeamId) {
 // Forecast, siehe MatchupDetail.jsx::displayForecast). `history` ist der
 // bisher im Hook gesammelte Verlauf ECHTER Snapshots (kein Interpolieren,
 // siehe LiveWinProbabilityPanel.jsx-Kommentar).
-export function buildRealLiveMatch({ liveState, homeTeam, awayTeam, pregame, history }) {
+// Chart-Obergrenze für die OT/SO-X-Achse - identisch zu DEMO_MAX_MINUTE
+// (src/liveDemoData.js) bzw. dem `maxMinute`, mit dem MatchupDetail.jsx die
+// Live-Panels rendert, damit ein sehr langes OT/SO nicht über den
+// sichtbaren Chart-Bereich hinausläuft. Reine Anzeige-Begrenzung, KEINE
+// neue Wahrscheinlichkeitsannahme.
+const OT_DISPLAY_CAP_MINUTES = REGULATION_MINUTES + 5
+
+export function buildRealLiveMatch({ liveState, homeTeam, awayTeam, pregame, history, otElapsedMinutes }) {
   // Replay (server/liveReplay.js) kennt die exakte angefragte Spielzeit
   // (`replayElapsedSeconds`, direkt aus den absoluten SIHF-Torzeitstempeln
   // abgeleitet) - dort NIEMALS die grobe `percent`-Näherung verwenden, die
   // nur für echte Live-Spiele ohne bekanntes Zeitfeld ein Behelf ist (siehe
   // elapsedMinutesFromPercent()-Kommentar).
+  //
+  // OT/SO (`otElapsedMinutes`, von useLiveGame() per Wanduhr mitgezählt -
+  // siehe dortiger Kommentar): NUR die X-Position des Chart-Punkts wandert
+  // dadurch über die Zeit weiter, der Wahrscheinlichkeitswert selbst bleibt
+  // exakt der eingefrorene Pre-Game-Split aus computeLiveWinProbability()
+  // (dort unverändert - `elapsedMinutes` fliesst in den OT/SO-Zweig gar
+  // nicht in die Berechnung ein, nur zur Info zurückgegeben). Ohne diese
+  // Fortschreibung blieb jeder OT-Snapshot exakt bei 60:00 stehen - eine
+  // "Linie" aus einem einzigen Punkt ist im SVG nicht sichtbar (nur die
+  // Torereignis-Marker), siehe LiveWinProbabilityPanel.jsx::buildMonotonePath
+  // (n===1 -> reines "M x y" ohne Liniensegment).
   const elapsedMinutes = liveState.replay
     ? Math.min(REGULATION_MINUTES, liveState.replayElapsedSeconds / 60)
-    : (liveState.phase === 'REG' ? elapsedMinutesFromPercent(liveState.percent) : REGULATION_MINUTES)
+    : (liveState.phase === 'REG' ? elapsedMinutesFromPercent(liveState.percent) : (otElapsedMinutes ?? REGULATION_MINUTES))
   const prob = computeLiveWinProbability({
     expHomeFull: pregame.expHomeFull, expAwayFull: pregame.expAwayFull, pHomePreGame: pregame.pHomePreGame,
     homeGoals: liveState.homeGoals, awayGoals: liveState.awayGoals,
@@ -94,7 +112,11 @@ export function buildRealLiveMatch({ liveState, homeTeam, awayTeam, pregame, his
     // awayRegWin/drawAfter60), hier nur zusätzlich durchgereicht statt wie
     // bisher nur pDraw allein (das ohne pHomeReg/pAwayReg fälschlich wie ein
     // dritter Teil der Final-Aufteilung aussah).
-    probability: { pHome: prob.homeFinal, pDraw: prob.drawAfter60, pAway: prob.awayFinal, pHomeReg: prob.homeRegWin, pAwayReg: prob.awayRegWin },
+    // `phase` zusätzlich durchgereicht (unverändert aus computeLiveWinProbability()
+    // - siehe dort) - einzig dafür, dass die UI (LiveWinProbabilityPanel) bei
+    // OT/SO sichtbar kennzeichnen kann, dass die Quote der eingefrorene
+    // Pre-Game-Split ist, KEINE neue/zusätzliche Berechnung.
+    probability: { pHome: prob.homeFinal, pDraw: prob.drawAfter60, pAway: prob.awayFinal, pHomeReg: prob.homeRegWin, pAwayReg: prob.awayRegWin, phase: prob.phase },
     probabilityHistory: history,
     events: buildEvents(liveState, homeTeam.id),
     stats: liveState.teamStats,
@@ -115,11 +137,19 @@ export function useLiveGame({ gameId, homeTeam, awayTeam, pregame, enabled }) {
   const [ended, setEnded] = useState(false)
   const historyRef = useRef([])
   const lastKeyRef = useRef(null)
+  // Wanduhr-Zeitpunkt des ersten beobachteten OT/SO-Ticks (Date.now()) - NUR
+  // dafür, dass die Chart-X-Position während OT/SO mit der echten
+  // verstrichenen Zeit weiterwandert (siehe otElapsedMinutes()/
+  // buildRealLiveMatch()-Kommentar). SIHF liefert dafür kein eigenes
+  // Zeitfeld (siehe elapsedMinutesFromPercent()-Kommentar) - Wanduhrzeit ist
+  // hier ein reales, gemessenes Signal (keine erfundene Wahrscheinlichkeit).
+  const otStartRef = useRef(null)
 
   useEffect(() => {
     if (!enabled || !gameId || !pregame) {
       historyRef.current = []
       lastKeyRef.current = null
+      otStartRef.current = null
       setLiveMatch(null)
       setEnded(false)
       return
@@ -147,7 +177,14 @@ export function useLiveGame({ gameId, homeTeam, awayTeam, pregame, enabled }) {
       }
       if (cancelled) return
 
-      const elapsedMinutes = liveState.phase === 'REG' ? elapsedMinutesFromPercent(liveState.percent) : REGULATION_MINUTES
+      let otElapsedMinutes = null
+      if (liveState.phase === 'REG') {
+        otStartRef.current = null // defensiv - passiert real nie (Spiel geht nie von OT zurück zu REG), hält den Ref aber sauber
+      } else {
+        if (otStartRef.current == null) otStartRef.current = Date.now()
+        otElapsedMinutes = Math.min(REGULATION_MINUTES + (Date.now() - otStartRef.current) / 60000, OT_DISPLAY_CAP_MINUTES)
+      }
+      const elapsedMinutes = liveState.phase === 'REG' ? elapsedMinutesFromPercent(liveState.percent) : otElapsedMinutes
       const key = `${liveState.homeGoals}:${liveState.awayGoals}:${liveState.phase}:${Math.round(elapsedMinutes)}`
       if (key !== lastKeyRef.current) {
         lastKeyRef.current = key
@@ -165,7 +202,7 @@ export function useLiveGame({ gameId, homeTeam, awayTeam, pregame, enabled }) {
         }]
       }
 
-      setLiveMatch(buildRealLiveMatch({ liveState, homeTeam, awayTeam, pregame, history: historyRef.current }))
+      setLiveMatch(buildRealLiveMatch({ liveState, homeTeam, awayTeam, pregame, history: historyRef.current, otElapsedMinutes }))
     }
 
     tick()

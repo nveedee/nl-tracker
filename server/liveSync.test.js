@@ -102,6 +102,23 @@ test('parseLiveSnapshot: Spielende -> status final', () => {
   assert.equal(snap.awayGoals, 2)
 })
 
+test('parseLiveSnapshot: "Ende*" (OT/SO-Ende, offiziell noch unbestätigt) -> status final, nicht live', () => {
+  // Root Cause des gemeldeten Bugs (AJO-KLO, OT-Sieg): SIHF markiert ein in
+  // OT/SO entschiedenes Spiel zunächst mit "Ende*" statt "Ende" - die exakte
+  // Prüfung in determineLocalStatus() (bewusst UNVERÄNDERT, siehe dort)
+  // erkennt das nicht, wodurch das Spiel bis zur offiziellen Bestätigung
+  // fälschlich als `status:'live'` mit eingefrorener OT-Pre-Game-Quote
+  // hängen blieb. parseLiveSnapshot() selbst (nur für die Live-ANZEIGE, kein
+  // DB-Schreibpfad) muss "Ende*" wie "Ende" behandeln.
+  const raw = baseRaw({ percent: 100, name: 'Ende*' })
+  raw.result.homeTeam = '4'
+  raw.result.awayTeam = '3'
+  const snap = parseLiveSnapshot(raw)
+  assert.equal(snap.status, 'final')
+  assert.equal(snap.homeGoals, 4)
+  assert.equal(snap.awayGoals, 3)
+})
+
 test('parseLiveSnapshot: Overtime (4. Periodeneintrag) -> phase OT', () => {
   const raw = baseRaw({ percent: 90, name: 'Overtime' })
   raw.result.scores = [
@@ -202,6 +219,23 @@ test('pollLiveGames: Spielende räumt den Live-Cache (Endergebnis übernimmt der
   sihfSync.fetchSihfGame = async () => ({ status: 200, json: baseRaw({ percent: 100, name: 'Ende' }) })
   await pollLiveGames({ games: [game] }, { now })
   assert.equal(getLiveState(game.id), null)
+
+  t.after(() => { sihfSync.fetchSihfGame = originalFetch })
+})
+
+test('pollLiveGames: OT/SO-Ende ("Ende*", offiziell unbestätigt) räumt den Live-Cache genauso wie "Ende"', async (t) => {
+  _resetForTests()
+  const originalFetch = sihfSync.fetchSihfGame
+  const game = makeGame()
+  const now = new Date(`${game.date}T20:00:00`)
+
+  sihfSync.fetchSihfGame = async () => ({ status: 200, json: baseRaw({ percent: 90, name: 'Overtime' }) })
+  await pollLiveGames({ games: [game] }, { now })
+  assert.ok(getLiveState(game.id))
+
+  sihfSync.fetchSihfGame = async () => ({ status: 200, json: baseRaw({ percent: 100, name: 'Ende*' }) })
+  await pollLiveGames({ games: [game] }, { now })
+  assert.equal(getLiveState(game.id), null, 'ein in OT/SO entschiedenes, offiziell noch unbestätigtes Spiel darf nicht dauerhaft im Live-Cache hängen bleiben')
 
   t.after(() => { sihfSync.fetchSihfGame = originalFetch })
 })
