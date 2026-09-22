@@ -21,6 +21,7 @@ import { withPregamePredictions } from '../pregamePrediction.js'
 import { TeamBadge, Delta, SectionHeader, StatTile, ProbBar, Tabs, useScrollFade } from '../components/ui.jsx'
 import { getLastBaseline, recordBaselineIfNeeded, computeMovers } from '../baselineStore.js'
 import { useSimResults } from '../simResultsContext.jsx'
+import { saveSimResult, loadSimResult } from '../playoffSimStore.js'
 import PositionMatrix from '../components/PositionMatrix.jsx'
 import BracketCards from '../components/BracketCards.jsx'
 import MatchForecast from '../components/MatchForecast.jsx'
@@ -64,9 +65,14 @@ function generateSeed() {
 export default function PlayoffOdds() {
   const { data, derived } = useData()
   const [simulating, setSimulating] = useState(false)
-  const [results, setResults] = useState(null)
-  const [lastSimAt, setLastSimAt] = useState(null)
-  const [lastSeed, setLastSeed] = useState(null)
+  // Beim Mount EINMAL aus localStorage geladen (Routen rendern erst nach
+  // Abschluss von useData(), data.teams/settings sind also bereits da - siehe
+  // src/playoffSimStore.js). Kein automatischer Simulationslauf: passt die
+  // gespeicherte Saison/Teamanzahl nicht mehr, liefert loadSimResult() null
+  // und die Seite zeigt den "noch keine Simulation"-Zustand.
+  const [results, setResults] = useState(() => loadSimResult({ season: data.settings?.seasonName || 'default', teams: data.teams }))
+  const [lastSimAt, setLastSimAt] = useState(() => (results?.generatedAt ? new Date(results.generatedAt) : null))
+  const [lastSeed, setLastSeed] = useState(() => results?.seed ?? null)
   const [expandedTeam, setExpandedTeam] = useState(null)
   const [runsChoice, setRunsChoice] = useState(10000)
   const [tab, setTab] = useState('matrix')
@@ -125,6 +131,9 @@ export default function PlayoffOdds() {
         // Ergebnis SOFORT auch dem Playoff Wheel auf dem Dashboard verfügbar -
         // ganz ohne Page Reload, unabhängig von der Tages-Baseline oben.
         setLiveResults(sim)
+        // localStorage (src/playoffSimStore.js): überlebt Seitenwechsel/Reload,
+        // ersetzt bei jedem "Neu simulieren"-Klick den vorherigen Stand.
+        saveSimResult(sim, { season: data.settings?.seasonName || 'default', teamCount: data.teams.length })
       } catch (err) {
         console.error('Simulation error:', err)
       } finally {
@@ -187,6 +196,12 @@ export default function PlayoffOdds() {
           {simulating ? 'Simuliert…' : `Simulation starten (${scheduledCount} Spiele)`}
         </button>
       </div>
+
+      {!results && !simulating && (
+        <div className="muted" style={{ fontSize: 12.5, marginBottom: 14 }}>
+          Noch keine Simulation für diese Saison gespeichert - Ergebnis über "Simulation starten" erzeugen.
+        </div>
+      )}
 
       <MatchForecast forecasts={forecasts} />
 
