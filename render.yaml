@@ -8,3 +8,18 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 20
+    # Persistenter Disk für server/data (db.json, sync-status, Historien-
+    # Caches) - ohne diesen wird server/data bei jedem Redeploy/Spin-down
+    # neu aus seed.json erzeugt (Render-Webservices haben sonst ein
+    # ephemeres Dateisystem), wodurch der laufende Sync-Fortschritt verloren
+    # geht und ein frisch gestarteter Service Mobile/anderen Clients einen
+    # veralteten Stand zeigt, während ein durchgehend laufender lokaler
+    # Server bereits weiter ist. Persistent Disks sind auf Render erst ab
+    # einem bezahlten Plan verfügbar - dieser Block ist vorbereitet, greift
+    # aber erst nach einem Plan-Wechsel weg von `plan: free` (siehe Auftrag:
+    # noch kein Plan-Upgrade). Mountpfad folgt Renders Standard-Projektpfad
+    # für native (nicht containerisierte) Node-Services.
+    disk:
+      name: nl-tracker-data
+      mountPath: /opt/render/project/src/server/data
+      sizeGB: 1
