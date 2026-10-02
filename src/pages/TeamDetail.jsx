@@ -264,6 +264,35 @@ export default function TeamDetail() {
   const rosterSkaters = rosterFiltered.filter((p) => p.position !== 'G')
   const rosterGoalies = rosterFiltered.filter((p) => p.position === 'G')
 
+  // Top-5-Scorer-Balken: nur echte Saisonwerte aus statById (dieselbe Quelle wie
+  // die Kader-Tabelle). Plausibilitätsprüfung vor der Anzeige: Die Summe der
+  // Spielertore darf die Teamtore nicht übersteigen und muss mindestens 80 %
+  // davon erklären (Empty-Net-/SO-Entscheidungstore fehlen teils in
+  // Spielerstatistiken). Sonst keine Grafik statt einer irreführenden.
+  const skaterGoalSum = teamSkaters.reduce((sum, pl) => sum + (statById[pl.id]?.goals || 0), 0)
+  const scoringPlausible = !!standing && standing.gf > 0 && skaterGoalSum > 0
+    && skaterGoalSum <= standing.gf && skaterGoalSum >= standing.gf * 0.8
+  const topScorers = scoringPlausible
+    ? [...teamSkaters]
+        .map((pl) => ({ pl, st: statById[pl.id] }))
+        .filter((x) => x.st && x.st.points > 0)
+        .sort((a, b) => b.st.points - a.st.points || b.st.goals - a.st.goals)
+        .slice(0, 5)
+    : []
+
+  // Goalie-SV%: nur Torhüter mit mindestens einem Schuss gegen (savePct != null).
+  const goalieBars = teamGoalies
+    .map((pl) => ({ pl, st: statById[pl.id] }))
+    .filter((x) => x.st && x.st.savePct != null && x.st.gp > 0)
+    .sort((a, b) => b.st.gp - a.st.gp)
+
+  // Marktwert-Trend-Flags (NL-API): +1 / 0 / -1; alles andere = kein Trend verfügbar
+  // (wird NICHT als Auf-/Abwind gezählt).
+  const trendUp = players.filter((pl) => pl.marketValueTrend === 1).length
+  const trendDown = players.filter((pl) => pl.marketValueTrend === -1).length
+  const trendFlat = players.filter((pl) => pl.marketValueTrend === 0).length
+  const trendNone = players.length - trendUp - trendDown - trendFlat
+
   const compareTeam = compareTeamId ? data.teams.find((t) => t.id === compareTeamId) : null
   const compareRow = compareTeam ? power.find((p) => p.team.id === compareTeamId) : null
   const compareStanding = compareTeam ? derived.standings.find((s) => s.team.id === compareTeamId) : null
@@ -541,6 +570,26 @@ export default function TeamDetail() {
             style={{ width: 200 }}
           />
         </div>
+        {rosterFilter !== 'G' && !rosterSearchLower && topScorers.length > 0 && (
+          <div className="mb">
+            <div className="section-label">Top 5 Scorer (Punkte, Saison)</div>
+            {topScorers.map(({ pl, st }) => (
+              <div key={pl.id} className="row" style={{ gap: 10, padding: '3px 0' }}>
+                <Link to={`/players/${pl.id}`} style={{ width: 120, flex: 'none', fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pl.name}</Link>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="bar-track"><div className="bar-fill" style={{ width: `${(st.points / topScorers[0].st.points) * 100}%`, background: team.color }} /></div>
+                </div>
+                <span style={{ width: 70, flex: 'none', textAlign: 'right', fontSize: 12 }}>
+                  <strong>{st.points}</strong> <span className="muted">({st.goals}+{st.assists})</span>
+                </span>
+              </div>
+            ))}
+            <div className="muted" style={{ fontSize: 10.5, marginTop: 2 }}>Punkte = Tore + Assists (in Klammern). Skala: Balken relativ zum besten Scorer.</div>
+          </div>
+        )}
+        {rosterFilter !== 'G' && !rosterSearchLower && !scoringPlausible && teamSkaters.length > 0 && (
+          <div className="muted mb" style={{ fontSize: 11.5 }}>Scorer-Grafik nicht verfügbar – Spielerpunkte für dieses Team unvollständig.</div>
+        )}
         <div className="pill-tabs mb">
           <button className={rosterFilter === 'all' ? 'active' : ''} onClick={() => setRosterFilter('all')}>Alle</button>
           <button className={rosterFilter === 'F' ? 'active' : ''} onClick={() => setRosterFilter('F')}>Stürmer</button>
@@ -561,6 +610,26 @@ export default function TeamDetail() {
             {rosterGoalies.length > 0 && (
               <div style={{ marginTop: rosterSkaters.length > 0 ? 16 : 0 }}>
                 {rosterSkaters.length > 0 && <div className="section-label">Torhüter</div>}
+                {goalieBars.length > 0 && (
+                  <div className="mb">
+                    {goalieBars.map(({ pl, st }) => {
+                      const LO = 0.8, HI = 0.95
+                      const w = Math.max(0, Math.min(1, (st.savePct - LO) / (HI - LO))) * 100
+                      return (
+                        <div key={pl.id} className="row" style={{ gap: 10, padding: '3px 0' }}>
+                          <Link to={`/players/${pl.id}`} style={{ width: 120, flex: 'none', fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pl.name}</Link>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div className="bar-track"><div className="bar-fill" style={{ width: `${w}%`, background: team.color }} /></div>
+                          </div>
+                          <span style={{ width: 70, flex: 'none', textAlign: 'right', fontSize: 12 }}><strong>{fmtPct(st.savePct)}</strong></span>
+                        </div>
+                      )
+                    })}
+                    <div className="muted" style={{ fontSize: 10.5, marginTop: 2 }}>
+                      Fangquote (SV%); Balkenskala 80–95 % (nicht 0–100 %). Einsätze: {goalieBars.map(({ pl, st }) => `${pl.name.split(' ').slice(-1)[0]} ${st.gp} Sp., ${st.shotsAgainst ?? 0} Schüsse`).join(' · ')}.
+                    </div>
+                  </div>
+                )}
                 <SortableTable columns={goalieColumns} rows={rosterGoalies} initialSort="gp" rowKey={(p) => p.id} />
               </div>
             )}
@@ -582,6 +651,26 @@ export default function TeamDetail() {
             <div className="stat"><strong className="good">{rosterTrendUp}</strong><span>Im Aufwind</span></div>
             <div className="stat"><strong className="bad">{rosterTrendDown}</strong><span>Im Abwind</span></div>
           </div>
+
+          <div className="muted" style={{ fontSize: 11.5, margin: '4px 0 4px' }}>Marktwert-Abdeckung</div>
+          <div className="row" style={{ gap: 10 }}>
+            <div className="bar-track" style={{ flex: 1 }}><div className="bar-fill" style={{ width: `${(playersWithValue.length / players.length) * 100}%`, background: team.color }} /></div>
+            <strong style={{ fontSize: 12, width: 54, textAlign: 'right' }}>{playersWithValue.length} / {players.length}</strong>
+          </div>
+
+          <div className="muted" style={{ fontSize: 11.5, margin: '12px 0 4px' }}>Marktwert-Trend (laut NL-API)</div>
+          <div style={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden', background: 'var(--border)' }} title={`Aufwind ${trendUp} · Abwind ${trendDown} · neutral ${trendFlat} · kein Trend verfügbar ${trendNone}`}>
+            {trendUp > 0 && <div style={{ width: `${(trendUp / players.length) * 100}%`, background: 'var(--good)' }} />}
+            {trendFlat > 0 && <div style={{ width: `${(trendFlat / players.length) * 100}%`, background: 'var(--text-faint)' }} />}
+            {trendDown > 0 && <div style={{ width: `${(trendDown / players.length) * 100}%`, background: 'var(--bad)' }} />}
+          </div>
+          <div className="row spread" style={{ fontSize: 11.5, marginTop: 4, gap: 6, flexWrap: 'wrap' }}>
+            <span><strong className="good">▲ {trendUp}</strong> Aufwind</span>
+            <span className="muted">→ {trendFlat} neutral</span>
+            <span><strong className="bad">▼ {trendDown}</strong> Abwind</span>
+            <span className="muted">{trendNone} ohne Trend</span>
+          </div>
+          <div className="muted" style={{ fontSize: 10.5, margin: '4px 0 12px' }}>Trend-Kennzeichen wie von der NL-API geliefert; der Zeitraum ist dort nicht angegeben. Spieler ohne Trend-Angabe zählen weder als Aufwind noch als Abwind.</div>
           <div className="section-label">Wertvollste Spieler</div>
           <div className="table-wrap">
             <table>
