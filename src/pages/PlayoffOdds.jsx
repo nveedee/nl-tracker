@@ -12,6 +12,7 @@
 // ---------------------------------------------------------------------------
 
 import { useState, useMemo } from 'react'
+import { isFinalGame } from '../stats.js'
 import { useData } from '../DataContext.jsx'
 import { simulatePlayoffOdds, computeMatchForecasts } from '../playoffSim.js'
 import { usePreseasonElo, computePreseasonRatings } from '../preseasonElo.js'
@@ -165,6 +166,9 @@ export default function PlayoffOdds() {
     )
   }
 
+  const playedCount = data.games.filter(isFinalGame).length
+  const staleSim = results && results.scheduledCount != null && results.scheduledCount !== scheduledCount
+
   const byChampion = results ? [...results.rows].sort((a, b) => b.pChampion - a.pChampion) : []
   const favorite = byChampion[0]
   const top3 = byChampion.slice(0, 3)
@@ -179,6 +183,10 @@ export default function PlayoffOdds() {
             {data.settings?.seasonName || 'National League'} · {results ? results.runs.toLocaleString() : '10.000'} Simulationen
             {lastSimAt ? ` · aktualisiert ${lastSimAt.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })}` : ''}
           </div>
+          <div className="sub">
+            Aktueller Saisonstand: {playedCount} Spiele gespielt · {scheduledCount} offen
+            {results?.scheduledCount != null ? ` · Simulation basiert auf ${results.scheduledCount} offenen Spielen` : ''}
+          </div>
           {derived.eloPriorSource === 'marketValue' && (
             <span className="chip" style={{ fontSize: 10.5, marginTop: 4 }} title="Start-ELOs dieser Saison aus der Summe der Kader-Marktwerte abgeleitet (Einstellungen → Prognose-Erweiterungen)">
               Vorsaison-Prior aus Marktwert
@@ -186,6 +194,22 @@ export default function PlayoffOdds() {
           )}
         </div>
       </div>
+
+      {staleSim && (
+        <div className="card card-pad mb" style={{ fontSize: 13, borderColor: 'var(--warn)' }}>
+          <strong>Simulation basiert auf einem älteren Saisonstand</strong> ({results.scheduledCount} statt {scheduledCount} offene Spiele). Mit „Simulation starten“ aktualisieren.
+        </div>
+      )}
+
+      <details className="mb" style={{ fontSize: 12.5 }}>
+        <summary className="muted" style={{ cursor: 'pointer' }}>ⓘ Playoff-Format (14 Teams)</summary>
+        <ul className="muted" style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+          <li>Rang 1–6: direkt im Viertelfinal</li>
+          <li>Rang 7–10: Play-in – die Sieger erreichen das Viertelfinal</li>
+          <li>Rang 11–12: Saisonende</li>
+          <li>Rang 13–14: Play-out – der Verlierer des Finals spielt die Ligaqualifikation</li>
+        </ul>
+      </details>
 
       {/* N-Wähler + Simulieren: wichtigste Aktion, bleibt oben griffbereit */}
       <div className="row gap-sm" style={{ marginBottom: 14 }}>
@@ -233,23 +257,23 @@ export default function PlayoffOdds() {
                       </tr>
                       <tr>
                         <th className="left">Team</th>
-                        <th className="num group-start" title="Wahrscheinlichkeit, die Playoffs zu erreichen (Top 10)">Playoffs</th>
+                        <th className="num group-start" title="Viertelfinal erreicht - Top 6 oder über das Play-in qualifiziert (8 Teams)">Playoffs</th>
                         <th className="num" title="Wahrscheinlichkeit, direkt in die Halbfinal-Runde zu kommen (Top 6)">Top 6</th>
-                        <th className="num" title="Wahrscheinlichkeit, über das Play-in in die Playoffs zu kommen">Play-in</th>
+                        <th className="num" title="Play-in-Teilnahme: Wahrscheinlichkeit, die Qualifikation auf Rang 7-10 zu beenden. Nur die 2 Play-in-Sieger erreichen das Viertelfinal (steckt in 'Playoffs'); Top 6 + Play-in ergibt daher nicht 'Playoffs'.">Play-in</th>
                         <th className="num group-start" title="Wahrscheinlichkeit, das Halbfinale zu erreichen">Halbfinale</th>
                         <th className="num" title="Wahrscheinlichkeit, den Final zu erreichen">Finale</th>
                         <th className="num" title="Meisterchance">Meister</th>
                         <th className="num group-start" title="Wahrscheinlichkeit, in die Play-out-Runde (Platz 13/14) zu müssen">Play-out</th>
-                        <th className="num" title="Wahrscheinlichkeit einer Ligaqualifikation (direkte Abstiegsgefahr)">Ligaqual.</th>
+                        <th className="num" title="Wahrscheinlichkeit einer Ligaqualifikation (Verlierer des Play-out-Finals, direkte Abstiegsgefahr)">Ligaqualifikation</th>
                         <th className="num group-start" title="Erwartete Punktezahl am Saisonende, Mittel über alle Simulationsläufe">Ø Pkt</th>
                         <th className="num" title="Erwarteter Schlussrang, Mittel über alle Simulationsläufe">Ø Rang</th>
-                        <th className="num group-start" title="Bester und schlechtester simulierter Punktestand (Spannweite)">Range</th>
+                        <th className="num group-start" title="Niedrigster und höchster Punktestand über alle Simulationsläufe - Extremwerte, keine typische Spanne">Min–Max Pkt</th>
                         <th className="num"></th>
                       </tr>
                     </thead>
                     <tbody>
                       {results.rows.map((r) => (
-                        <tr key={r.team.id} className={expandedTeam === r.team.id ? 'active-row' : ''}>
+                        <tr key={r.team.id} className={expandedTeam === r.team.id ? 'active-row' : ''} style={r.team.id === 'team_klo' && expandedTeam !== r.team.id ? { background: 'var(--accent-soft)' } : undefined}>
                           <td className="left"><TeamBadge team={r.team} short /></td>
                           <td className="num group-start" style={{ fontWeight: 600 }}>{fmtPct(r.pPlayoffs)}</td>
                           <td className="num">{fmtPct(r.pTop6)}</td>
@@ -290,8 +314,8 @@ export default function PlayoffOdds() {
                     <div className="tiles mb">
                       <StatTile label="Ø Punkte" value={r.avgPts.toFixed(1)} />
                       <StatTile label="Median" value={r.medianPts} />
-                      <StatTile label="Best Case" value={Math.round(r.maxPts)} />
-                      <StatTile label="Worst Case" value={Math.round(r.minPts)} />
+                      <StatTile label="Höchster simulierter Punktestand" value={Math.round(r.maxPts)} hint="Extremwert aller Läufe" />
+                      <StatTile label="Niedrigster simulierter Punktestand" value={Math.round(r.minPts)} hint="Extremwert aller Läufe" />
                       <StatTile label="Pre-Season-ELO" value={preElo != null ? Math.round(preElo) : '–'} />
                       <StatTile label="Aktuelles ELO" value={curElo != null ? Math.round(curElo) : '–'} />
                       <StatTile label="Power Score" value={power?.powerScore ?? '–'} />
