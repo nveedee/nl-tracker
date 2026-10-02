@@ -19,7 +19,7 @@ import {
   usePlayerHistory, usePositionBaselines, getPlayerSeasons, classifyTrend, isBreakout, isDeclining,
   buildCurrentSeasonRecord, computeImpactScore, POSITION_LABEL,
 } from '../playerHistory.js'
-import { computeLeagueMarketMovers } from '../marketValueHistory.js'
+import { computeLeagueMarketMovers, hasEnoughHistoryForChart } from '../marketValueHistory.js'
 import {
   calculatePlayerRating, buildSkaterRatingBaselines, buildGoalieRatingBaselines, buildGoalieCareerBaseline,
 } from '../playerRating.js'
@@ -27,6 +27,7 @@ import {
 const MARKET_MOVERS_WINDOW_DAYS = 14
 const posLabel = { G: 'G', D: 'D', F: 'F' }
 const MIN_GP_OPTIONS = [0, 5, 10, 20]
+const PAGE_SIZE_OPTIONS = [25, 50, 100, 0] // 0 = alle (Auftrag Punkt E)
 // League Leaders sind bewusst UNABHÄNGIG vom Mindestspiele-/Team-Filter der
 // Haupttabelle (sonst verschwinden Liga-Bestwerte, sobald man die Tabelle
 // filtert) - für Ratenstatistiken (P/GP) trotzdem eine Mindestspielzahl
@@ -36,12 +37,51 @@ const LEADER_MIN_GP_RATE = 5
 // Liga-Durchschnitt (Hero) erst zeigen, wenn nicht nur 1-2 Spieler zufällig
 // bereits gp>0 haben - sonst ist der "Durchschnitt" nur ein Einzelwert.
 const LEAGUE_AVG_MIN_PLAYERS = 5
+// Exakt dieselben Erklärtexte wie schon bisher als title-Attribut auf den
+// Spaltenköpfen (siehe computeImpactScore/calculatePlayerRating-Kommentare
+// in playerHistory.js/playerRating.js) - hier nur zentralisiert, damit sie
+// identisch für den Spaltenkopf UND den neuen InfoDot verwendet werden.
+const IMPACT_TOOLTIP = 'Positions-relatives Karriere-Perzentil (0-100) aus Punkte/Spiel, Eiszeit/Spiel, +/- /Spiel und Schüsse/Spiel, je innerhalb Stürmer/Verteidiger normiert (siehe playerHistory.js::computeImpactScore).'
+const RATING_TOOLTIP = 'Player Rating (analytisch, unabhängig vom Prediction-Modell) - kombiniert Karriere-Impact, aktuelle Saison und Form je nach Spielanzahl (siehe playerRating.js).'
+const GOALIE_RATING_TOOLTIP = 'Goalie Rating (analytisch, unabhängig vom Prediction-Modell) - kombiniert Karriere, aktuelle Saison und Form je nach Spielanzahl (siehe playerRating.js).'
 
 function mean(arr) { return arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : null }
 function fmt2(v) { return v == null ? '–' : v.toFixed(2) }
 function normalizeSearch(s) {
   return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 }
+// Info-Hinweis-Punkt neben einem Spaltenkopf/Label - macht einen bereits
+// vorhandenen title-Tooltip sichtbar/entdeckbar statt nur per Zufalls-Hover
+// (Auftrag Punkt F). Kein neuer Erklärtext - derselbe `title` wie die Spalte.
+function InfoDot({ title }) {
+  return <span className="info-dot" title={title} aria-label={title}>i</span>
+}
+
+// Kleine Inline-SVG-Sparkline (Marktwert-Verlauf, Auftrag Punkt I) - nur
+// aufgerufen, wenn hasEnoughHistoryForChart() bereits bestätigt hat, dass
+// genug echte Historie vorhanden ist (marketValueHistory.js). Keine Achsen/
+// Beschriftung - reiner Trendverlauf, Farbe je nach Richtung (letzter vs.
+// erster Punkt).
+function Sparkline({ values, width = 56, height = 20 }) {
+  if (!values || values.length < 2) return null
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const span = max - min || 1
+  const n = values.length
+  const pts = values.map((v, i) => {
+    const x = (i / (n - 1)) * (width - 2) + 1
+    const y = height - 1 - ((v - min) / span) * (height - 2)
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  })
+  const rising = values[values.length - 1] >= values[0]
+  const color = rising ? 'var(--good)' : 'var(--bad)'
+  return (
+    <svg className="market-spark" width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Marktwert-Verlauf">
+      <polyline points={pts.join(' ')} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 // Top-N nach einem Wert, `player`/`value` je Eintrag ableiten - liefert eine
 // einheitliche [{player, value}]-Form für LeaderCard, egal aus welcher
 // Datenquelle (derived.playerStats-Zeile, {player, impact}-Objekt, rohes
@@ -65,6 +105,7 @@ export default function PlayerRankings() {
   const [minGp, setMinGp] = useState(5) // Mindestspiele gegen Kleinstichproben-Verzerrung
   const [compareA, setCompareA] = useState('')
   const [compareB, setCompareB] = useState('')
+  const [pageSize, setPageSize] = useState(25) // Pagination der Haupttabelle (Auftrag Punkt E) - 0 = alle
 
   const currentSeasonLabel = data.settings?.seasonName?.match(/\d{4}\/\d{2}/)?.[0] || null
   const statById = useMemo(() => Object.fromEntries(derived.playerStats.map((s) => [s.player.id, s])), [derived.playerStats])
@@ -115,17 +156,34 @@ export default function PlayerRankings() {
   }, [data.players, playerHistoryData, baselines])
   const leaguePlayersWithMv = useMemo(() => data.players.filter((p) => p.marketValue != null), [data.players])
 
+  // Liga-Rating-Leaderboard (Auftrag Punkt C, Gruppe "Performance") - nutzt
+  // exakt dieselbe calculatePlayerRating()-Funktion wie die Haupttabelle
+  // unten (src/playerRating.js, unverändert), hier einmal ligaweit
+  // (unabhängig von den Tabellenfiltern) über alle Feldspieler mit
+  // Saison-Einsatz berechnet - keine neue Kennzahl, nur eine zusätzliche
+  // Top-3-Ansicht derselben bereits vorhandenen Zahl.
+  const leagueSkatersWithRating = useMemo(() => {
+    if (!skaterRatingBaselines) return []
+    return leagueSkaters.map((r) => ({
+      player: r.player,
+      rating: calculatePlayerRating(r.player.id, data.games, {
+        players: data.players, playerHistoryData, careerBaselines: baselines, skaterBaselines: skaterRatingBaselines,
+      })?.overall ?? null,
+    })).filter((e) => e.rating != null)
+  }, [leagueSkaters, data.games, data.players, playerHistoryData, baselines, skaterRatingBaselines])
+
   const leaders = useMemo(() => ({
     points: topN(leagueSkaters, (r) => r.player, (r) => r.points),
     goals: topN(leagueSkaters, (r) => r.player, (r) => r.goals),
     assists: topN(leagueSkaters, (r) => r.player, (r) => r.assists),
     ppg: topN(leagueSkaters.filter((r) => r.gp >= LEADER_MIN_GP_RATE), (r) => r.player, (r) => r.points / r.gp),
     impact: topN(leagueSkatersWithImpact, (e) => e.player, (e) => e.impact.score),
+    rating: topN(leagueSkatersWithRating, (e) => e.player, (e) => e.rating),
     marketValue: topN(leaguePlayersWithMv, (p) => p, (p) => p.marketValue),
     savePct: topN(leagueGoalies.filter((r) => r.savePct != null), (r) => r.player, (r) => r.savePct),
     wins: topN(leagueGoalies, (r) => r.player, (r) => r.wins),
     shutouts: topN(leagueGoalies.filter((r) => r.shutouts > 0), (r) => r.player, (r) => r.shutouts),
-  }), [leagueSkaters, leagueGoalies, leagueSkatersWithImpact, leaguePlayersWithMv])
+  }), [leagueSkaters, leagueGoalies, leagueSkatersWithImpact, leagueSkatersWithRating, leaguePlayersWithMv])
 
   // 4) Form & Entwicklung: Breakout/Declining - rein aus der Trend-
   // Klassifikation (src/playerHistory.js::classifyTrend) abgeleitet, keine
@@ -174,6 +232,20 @@ export default function PlayerRankings() {
     () => computeLeagueMarketMovers(data.players, MARKET_MOVERS_WINDOW_DAYS),
     [data.players]
   )
+
+  // "Was ist aktuell interessant?" - reine Zusammenstellung bereits oben
+  // berechneter Werte (leaders/leagueMovers/breakouts), keine neue
+  // Berechnung. Jeder Eintrag nur, wenn tatsächlich ein Wert vorhanden ist.
+  const topRiser = leagueMovers.ready ? leagueMovers.risers[0] : (mvRisers[0] ? { player: mvRisers[0].player, delta: null } : null)
+  const topFaller = leagueMovers.ready ? leagueMovers.fallers[0] : (mvFallers[0] ? { player: mvFallers[0].player, delta: null } : null)
+  const insights = [
+    leaders.points[0] && { label: 'Top Scorer', player: leaders.points[0].player, value: `${leaders.points[0].value} Pkt.` },
+    leaders.ppg[0] && { label: 'Top P/GP', player: leaders.ppg[0].player, value: leaders.ppg[0].value.toFixed(2) },
+    leaders.impact[0] && { label: 'Top Impact', player: leaders.impact[0].player, value: leaders.impact[0].value.toFixed(1) },
+    topRiser && { label: 'Grösster Marktwertanstieg', player: topRiser.player, value: topRiser.delta != null ? `+${fmtChf(topRiser.delta)}` : fmtChf(topRiser.player.marketValue), tone: 'good' },
+    topFaller && { label: 'Grösster Marktwertrückgang', player: topFaller.player, value: topFaller.delta != null ? fmtChf(topFaller.delta) : fmtChf(topFaller.player.marketValue), tone: 'bad' },
+    breakouts[0] && { label: 'Stärkster Breakout', player: breakouts[0].player, value: `${breakouts[0].trend.latestPpg.toFixed(2)} P/GP (${breakouts[0].trend.ratio >= 1 ? '+' : ''}${Math.round((breakouts[0].trend.ratio - 1) * 100)}%)`, tone: 'good' },
+  ].filter(Boolean)
 
   // 3) Haupt-Ranking
   let rows = derived.playerStats.filter((p) => p.gp > 0)
@@ -255,10 +327,16 @@ export default function PlayerRankings() {
     { key: 'sog', label: 'SOG', num: true, value: (r) => r.sog ?? -1, render: (r) => r.sog ?? <span className="muted">–</span> },
     { key: 'plusMinus', label: '+/–', num: true, value: (r) => r.plusMinus,
       render: (r) => <span style={{ color: r.plusMinus > 0 ? 'var(--good)' : r.plusMinus < 0 ? 'var(--bad)' : 'inherit' }}>{plusMinusStr(r.plusMinus)}</span> },
-    { key: 'impact', label: 'Impact', num: true, title: 'Positions-relatives Karriere-Perzentil (0-100)',
-      value: (r) => r.impact?.score ?? -1, render: (r) => r.impact ? r.impact.score.toFixed(1) : <span className="muted">–</span> },
-    { key: 'rating', label: 'Rating', num: true, title: 'Player Rating (analytisch, unabhängig vom Prediction-Modell) - kombiniert Karriere/aktuelle Saison/Form je nach Spielanzahl.',
-      value: (r) => r.rating?.overall ?? -1, render: (r) => r.rating?.overall != null ? r.rating.overall.toFixed(1) : <span className="muted">–</span> },
+    {
+      key: 'impact', num: true, title: IMPACT_TOOLTIP,
+      label: <>Impact<InfoDot title={IMPACT_TOOLTIP} /></>,
+      value: (r) => r.impact?.score ?? -1, render: (r) => r.impact ? r.impact.score.toFixed(1) : <span className="muted">–</span>,
+    },
+    {
+      key: 'rating', num: true, title: RATING_TOOLTIP,
+      label: <>Rating<InfoDot title={RATING_TOOLTIP} /></>,
+      value: (r) => r.rating?.overall ?? -1, render: (r) => r.rating?.overall != null ? <strong>{r.rating.overall.toFixed(1)}</strong> : <span className="muted">–</span>,
+    },
     marketValueCol,
   ]
 
@@ -273,21 +351,24 @@ export default function PlayerRankings() {
     { key: 'gaa', label: 'GTS', num: true, title: 'Gegentorschnitt', value: (r) => r.gaa ?? 99, render: (r) => fmtNum(r.gaa) },
     { key: 'saves', label: 'Paraden', num: true },
     { key: 'shutouts', label: 'SO', num: true },
-    { key: 'rating', label: 'Rating', num: true, title: 'Goalie Rating (analytisch, unabhängig vom Prediction-Modell) - kombiniert Karriere/aktuelle Saison/Form je nach Spielanzahl.',
-      value: (r) => r.rating?.overall ?? -1, render: (r) => r.rating?.overall != null ? r.rating.overall.toFixed(1) : <span className="muted">–</span> },
+    {
+      key: 'rating', num: true, title: GOALIE_RATING_TOOLTIP,
+      label: <>Rating<InfoDot title={GOALIE_RATING_TOOLTIP} /></>,
+      value: (r) => r.rating?.overall ?? -1, render: (r) => r.rating?.overall != null ? <strong>{r.rating.overall.toFixed(1)}</strong> : <span className="muted">–</span>,
+    },
     marketValueCol,
   ]
 
   return (
     <>
-      {/* 1) Hero */}
+      {/* 1) Hero - bewusst kompakt (eine Zeile, keine grosse Box) */}
       <div className="page-head">
         <div>
           <h1>Spieler</h1>
           <div className="sub">National League 2026/27</div>
         </div>
       </div>
-      <div className="card card-pad mb">
+      <div className="card mb" style={{ padding: '10px 16px' }}>
         <div className="stat-strip">
           <div className="stat"><strong>{data.players.length}</strong><span>Spieler im Kader</span></div>
           <div className="stat"><strong>{skaterCount}</strong><span>Feldspieler</span></div>
@@ -299,25 +380,63 @@ export default function PlayerRankings() {
         </div>
       </div>
 
-      {/* 2) League Leaders */}
+      {/* 2) "Was ist aktuell interessant?" - 5-Sekunden-Überblick aus bereits
+          vorhandenen Werten (Leaders/Market Movers/Breakout), bevor man durch
+          die grosse Tabelle suchen muss. */}
+      {insights.length > 0 && (
+        <>
+          <SectionHeader title="Was ist aktuell interessant?" />
+          <div className="insights-grid mb">
+            {insights.map((e, i) => (
+              <Link key={i} to={`/players/${e.player.id}`} className="insight-card">
+                <div className="insight-label">{e.label}</div>
+                <div className="insight-name">{e.player.name}</div>
+                <div className={['insight-value', e.tone || ''].join(' ')}>{e.value}</div>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* 3) League Leaders - gruppiert (Offense/Performance/Goalies/Market)
+          statt einer langen horizontal scrollenden Reihe. */}
       <SectionHeader title="League Leaders" caption="Top 3 je Kategorie, ligaweit (unabhängig von den Filtern unten)." />
-      <div className="leaders-row mb">
-        <LeaderCard title="Punkte" entries={leaders.points} formatValue={(v) => v} />
-        <LeaderCard title="P/GP" entries={leaders.ppg} formatValue={(v) => v.toFixed(2)} />
-        <LeaderCard title="Tore" entries={leaders.goals} formatValue={(v) => v} />
-        <LeaderCard title="Assists" entries={leaders.assists} formatValue={(v) => v} />
-        <LeaderCard title="Impact" entries={leaders.impact} formatValue={(v) => v.toFixed(1)} />
-        <LeaderCard title="Marktwert" entries={leaders.marketValue} formatValue={(v) => fmtChf(v)} />
+      <div className="mb">
+        <div className="leader-group">
+          <div className="leader-group-label">Offense</div>
+          <div className="leader-group-grid">
+            <LeaderCard title="Punkte" entries={leaders.points} formatValue={(v) => v} />
+            <LeaderCard title="P/GP" entries={leaders.ppg} formatValue={(v) => v.toFixed(2)} />
+            <LeaderCard title="Tore" entries={leaders.goals} formatValue={(v) => v} />
+            <LeaderCard title="Assists" entries={leaders.assists} formatValue={(v) => v} />
+          </div>
+        </div>
+        <div className="leader-group">
+          <div className="leader-group-label">Performance</div>
+          <div className="leader-group-grid">
+            <LeaderCard title="Impact" entries={leaders.impact} formatValue={(v) => v.toFixed(1)} />
+            <LeaderCard title="Rating" entries={leaders.rating} formatValue={(v) => v.toFixed(1)} />
+          </div>
+        </div>
         {leagueGoalies.length > 0 && (
-          <>
-            <LeaderCard title="SV%" entries={leaders.savePct} formatValue={(v) => fmtPct(v)} />
-            <LeaderCard title="Siege" entries={leaders.wins} formatValue={(v) => v} />
-            <LeaderCard title="Shutouts" entries={leaders.shutouts} formatValue={(v) => v} />
-          </>
+          <div className="leader-group">
+            <div className="leader-group-label">Goalies</div>
+            <div className="leader-group-grid">
+              <LeaderCard title="SV%" entries={leaders.savePct} formatValue={(v) => fmtPct(v)} />
+              <LeaderCard title="Siege" entries={leaders.wins} formatValue={(v) => v} />
+              <LeaderCard title="Shutouts" entries={leaders.shutouts} formatValue={(v) => v} />
+            </div>
+          </div>
         )}
+        <div className="leader-group">
+          <div className="leader-group-label">Market</div>
+          <div className="leader-group-grid">
+            <LeaderCard title="Marktwert" entries={leaders.marketValue} formatValue={(v) => fmtChf(v)} />
+          </div>
+        </div>
       </div>
 
-      {/* 3) Haupt-Ranking - das Herzstück der Seite */}
+      {/* 4) Haupt-Ranking - das Herzstück der Seite */}
       <SectionHeader title="Player Ranking" caption="Alle Kaderspieler mit Saison-Stats, sortierbar per Klick auf die Spaltenköpfe." />
       <div className="card card-pad mb">
         <div className="row gap-sm wrap">
@@ -343,6 +462,9 @@ export default function PlayerRankings() {
           <select style={{ width: 'auto' }} value={minGp} onChange={(e) => setMinGp(Number(e.target.value))} title="Mindestanzahl Spiele">
             {MIN_GP_OPTIONS.map((n) => <option key={n} value={n}>{n === 0 ? 'Alle Spiele' : `≥ ${n} Spiele`}</option>)}
           </select>
+          <select style={{ width: 'auto' }} value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))} title="Spieler pro Seite">
+            {PAGE_SIZE_OPTIONS.map((n) => <option key={n} value={n}>{n === 0 ? 'Alle anzeigen' : `${n} pro Seite`}</option>)}
+          </select>
         </div>
       </div>
 
@@ -359,6 +481,8 @@ export default function PlayerRankings() {
             initialSort={mode === 'goalie' ? 'savePct' : 'points'}
             initialDir="desc"
             rowKey={(r) => r.player.id}
+            pageSize={pageSize || undefined}
+            wrapClassName={pageSize ? 'ranking-scroll' : ''}
           />
         </div>
       )}
@@ -366,7 +490,10 @@ export default function PlayerRankings() {
       {/* 4) Form & Entwicklung */}
       {(breakouts.length > 0 || declines.length > 0) && (
         <>
-          <SectionHeader title="Form & Entwicklung" caption="Aus dem Vergleich aktuelle Saison vs. bisherige Karriere (min. 3 Saisons, min. 10 Spiele in der aktuellen)." />
+          <SectionHeader
+            title="Form & Entwicklung"
+            caption="Vergleich der jüngsten ausgewerteten Saison (mind. 10 Spiele - das kann die laufende Saison 2026/27 sein, sobald ein Spieler dort ≥10 Spiele erreicht hat, sonst die letzte abgeschlossene Saison) gegen den Karriere-Schnitt davor (mind. 3 gespielte Saisons insgesamt)."
+          />
           <div className="grid grid-2 mb" style={{ gap: 14 }}>
             <TrendGroup title="Breakout" entries={breakouts} tone="good" currentSeasonLabel={currentSeasonLabel} />
             <TrendGroup title="Declining" entries={declines} tone="bad" currentSeasonLabel={currentSeasonLabel} />
@@ -374,59 +501,68 @@ export default function PlayerRankings() {
         </>
       )}
 
-      {/* 5) Market Analytics */}
+      {/* 5) Market Watch - eine gemeinsame Karte statt drei unabhängiger
+          Tabellen, mit Sparkline pro Zeile wo genug Historie vorhanden ist. */}
       {(topMarketValues.length > 0 || leagueMovers.ready || mvRisers.length > 0 || mvFallers.length > 0) && (
         <>
-          <SectionHeader title="Market Analytics" caption="Marktwerte laut nationalleague.ch." />
-          <div className="grid grid-3 mb" style={{ gap: 14 }}>
-            <MarketList title="Höchste Marktwerte" empty="Noch keine Marktwerte.">
-              {topMarketValues.map((p) => {
-                const s = statById[p.id]
-                return (
-                  <MarketRow key={p.id} player={p} team={teamMap[p.teamId]}>
-                    <strong>{fmtChf(p.marketValue)}</strong>
-                    {s?.gp > 0 && p.position !== 'G' && (
-                      <span className="muted" style={{ fontSize: 11 }}> · {s.points} P · {(s.points / s.gp).toFixed(2)} P/GP</span>
-                    )}
-                  </MarketRow>
-                )
-              })}
-            </MarketList>
-            <MarketList title={leagueMovers.ready ? `Grösste Steigerungen (${MARKET_MOVERS_WINDOW_DAYS} T.)` : 'Steigende Marktwerte'} empty="Keine Steiger.">
-              {leagueMovers.ready
-                ? leagueMovers.risers.map(({ player, delta, deltaPct, latest }) => (
-                    <MarketRow key={player.id} player={player} team={teamMap[player.teamId]}>
-                      <strong className="good">+{fmtChf(delta)}</strong>
-                      {deltaPct != null && <span className="muted" style={{ fontSize: 11 }}> ({deltaPct >= 0 ? '+' : ''}{(deltaPct * 100).toFixed(1)}%)</span>}
-                      <span className="muted" style={{ fontSize: 11 }}> · {fmtChf(latest.marketValue)}</span>
-                    </MarketRow>
-                  ))
-                : mvRisers.map(({ player, team }) => (
-                    <MarketRow key={player.id} player={player} team={team}>
-                      <strong className="good">{fmtChf(player.marketValue)}</strong> <MarketValueTrend trend={player.marketValueTrend} />
-                    </MarketRow>
-                  ))}
-              {!leagueMovers.ready && (
-                <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>
-                  Echte {MARKET_MOVERS_WINDOW_DAYS}-Tage-Veränderung noch nicht verfügbar ({leagueMovers.count}/{leagueMovers.minPlayers} Spieler mit genug Verlaufsdaten) - bis dahin nur Richtung.
-                </div>
-              )}
-            </MarketList>
-            <MarketList title={leagueMovers.ready ? `Grösste Rückgänge (${MARKET_MOVERS_WINDOW_DAYS} T.)` : 'Fallende Marktwerte'} empty="Keine Faller.">
-              {leagueMovers.ready
-                ? leagueMovers.fallers.map(({ player, delta, deltaPct, latest }) => (
-                    <MarketRow key={player.id} player={player} team={teamMap[player.teamId]}>
-                      <strong className="bad">{fmtChf(delta)}</strong>
-                      {deltaPct != null && <span className="muted" style={{ fontSize: 11 }}> ({(deltaPct * 100).toFixed(1)}%)</span>}
-                      <span className="muted" style={{ fontSize: 11 }}> · {fmtChf(latest.marketValue)}</span>
-                    </MarketRow>
-                  ))
-                : mvFallers.map(({ player, team }) => (
-                    <MarketRow key={player.id} player={player} team={team}>
-                      <strong className="bad">{fmtChf(player.marketValue)}</strong> <MarketValueTrend trend={player.marketValueTrend} />
-                    </MarketRow>
-                  ))}
-            </MarketList>
+          <SectionHeader title="Market Watch" caption="Marktwerte laut nationalleague.ch." />
+          <div className="market-watch mb">
+            <div className="market-watch-cols">
+              <div className="market-watch-col">
+                <MarketList title="Höchste Marktwerte" empty="Noch keine Marktwerte." bare>
+                  {topMarketValues.map((p) => {
+                    const s = statById[p.id]
+                    return (
+                      <MarketRow key={p.id} player={p} team={teamMap[p.teamId]}>
+                        <strong>{fmtChf(p.marketValue)}</strong>
+                        {s?.gp > 0 && p.position !== 'G' && (
+                          <span className="muted" style={{ fontSize: 11 }}> · {s.points} P · {(s.points / s.gp).toFixed(2)} P/GP</span>
+                        )}
+                      </MarketRow>
+                    )
+                  })}
+                </MarketList>
+              </div>
+              <div className="market-watch-col">
+                <MarketList title={leagueMovers.ready ? `Grösste Steigerungen (${MARKET_MOVERS_WINDOW_DAYS} T.)` : 'Steigende Marktwerte'} empty="Keine Steiger." bare>
+                  {leagueMovers.ready
+                    ? leagueMovers.risers.map(({ player, delta, deltaPct, latest }) => (
+                        <MarketRow key={player.id} player={player} team={teamMap[player.teamId]}>
+                          <strong className="good">+{fmtChf(delta)}</strong>
+                          {deltaPct != null && <span className="muted" style={{ fontSize: 11 }}> ({deltaPct >= 0 ? '+' : ''}{(deltaPct * 100).toFixed(1)}%)</span>}
+                          <span className="muted" style={{ fontSize: 11 }}> · {fmtChf(latest.marketValue)}</span>
+                        </MarketRow>
+                      ))
+                    : mvRisers.map(({ player, team }) => (
+                        <MarketRow key={player.id} player={player} team={team}>
+                          <strong className="good">{fmtChf(player.marketValue)}</strong> <MarketValueTrend trend={player.marketValueTrend} />
+                        </MarketRow>
+                      ))}
+                  {!leagueMovers.ready && (
+                    <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>
+                      Echte {MARKET_MOVERS_WINDOW_DAYS}-Tage-Veränderung noch nicht verfügbar ({leagueMovers.count}/{leagueMovers.minPlayers} Spieler mit genug Verlaufsdaten) - bis dahin nur Richtung.
+                    </div>
+                  )}
+                </MarketList>
+              </div>
+              <div className="market-watch-col">
+                <MarketList title={leagueMovers.ready ? `Grösste Rückgänge (${MARKET_MOVERS_WINDOW_DAYS} T.)` : 'Fallende Marktwerte'} empty="Keine Faller." bare>
+                  {leagueMovers.ready
+                    ? leagueMovers.fallers.map(({ player, delta, deltaPct, latest }) => (
+                        <MarketRow key={player.id} player={player} team={teamMap[player.teamId]}>
+                          <strong className="bad">{fmtChf(delta)}</strong>
+                          {deltaPct != null && <span className="muted" style={{ fontSize: 11 }}> ({(deltaPct * 100).toFixed(1)}%)</span>}
+                          <span className="muted" style={{ fontSize: 11 }}> · {fmtChf(latest.marketValue)}</span>
+                        </MarketRow>
+                      ))
+                    : mvFallers.map(({ player, team }) => (
+                        <MarketRow key={player.id} player={player} team={team}>
+                          <strong className="bad">{fmtChf(player.marketValue)}</strong> <MarketValueTrend trend={player.marketValueTrend} />
+                        </MarketRow>
+                      ))}
+                </MarketList>
+              </div>
+            </div>
           </div>
         </>
       )}
@@ -489,7 +625,7 @@ function TrendGroup({ title, entries, tone, currentSeasonLabel }) {
                     {smallSample && <span className="chip" title="Basiert auf der noch laufenden Saison, nicht auf einer abgeschlossenen">geringe Stichprobe</span>}
                   </div>
                   <div className="muted" style={{ fontSize: 11.5 }}>
-                    {team ? team.short : '–'} · {POSITION_LABEL[player.position]} · Impact {impact ? impact.score.toFixed(1) : '–'}
+                    Saison {trend.latestSeason} · {team ? team.short : '–'} · {POSITION_LABEL[player.position]} · Impact {impact ? impact.score.toFixed(1) : '–'}
                   </div>
                 </div>
                 <div style={{ textAlign: 'right', flex: 'none' }}>
@@ -510,25 +646,41 @@ function TrendGroup({ title, entries, tone, currentSeasonLabel }) {
 }
 
 // Kompakte Market-Analytics-Liste (Höchste Marktwerte / Steigungen / Rückgänge).
-function MarketList({ title, empty, children }) {
+// `bare`: ohne eigene Card (für den Einsatz als Spalte innerhalb der
+// gemeinsamen "Market Watch"-Karte, siehe .market-watch-col).
+function MarketList({ title, empty, children, bare = false }) {
   const hasChildren = Array.isArray(children) ? children.length > 0 : Boolean(children)
+  const content = !hasChildren ? <div className="muted" style={{ fontSize: 12.5 }}>{empty}</div> : children
+  if (bare) {
+    return (
+      <>
+        <div className="section-label" style={{ margin: '0 0 6px' }}>{title}</div>
+        {content}
+      </>
+    )
+  }
   return (
     <div className="card">
       <div className="card-pad" style={{ paddingBottom: 6 }}><div className="section-label" style={{ margin: 0 }}>{title}</div></div>
-      <div className="card-pad" style={{ paddingTop: 0 }}>
-        {!hasChildren ? <div className="muted" style={{ fontSize: 12.5 }}>{empty}</div> : children}
-      </div>
+      <div className="card-pad" style={{ paddingTop: 0 }}>{content}</div>
     </div>
   )
 }
+// Zeigt zusätzlich eine kleine Marktwert-Sparkline, wenn genug echte
+// Historie vorhanden ist (player.marketValueHistory, siehe
+// marketValueHistory.js::hasEnoughHistoryForChart) - sonst keine.
 function MarketRow({ player, team, children }) {
+  const showSpark = hasEnoughHistoryForChart(player.marketValueHistory)
   return (
     <div className="row spread" style={{ padding: '7px 0', borderBottom: '1px solid var(--border)', gap: 10 }}>
       <span className="row gap-sm" style={{ minWidth: 0 }}>
         <Link to={`/players/${player.id}`} style={{ fontWeight: 600 }}>{player.name}</Link>
         {team && <TeamBadge team={team} short />}
       </span>
-      <span className="num" style={{ flex: 'none', whiteSpace: 'nowrap' }}>{children}</span>
+      <span className="row gap-sm" style={{ flex: 'none' }}>
+        {showSpark && <Sparkline values={player.marketValueHistory.map((h) => h.marketValue)} />}
+        <span className="num" style={{ flex: 'none', whiteSpace: 'nowrap' }}>{children}</span>
+      </span>
     </div>
   )
 }
@@ -563,6 +715,11 @@ function PlayerCompare({ data, statById, playerHistoryData, baselines, skaterRat
     <>
       <SectionHeader title="Spieler vergleichen" caption="Zwei Feldspieler nebeneinander - nur Werte, die tatsächlich vorhanden sind." />
       <div className="card card-pad mb">
+        {!(A && B) && (
+          <div className="muted" style={{ fontSize: 12.5, marginBottom: 12 }}>
+            Vergleiche zwei Spieler anhand der tatsächlich verfügbaren Saison- und Leistungsdaten.
+          </div>
+        )}
         <div className="row gap-sm" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 200px' }}>
             <label className="field">Spieler A</label>

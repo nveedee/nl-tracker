@@ -1138,3 +1138,92 @@ td.num strong, th.num strong { font-weight: 800; }
 .postseason-bracket-group { display: flex; flex-direction: column; }
 .postseason-bracket-row { padding: 7px 0; border-bottom: 1px solid var(--border); gap: 10px; }
 .postseason-bracket-row:last-child { border-bottom: none; }
+
+/* ---------- Player Rankings Redesign (/players) ----------
+   Informationsarchitektur-Überarbeitung: "Was ist aktuell interessant?",
+   gruppierte League Leaders (kein horizontales Scrollen mehr), kontaktierter
+   Ranking-Tabellenbereich mit eigenem sticky Header, Market Watch. Reine
+   Darstellung - keine neue Berechnung, siehe PlayerRankings.jsx. */
+
+/* "Was ist aktuell interessant?" - kompakte Insight-Kacheln */
+.insights-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px;
+}
+.insight-card {
+  display: block; padding: 11px 13px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-elev); text-decoration: none; color: inherit;
+}
+.insight-card:hover { border-color: var(--border-strong); background: var(--bg-hover); }
+.insight-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); margin-bottom: 5px; }
+.insight-name { font-size: 13.5px; font-weight: 700; margin-bottom: 2px; }
+.insight-value { font-size: 12px; color: var(--text-dim); font-family: var(--mono); }
+.insight-value.good { color: var(--good); }
+.insight-value.bad { color: var(--bad); }
+
+/* League Leaders - gruppiert (OFFENSE/PERFORMANCE/GOALIES/MARKET) statt
+   einer langen horizontal scrollenden Reihe. Max. 3-4 Karten pro Zeile auf
+   Desktop, sauberer Umbruch darunter - .leader-card selbst unverändert
+   (weiterhin auch von Dashboard.jsx/.leaders-row genutzt). */
+.leader-group { margin-bottom: 14px; }
+.leader-group:last-child { margin-bottom: 0; }
+.leader-group-label {
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-faint); margin-bottom: 8px;
+}
+.leader-group-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); gap: 10px; }
+.leader-group-grid .leader-card { flex: none; }
+@media (min-width: 900px) {
+  .leader-group-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* Info-Hinweis-Punkt neben Spaltenköpfen (Impact/Rating) - macht den
+   bereits vorhandenen title-Tooltip sichtbar/entdeckbar statt nur per
+   Hover-Zufall. Kein neuer Text - derselbe title wie die Spalte selbst. */
+.info-dot {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 12px; height: 12px; border-radius: 999px; margin-left: 3px;
+  background: var(--bg-elev-2); border: 1px solid var(--border-strong);
+  color: var(--text-dim); font-size: 8.5px; font-weight: 700;
+  text-transform: none; letter-spacing: 0; cursor: help; vertical-align: middle;
+}
+
+/* Ranking-Tabelle: eigener, begrenzter Scroll-Container mit sticky Header -
+   .table-wrap setzt overflow-x:auto, was overflow-y implizit auf `auto`
+   erzwingt (CSS-Spezifikation) und dadurch den normalerweise globalen
+   `thead th { position: sticky; top:0 }` wirkungslos macht (die Tabelle hat
+   sonst keine eigene Höhenbegrenzung, der sticky-Kontext "braucht" also nie
+   zu greifen). Mit einer bewussten max-height + eigenem overflow-y wird der
+   Header innerhalb dieses Containers tatsächlich sticky - sauber begrenzt
+   auf diese eine Tabelle statt einer sitewide Änderung. */
+.table-wrap.ranking-scroll { max-height: 640px; overflow-y: auto; }
+
+/* Pagination (grosse Spieleranzahl, siehe Auftrag Punkt E) */
+.pagination-bar {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  padding: 10px 14px; border-top: 1px solid var(--border); font-size: 12.5px; color: var(--text-dim);
+}
+.pagination-bar .pager-btns { display: flex; align-items: center; gap: 6px; }
+.pagination-bar button {
+  padding: 5px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg-elev); color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.pagination-bar button:hover:not(:disabled) { background: var(--bg-hover); border-color: var(--border-strong); }
+.pagination-bar button:disabled { opacity: 0.4; cursor: default; }
+
+/* Market Watch - eine gemeinsame Karte statt drei unabhängig wirkender
+   Tabellen, mit kleiner Markwert-Sparkline pro Zeile (nur wenn genug
+   Marktwert-Historie vorhanden ist, siehe marketValueHistory.js). */
+.market-watch { border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-elev); overflow: hidden; }
+.market-watch-head { padding: 14px 16px 10px; border-bottom: 1px solid var(--border); }
+.market-watch-cols { display: grid; grid-template-columns: repeat(3, 1fr); }
+.market-watch-col { padding: 12px 14px; }
+.market-watch-col + .market-watch-col { border-left: 1px solid var(--border); }
+.market-spark { display: block; margin-left: 8px; flex: none; }
+@media (max-width: 760px) {
+  .market-watch-cols { grid-template-columns: 1fr; }
+  .market-watch-col + .market-watch-col { border-left: none; border-top: 1px solid var(--border); }
+}
+
+@media (max-width: 600px) {
+  .table-wrap.ranking-scroll { max-height: 520px; }
+}

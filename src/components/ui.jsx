@@ -58,9 +58,20 @@ export function ToastHost() {
 
 // Sortierbare Tabelle.
 // columns: [{ key, label, align, num, className, render(row), value(row), left }]
-export function SortableTable({ columns, rows, initialSort, initialDir = 'desc', rowKey }) {
+// `pageSize` (optional, Default: keine Pagination - bisheriges Verhalten
+// unverändert für alle anderen Aufrufer wie TeamDetail.jsx): sortiert wird
+// immer über ALLE `rows`, Pagination schneidet erst danach - Klick auf einen
+// Spaltenkopf sortiert also die GESAMTE gefilterte Liste, nicht nur die
+// sichtbare Seite. Seite springt automatisch auf 1 zurück, sobald sich die
+// übergebenen `rows` (neue Filter/Suche) oder `pageSize` ändern.
+// `wrapClassName`: zusätzliche Klasse auf `.table-wrap` (z.B. für einen
+// begrenzten, intern scrollenden Container mit sticky Header).
+export function SortableTable({ columns, rows, initialSort, initialDir = 'desc', rowKey, pageSize, wrapClassName }) {
   const [sort, setSort] = useState(initialSort || columns[0].key)
   const [dir, setDir] = useState(initialDir)
+  const [page, setPage] = useState(1)
+
+  useEffect(() => { setPage(1) }, [rows, pageSize])
 
   const col = columns.find((c) => c.key === sort) || columns[0]
   const sorted = [...rows].sort((a, b) => {
@@ -75,6 +86,10 @@ export function SortableTable({ columns, rows, initialSort, initialDir = 'desc',
     return dir === 'asc' ? cmp : -cmp
   })
 
+  const totalPages = pageSize ? Math.max(1, Math.ceil(sorted.length / pageSize)) : 1
+  const pageSafe = Math.min(page, totalPages)
+  const pageRows = pageSize ? sorted.slice((pageSafe - 1) * pageSize, pageSafe * pageSize) : sorted
+
   const clickHead = (c) => {
     if (c.noSort) return
     if (c.key === sort) setDir((d) => (d === 'asc' ? 'desc' : 'asc'))
@@ -82,7 +97,7 @@ export function SortableTable({ columns, rows, initialSort, initialDir = 'desc',
   }
 
   return (
-    <div className="table-wrap">
+    <div className={['table-wrap', wrapClassName || ''].join(' ').trim()}>
       <table>
         <thead>
           <tr>
@@ -100,7 +115,7 @@ export function SortableTable({ columns, rows, initialSort, initialDir = 'desc',
           </tr>
         </thead>
         <tbody>
-          {sorted.map((row, i) => (
+          {pageRows.map((row, i) => (
             <tr key={rowKey ? rowKey(row) : i}>
               {columns.map((c) => (
                 <td key={c.key} className={[c.left ? 'left' : '', c.num ? 'num' : '', c.className || ''].join(' ')}>
@@ -111,6 +126,18 @@ export function SortableTable({ columns, rows, initialSort, initialDir = 'desc',
           ))}
         </tbody>
       </table>
+      {pageSize && sorted.length > 0 && (
+        <div className="pagination-bar">
+          <span>Zeige {(pageSafe - 1) * pageSize + 1}–{Math.min(pageSafe * pageSize, sorted.length)} von {sorted.length}</span>
+          <span className="pager-btns">
+            <button type="button" onClick={() => setPage(1)} disabled={pageSafe <= 1}>« Erste</button>
+            <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={pageSafe <= 1}>‹ Zurück</button>
+            <span>Seite {pageSafe} / {totalPages}</span>
+            <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={pageSafe >= totalPages}>Weiter ›</button>
+            <button type="button" onClick={() => setPage(totalPages)} disabled={pageSafe >= totalPages}>Letzte »</button>
+          </span>
+        </div>
+      )}
     </div>
   )
 }
