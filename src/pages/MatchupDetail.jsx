@@ -37,7 +37,7 @@ import {
   computeRecentFormDetailed, computeShotsAllowedPerGame, useHistoricalH2H,
 } from '../headToHead.js'
 import {
-  computeShotsForPerGame, getPeriodBreakdown, getPostGameTeamStats,
+  computeShotsForPerGame, gamesBefore, getPeriodBreakdown, getPostGameTeamStats,
   getSkaterBoxscore, getGoalieBoxscore, whoDroveTheGame, computeGamePredictionScore,
 } from '../gameCenter.js'
 import PostGameTeamStats from '../components/PostGameTeamStats.jsx'
@@ -266,13 +266,13 @@ export default function MatchupDetail() {
     // noch nicht gespieltes Spiel entspricht das ohnehin "alle bisherigen
     // Spiele" (= dieselben Werte wie oben), daher dieselbe Funktion für
     // beide Fälle.
-    const cutoffGames = data.games.filter((g) => g.date < game.date)
+    const cutoffGames = gamesBefore(data.games, game)
     const standingsCutoff = computeStandings(data.teams, cutoffGames)
     const standingsCutoffByTeam = Object.fromEntries(standingsCutoff.map((s) => [s.team.id, s]))
-    const pgForm5Home = computeRecentFormDetailed(homeTeam.id, cutoffGames, historical, 5)
-    const pgForm5Away = computeRecentFormDetailed(awayTeam.id, cutoffGames, historical, 5)
-    const pgForm10Home = computeRecentFormDetailed(homeTeam.id, cutoffGames, historical, 10)
-    const pgForm10Away = computeRecentFormDetailed(awayTeam.id, cutoffGames, historical, 10)
+    const pgForm5Home = computeRecentFormDetailed(homeTeam.id, cutoffGames, [], 5)
+    const pgForm5Away = computeRecentFormDetailed(awayTeam.id, cutoffGames, [], 5)
+    const pgForm10Home = computeRecentFormDetailed(homeTeam.id, cutoffGames, [], 10)
+    const pgForm10Away = computeRecentFormDetailed(awayTeam.id, cutoffGames, [], 10)
     const pgSogForHome = computeShotsForPerGame(homeTeam.id, cutoffGames, players)
     const pgSogForAway = computeShotsForPerGame(awayTeam.id, cutoffGames, players)
     const pgSogAllowedHome = computeShotsAllowedPerGame(homeTeam.id, cutoffGames, players)
@@ -547,8 +547,8 @@ export default function MatchupDetail() {
               <tbody>
                 <CompareRow label="ELO" v1={pgEloHome} v2={pgEloAway} />
                 <CompareRow label="Power Score" v1={pgPowerHome} v2={pgPowerAway} />
-                <CompareRow label="Form (Punkte, letzte 5)" v1={analysis.pgForm5Home.gp > 0 ? analysis.pgForm5Home.pts : null} v2={analysis.pgForm5Away.gp > 0 ? analysis.pgForm5Away.pts : null} />
-                <CompareRow label="Form (Punkte, letzte 10)" v1={analysis.pgForm10Home.gp > 0 ? analysis.pgForm10Home.pts : null} v2={analysis.pgForm10Away.gp > 0 ? analysis.pgForm10Away.pts : null} />
+                <CompareRow label="Form (Punkte, letzte 5)" sub={`Verfügbar: ${analysis.pgForm5Home.gp} / ${analysis.pgForm5Away.gp} Spiele`} v1={analysis.pgForm5Home.gp > 0 ? analysis.pgForm5Home.pts : null} v2={analysis.pgForm5Away.gp > 0 ? analysis.pgForm5Away.pts : null} />
+                <CompareRow label="Form (Punkte, letzte 10)" sub={`Verfügbar: ${analysis.pgForm10Home.gp} / ${analysis.pgForm10Away.gp} Spiele`} v1={analysis.pgForm10Home.gp > 0 ? analysis.pgForm10Home.pts : null} v2={analysis.pgForm10Away.gp > 0 ? analysis.pgForm10Away.pts : null} />
                 <CompareRow
                   label="Heim-/Auswärtsbilanz"
                   sub={`${homeTeam.short} zuhause vs. ${awayTeam.short} auswärts`}
@@ -586,27 +586,27 @@ export default function MatchupDetail() {
             {' · '}
             <span className="chip">{played ? 'Beendet' : 'Geplant'}</span>
           </div>
-          <div className="row spread" style={{ alignItems: 'center', gap: 20 }}>
-            <div style={{ flex: 1, textAlign: 'right' }}>
+          <div className="row spread" style={{ alignItems: 'center', gap: 10 }}>
+            <div style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
               <div className="muted" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', marginBottom: 8 }}>HEIM</div>
               <div className="row gap-sm" style={{ justifyContent: 'flex-end' }}>
-                <h1 style={{ fontSize: 20 }}>
+                <h1 style={{ fontSize: 'clamp(14px, 4.4vw, 20px)', minWidth: 0, overflowWrap: 'anywhere' }}>
                   <Link to={`/teams/${homeTeam.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{homeTeam.name}</Link>
                 </h1>
                 <TeamLogo team={homeTeam} size={32} />
               </div>
             </div>
-            <div style={{ fontSize: played ? 30 : 18, fontWeight: 800, minWidth: 110, fontFamily: 'var(--mono)' }}>
+            <div style={{ fontSize: played ? 30 : 18, fontWeight: 800, minWidth: 80, fontFamily: 'var(--mono)' }}>
               {played ? `${game.homeGoals} : ${game.awayGoals}` : 'vs.'}
               {played && game.decision !== 'REG' && (
                 <div className="muted" style={{ fontSize: 12, fontWeight: 600, marginTop: 2 }}>{game.decision}</div>
               )}
             </div>
-            <div style={{ flex: 1, textAlign: 'left' }}>
+            <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
               <div className="muted" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', marginBottom: 8 }}>AUSWÄRTS</div>
               <div className="row gap-sm">
                 <TeamLogo team={awayTeam} size={32} />
-                <h1 style={{ fontSize: 20 }}>
+                <h1 style={{ fontSize: 'clamp(14px, 4.4vw, 20px)', minWidth: 0, overflowWrap: 'anywhere' }}>
                   <Link to={`/teams/${awayTeam.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{awayTeam.name}</Link>
                 </h1>
               </div>
@@ -780,8 +780,8 @@ export default function MatchupDetail() {
                   <tr><th className="left">Kennzahl</th><th className="num">{homeTeam.short}</th><th className="num">{awayTeam.short}</th></tr>
                 </thead>
                 <tbody>
-                  <CompareRow label="Letzte 5" v1={analysis.pgForm5Home.gp > 0 ? analysis.pgForm5Home.pts : null} v2={analysis.pgForm5Away.gp > 0 ? analysis.pgForm5Away.pts : null} fmt={(v) => v + ' Pkt'} />
-                  <CompareRow label="Letzte 10" v1={analysis.pgForm10Home.gp > 0 ? analysis.pgForm10Home.pts : null} v2={analysis.pgForm10Away.gp > 0 ? analysis.pgForm10Away.pts : null} fmt={(v) => v + ' Pkt'} />
+                  <CompareRow label="Letzte 5" sub={`Verfügbar: ${analysis.pgForm5Home.gp} / ${analysis.pgForm5Away.gp} Spiele`} v1={analysis.pgForm5Home.gp > 0 ? analysis.pgForm5Home.pts : null} v2={analysis.pgForm5Away.gp > 0 ? analysis.pgForm5Away.pts : null} fmt={(v) => v + ' Pkt'} />
+                  <CompareRow label="Letzte 10" sub={`Verfügbar: ${analysis.pgForm10Home.gp} / ${analysis.pgForm10Away.gp} Spiele`} v1={analysis.pgForm10Home.gp > 0 ? analysis.pgForm10Home.pts : null} v2={analysis.pgForm10Away.gp > 0 ? analysis.pgForm10Away.pts : null} fmt={(v) => v + ' Pkt'} />
                   <CompareRow label="Tore/Spiel" v1={analysis.pgStandingsHome?.gp > 0 ? analysis.pgStandingsHome.gf / analysis.pgStandingsHome.gp : null} v2={analysis.pgStandingsAway?.gp > 0 ? analysis.pgStandingsAway.gf / analysis.pgStandingsAway.gp : null} fmt={fmt2} />
                   <CompareRow label="Gegentore/Spiel" v1={analysis.pgStandingsHome?.gp > 0 ? analysis.pgStandingsHome.ga / analysis.pgStandingsHome.gp : null} v2={analysis.pgStandingsAway?.gp > 0 ? analysis.pgStandingsAway.ga / analysis.pgStandingsAway.gp : null} fmt={fmt2} lowerIsBetter />
                   <CompareRow label="SOG/Spiel" v1={analysis.pgSogForHome} v2={analysis.pgSogForAway} fmt={fmt2} />
@@ -1063,6 +1063,9 @@ export default function MatchupDetail() {
                     <div className="tiles" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
                       {driver.topScorer && (
                         <StatTile label="Top Scorer" value={`${driver.topScorer.player.name} (${teamShort(driver.topScorer.player.teamId)}) – ${driver.topScorer.value} Pkt.`} />
+                      )}
+                      {!driver.topScorer && driver.scoringUnavailable && (
+                        <StatTile label="Top Scorer" value="Nicht verfügbar – Spieler-Punktedaten unvollständig" />
                       )}
                       {driver.topShooter && (
                         <StatTile label="Top Shooter" value={`${driver.topShooter.player.name} (${teamShort(driver.topShooter.player.teamId)}) – ${driver.topShooter.value} SOG`} />

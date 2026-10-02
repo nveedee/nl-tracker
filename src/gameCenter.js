@@ -93,6 +93,38 @@ function findPlayer(players, playerId) {
   return (players || []).find((p) => p.id === playerId) || null
 }
 
+// Pre-Game-Cutoff: nur bereits abgeschlossene Spiele, die VOR dem Anpfiff von
+// `game` stattfanden (Datum + Uhrzeit; bei gleichem Tag ohne Uhrzeit wird das
+// Spiel konservativ ausgeschlossen). Das Spiel selbst und alles danach
+// (inkl. zukünftiger Spiele) ist nie enthalten - kein Look-ahead-Leakage.
+export function gamesBefore(games, game) {
+  if (!game) return []
+  return (games || []).filter((g) => {
+    if (g.id === game.id || !isFinalGame(g)) return false
+    if (g.date !== game.date) return g.date < game.date
+    return !!(g.time && game.time && g.time < game.time)
+  })
+}
+
+// Plausibilitätscheck der Spieler-Torschützen-Daten: die Summe der Tore aller
+// Feldspieler eines Teams muss dem Teamresultat entsprechen (beim SO-Sieger
+// zählt das Entscheidungstor nicht in den Spielerstatistiken). Sonst sind die
+// Tore/Assists unvollständig (z.B. noch nicht synchronisiert) - dann dürfen
+// 0-Werte NICHT als echte 0 angezeigt und kein Top Scorer abgeleitet werden.
+export function hasReliableScoring(game, players) {
+  if (!game?.playerStats || game.playerStats.length === 0 || !isFinalGame(game)) return false
+  const skaterTeam = new Map((players || []).filter((p) => p.position !== 'G').map((p) => [p.id, p.teamId]))
+  const sums = { [game.homeTeamId]: 0, [game.awayTeamId]: 0 }
+  for (const s of game.playerStats) {
+    const t = skaterTeam.get(s.playerId)
+    if (t in sums) sums[t] += s.goals ?? 0
+  }
+  const so = game.decision === 'SO'
+  const homeExp = game.homeGoals - (so && game.homeGoals > game.awayGoals ? 1 : 0)
+  const awayExp = game.awayGoals - (so && game.awayGoals > game.homeGoals ? 1 : 0)
+  return sums[game.homeTeamId] === homeExp && sums[game.awayTeamId] === awayExp
+}
+
 // Skater-Boxscore eines Teams für genau dieses Spiel - nur Feldspieler
 // (Position F/D) mit mindestens einem erfassten Feld. Sortierung macht die
 // UI-Komponente (clientseitig, keine neue Kennzahl).
@@ -101,6 +133,7 @@ export function getSkaterBoxscore(game, players, teamId) {
   const rosterIds = new Set(
     (players || []).filter((p) => p.teamId === teamId && p.position !== 'G').map((p) => p.id)
   )
+  const reliable = hasReliableScoring(game, players)
   return game.playerStats
     .filter((s) => rosterIds.has(s.playerId))
     .map((s) => {
@@ -110,9 +143,9 @@ export function getSkaterBoxscore(game, players, teamId) {
         name: p?.name ?? '?',
         number: p?.number ?? null,
         position: p?.position ?? null,
-        goals: s.goals ?? 0,
-        assists: s.assists ?? 0,
-        points: (s.goals ?? 0) + (s.assists ?? 0),
+        goals: reliable ? (s.goals ?? 0) : null,
+        assists: reliable ? (s.assists ?? 0) : null,
+        points: reliable ? (s.goals ?? 0) + (s.assists ?? 0) : null,
         sog: s.sog ?? s.shotsOnGoalNl ?? null,
         toiSec: s.toiSec ?? null,
         plusMinus: s.plusMinusNl ?? s.plusMinus ?? null,
@@ -181,8 +214,10 @@ export function whoDroveTheGame(game, players) {
     return best ? { player: best.p, team: best.p.teamId, value: bestVal } : null
   }
 
-  const topScorer = pick(skaters, (x) => (x.s.goals ?? 0) + (x.s.assists ?? 0))
-  const topShooter = pick(skaters, (x) => x.s.sog ?? x.s.shotsOnGoalNl ?? null)
+  const scoringReliable = hasReliableScoring(game, players)
+  const topScorer = scoringReliable ? pick(skaters, (x) => (x.s.goals ?? 0) + (x.s.assists ?? 0)) : null
+  const topShooterRaw = pick(skaters, (x) => x.s.sog ?? x.s.shotsOnGoalNl ?? null)
+  const topShooter = topShooterRaw && topShooterRaw.value > 0 ? topShooterRaw : null
   const mostTOI = pick(skaters, (x) => x.s.toiSec ?? null)
   const bestPlusMinus = pick(skaters, (x) => x.s.plusMinusNl ?? x.s.plusMinus ?? null)
   const bestGoalie = pick(
@@ -193,7 +228,7 @@ export function whoDroveTheGame(game, players) {
     }
   )
 
-  return { topScorer, topShooter, mostTOI, bestPlusMinus, bestGoalie }
+  return { topScorer, topShooter, mostTOI, bestPlusMinus, bestGoalie, scoringUnavailable: !scoringReliable }
 }
 
 // Brier-/LogLoss-Beitrag GENAU dieses einen Spiels - identische Formel wie

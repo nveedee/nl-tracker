@@ -47,14 +47,17 @@ export default function PlayerBoxscore({ team, skaters, goalies }) {
   }
 
   return (
-    <div>
+    <div style={{ minWidth: 0 }}>
       <div className="row gap-sm" style={{ marginBottom: 8 }}><TeamBadge team={team} link={false} /></div>
       {!hasData ? (
         <div className="muted" style={{ fontSize: 13 }}>Keine Spielerstatistiken für dieses Team erfasst.</div>
       ) : (
         <>
+          {skaters.length > 0 && skaters.every((s) => s.points == null) && (
+            <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>Tore/Assists für dieses Spiel unvollständig – nicht verfügbar.</div>
+          )}
           {skaters.length > 0 && (
-            <div className="table-wrap" style={{ marginBottom: 10 }}>
+            <div className="table-wrap" style={{ marginBottom: 10, overflowX: 'auto' }}>
               <table>
                 <thead>
                   <tr>
@@ -76,9 +79,9 @@ export default function PlayerBoxscore({ team, skaters, goalies }) {
                   {sortedSkaters.map((s) => (
                     <tr key={s.playerId}>
                       <td className="left" style={{ fontSize: 13 }}>{s.number != null ? `#${s.number} ` : ''}{s.name}</td>
-                      <td className="num" style={{ fontWeight: 700 }}>{s.points}</td>
-                      <td className="num">{s.goals}</td>
-                      <td className="num">{s.assists}</td>
+                      <td className="num" style={{ fontWeight: 700 }}>{s.points ?? '–'}</td>
+                      <td className="num">{s.goals ?? '–'}</td>
+                      <td className="num">{s.assists ?? '–'}</td>
                       <td className="num">{s.sog ?? '–'}</td>
                       <td className="num" style={{ fontFamily: 'var(--mono)' }}>{fmtToi(s.toiSec)}</td>
                       <td className="num">{fmtPlusMinus(s.plusMinus)}</td>
@@ -89,7 +92,7 @@ export default function PlayerBoxscore({ team, skaters, goalies }) {
             </div>
           )}
           {goalies.length > 0 && (
-            <div className="table-wrap">
+            <div className="table-wrap" style={{ overflowX: 'auto' }}>
               <table>
                 <thead>
                   <tr>
