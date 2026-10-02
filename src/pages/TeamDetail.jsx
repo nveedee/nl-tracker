@@ -18,7 +18,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useData } from '../DataContext.jsx'
-import { TeamBadge, Modal, toast, SortableTable, MarketValueTrend } from '../components/ui.jsx'
+import { TeamBadge, Modal, toast, SortableTable, MarketValueTrend, ProbBar } from '../components/ui.jsx'
 import TeamLogo from '../components/TeamLogo.jsx'
 import {
   fmtPct, fmtNum, fmtChf, plusMinusStr, computeHomeSplits,
@@ -80,7 +80,7 @@ export default function TeamDetail() {
   const baselines = usePositionBaselines()
   const teamHistoryData = useTeamHistory()
   const preseasonSeasonEnd = usePreseasonElo()
-  const { rows: simRows, updatedAt: simUpdatedAt } = useSimResults()
+  const { rows: simRows, updatedAt: simUpdatedAt, source: simSource } = useSimResults()
   const team = data.teams.find((t) => t.id === id)
   const [editing, setEditing] = useState(null)
   const [editTeam, setEditTeam] = useState(false)
@@ -130,7 +130,7 @@ export default function TeamDetail() {
 
   const standing = derived.standings.find((s) => s.team.id === id)
   const rank = standing ? derived.standings.indexOf(standing) + 1 : null
-  const bilanz = standing ? `${standing.w}-${standing.otw}-${standing.otl}-${standing.l}` : null
+  const bilanz = standing ? `${standing.w}–${standing.otw}–${standing.otl}–${standing.l}` : null
   const eloRow = derived.elo.ranking.find((r) => r.team.id === id)
   const powerRow = power.find((p) => p.team.id === id)
   const eloHistory = derived.elo.history[id] || []
@@ -370,7 +370,7 @@ export default function TeamDetail() {
         <div className="stat-strip">
           <div className="stat"><strong>{rank ? `#${rank}` : '–'}</strong><span>Tabellenplatz</span></div>
           <div className="stat"><strong>{standing?.pts ?? 0}</strong><span>Punkte</span></div>
-          <div className="stat"><strong>{bilanz ?? '–'}</strong><span>Bilanz (S-SnV-NnV-N)</span></div>
+          <div className="stat"><strong>{bilanz ?? '–'}</strong><span title="Siege nach 60 Min. – Siege n.V./PS – Niederlagen n.V./PS – Niederlagen nach 60 Min.">Bilanz (S–OTS–OTN–N)</span></div>
           <div className="stat">
             <strong className={standing && standing.gd > 0 ? 'good' : standing && standing.gd < 0 ? 'bad' : ''}>
               {standing ? (standing.gd > 0 ? '+' : '') + standing.gd : '–'}
@@ -397,6 +397,58 @@ export default function TeamDetail() {
         )}
       </div>
 
+      {/* G) Season Projection (direkt unter dem Hero) - Playoff-Pfad als Stufen-
+          Balken. Exakt die Werte der zuletzt gelaufenen Monte-Carlo-Simulation
+          (simResultsContext.jsx, gefiltert auf dieses Team): hier weder neu
+          berechnet noch neu simuliert, nur anders dargestellt. */}
+      <div className="card card-pad mb">
+        <h2 className="mb">Season Projection</h2>
+        {!projectionRow ? (
+          <div className="muted" style={{ fontSize: 12.5 }}>
+            Noch keine Simulation in dieser Session gelaufen. <Link to="/playoff-odds">Jetzt simulieren →</Link>
+          </div>
+        ) : (
+          <>
+            <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>
+              Quelle: {simSource === 'live' ? 'letzter Simulationslauf in dieser Sitzung' : 'zuletzt gespeicherte Tages-Baseline der Simulation'}
+              {simUpdatedAt ? ` · Stand ${new Date(simUpdatedAt).toLocaleString('de-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : ''}
+              {' · '}<Link to="/playoff-odds">vollständige Ansicht</Link>
+            </div>
+            <div className="muted" style={{ fontSize: 11.5, marginBottom: 6 }}>Weg ins Viertelfinale</div>
+            {[
+              ['Direkt Top 6', projectionRow.pTop6, 'Rang 1–6: direkt im Viertelfinale'],
+              ['Play-in-Teilnahme', projectionRow.pPlayIn, 'Rang 7–10; nur die zwei Play-in-Sieger erreichen das Viertelfinale'],
+            ].map(([label, v, tip]) => (
+              <div key={label} className="row" style={{ gap: 10, padding: '4px 0' }} title={tip}>
+                <span style={{ width: 120, flex: 'none', fontSize: 12.5 }}>{label}</span>
+                <div style={{ flex: 1, minWidth: 0 }}><ProbBar value={v} color="var(--text-faint)" /></div>
+              </div>
+            ))}
+            <div className="muted" style={{ fontSize: 11.5, margin: '12px 0 6px' }}>Playoff-Pfad (über alle Simulationsläufe)</div>
+            {[
+              ['Playoffs', projectionRow.pPlayoffs, 'Viertelfinale erreicht (Top 6 oder Play-in-Sieger)'],
+              ['Halbfinale', projectionRow.pSemifinal, 'Halbfinale erreicht'],
+              ['Finale', projectionRow.pFinal, 'Finale erreicht'],
+              ['Meister', projectionRow.pChampion, 'Meistertitel'],
+            ].map(([label, v, tip], idx) => (
+              <div key={label} className="row" style={{ gap: 10, padding: '4px 0', paddingLeft: idx * 6 }} title={tip}>
+                <span style={{ width: 120 - idx * 6, flex: 'none', fontSize: 12.5, fontWeight: idx === 3 ? 700 : 500 }}>{label}</span>
+                <div style={{ flex: 1, minWidth: 0 }}><ProbBar value={v} color="var(--accent)" /></div>
+              </div>
+            ))}
+            <div className="stat-strip" style={{ marginTop: 14 }}>
+              <div className="stat"><strong style={projectionRow.pPlayout1314 >= 0.1 ? { color: 'var(--warn)' } : undefined}>{fmtPct(projectionRow.pPlayout1314)}</strong><span>Play-out</span></div>
+              <div className="stat"><strong style={projectionRow.pLigaQualifikation >= 0.05 ? { color: 'var(--bad)' } : undefined}>{fmtPct(projectionRow.pLigaQualifikation)}</strong><span>Ligaqualifikation</span></div>
+              <div className="stat"><strong>{projectionRow.avgRank != null ? projectionRow.avgRank.toFixed(1) : '–'}</strong><span>Ø Rang</span></div>
+              <div className="stat"><strong>{projectionRow.avgPts != null ? projectionRow.avgPts.toFixed(1) : '–'}</strong><span>Ø Punkte</span></div>
+              {projectionRow.minPts != null && projectionRow.maxPts != null && (
+                <div className="stat" title="Extremwerte aller Simulationsläufe, keine typische Spanne"><strong>{Math.round(projectionRow.minPts)}–{Math.round(projectionRow.maxPts)}</strong><span>Min–Max Pkt</span></div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
       {/* B) Form - Kurzfenster nur, wenn sie sich tatsächlich vom Saisonwert
           unterscheiden (formTiles, siehe oben) + letzte 5 Resultate als
           Badges statt reinem Text. Der Saisonverlauf lebt gebündelt unten in
@@ -419,20 +471,7 @@ export default function TeamDetail() {
             </div>
           ))}
         </div>
-        {recentResults.length > 0 && (
-          <div className="row gap-sm" style={{ flexWrap: 'wrap' }}>
-            {[...recentResults].slice(0, 5).reverse().map((r) => {
-              const won = r.isHome ? r.game.homeGoals > r.game.awayGoals : r.game.awayGoals > r.game.homeGoals
-              return (
-                <ResultBadge
-                  key={r.game.id}
-                  code={resultCode(won, r.game.decision)}
-                  title={`${r.game.date} vs. ${r.opp?.short}: ${r.isHome ? `${r.game.homeGoals}:${r.game.awayGoals}` : `${r.game.awayGoals}:${r.game.homeGoals}`}`}
-                />
-              )
-            })}
-          </div>
-        )}
+        <FormStrip results={[...recentResults].reverse()} />
       </div>
 
       {/* C) Saisonentwicklung - "wie hat sich das Team seit Saisonbeginn
@@ -449,19 +488,16 @@ export default function TeamDetail() {
           (Saisonstart), keine verlässliche Zeitreihe - siehe Abschlussbericht. */}
       <div className="card card-pad mb">
         <h2 className="mb">Saisonentwicklung</h2>
-        <div className="stat-strip">
-          <div className="stat"><strong>{preseasonElo != null ? Math.round(preseasonElo) : '–'}</strong><span>Pre-Season-ELO</span></div>
-          <div className="stat"><strong>{eloRow?.rating ?? eloStart}</strong><span>ELO aktuell</span></div>
-          <div className="stat"><strong>{eloHistory.length ? Math.round(Math.max(...eloHistory.map((h) => h.rating))) : '–'}</strong><span>Saisonhoch</span></div>
-          <div className="stat"><strong>{eloHistory.length ? Math.round(Math.min(...eloHistory.map((h) => h.rating))) : '–'}</strong><span>Saisontief</span></div>
-          <div className="stat">
-            <strong className={(eloRow?.rating ?? eloStart) - eloHistory[0]?.rating >= 0 ? 'good' : 'bad'}>
-              {eloHistory.length ? (((eloRow?.rating ?? eloStart) - eloHistory[0].rating) >= 0 ? '+' : '') + Math.round((eloRow?.rating ?? eloStart) - eloHistory[0].rating) : '–'}
-            </strong>
-            <span>Veränderung</span>
-          </div>
-          <div className="stat"><strong>{powerRow?.powerScore ?? '–'}</strong><span>Power Score</span></div>
-        </div>
+        <EloRange
+          start={eloHistory.length ? eloHistory[0].rating : (preseasonElo ?? null)}
+          current={eloRow?.rating ?? null}
+          low={eloHistory.length ? Math.min(...eloHistory.map((h) => h.rating)) : null}
+          high={eloHistory.length ? Math.max(...eloHistory.map((h) => h.rating)) : null}
+          deltaLast={eloRow?.deltaLast}
+          deltaLast5={eloRow?.deltaLast5}
+          power={powerRow?.powerScore}
+          color={team.color}
+        />
         {eloHistory.length >= 2 ? (
           <SeasonLineChart
             points={eloHistory.map((h) => ({ value: h.rating, label: h.date ? fmtDateShort(h.date) : 'Start' }))}
@@ -566,40 +602,6 @@ export default function TeamDetail() {
         </div>
       )}
 
-      {/* G) Season Projection - Kompaktansicht der zuletzt gelaufenen
-          Monte-Carlo-Simulation (simResultsContext.jsx), gefiltert auf dieses
-          Team. Keine Neuberechnung - Hinweistext + Link, falls in dieser
-          Session noch nie simuliert wurde. */}
-      <div className="card card-pad mb">
-        <h2 className="mb">Season Projection</h2>
-        {!projectionRow ? (
-          <div className="muted" style={{ fontSize: 12.5 }}>
-            Noch keine Simulation in dieser Session gelaufen. <Link to="/playoff-odds">Jetzt simulieren →</Link>
-          </div>
-        ) : (
-          <>
-            <div className="stat-strip">
-              <div className="stat"><strong>{fmtPct(projectionRow.pPlayoffs)}</strong><span>Playoffs</span></div>
-              <div className="stat"><strong>{fmtPct(projectionRow.pTop6)}</strong><span>Top 6</span></div>
-              <div className="stat"><strong>{fmtPct(projectionRow.pPlayIn)}</strong><span>Play-in</span></div>
-              <div className="stat"><strong>{fmtPct(projectionRow.pSemifinal)}</strong><span>Halbfinale</span></div>
-              <div className="stat"><strong>{fmtPct(projectionRow.pFinal)}</strong><span>Finale</span></div>
-              <div className="stat"><strong style={{ color: 'var(--accent)' }}>{fmtPct(projectionRow.pChampion)}</strong><span>Meister</span></div>
-              <div className="stat"><strong style={projectionRow.pPlayout1314 >= 0.1 ? { color: 'var(--warn)' } : undefined}>{fmtPct(projectionRow.pPlayout1314)}</strong><span>Play-out</span></div>
-              <div className="stat"><strong style={projectionRow.pLigaQualifikation >= 0.05 ? { color: 'var(--bad)' } : undefined}>{fmtPct(projectionRow.pLigaQualifikation)}</strong><span>Ligaqualifikation</span></div>
-              <div className="stat"><strong>{projectionRow.avgRank != null ? projectionRow.avgRank.toFixed(1) : '–'}</strong><span>Ø Rang</span></div>
-              <div className="stat"><strong>{projectionRow.avgPts != null ? projectionRow.avgPts.toFixed(1) : '–'}</strong><span>Ø Punkte</span></div>
-              {projectionRow.minPts != null && projectionRow.maxPts != null && (
-                <div className="stat"><strong>{Math.round(projectionRow.minPts)}–{Math.round(projectionRow.maxPts)}</strong><span>Range</span></div>
-              )}
-            </div>
-            <div className="muted mt" style={{ fontSize: 11 }}>
-              Aus der zuletzt gelaufenen Season-Projections-Simulation{simUpdatedAt ? ` (${new Date(simUpdatedAt).toLocaleString('de-CH')})` : ''} - <Link to="/playoff-odds">vollständige Ansicht</Link>. Hier nicht neu berechnet.
-            </div>
-          </>
-        )}
-      </div>
-
       {/* H) Matchups - dieselbe Karten-Komponente wie Dashboard/PlayoffOdds
           (inkl. "Warum?"-Erklärung), hier auf dieses Team gefiltert. Bewusst
           KEINE Vermischung mit historischen H2H-Daten (siehe Team vs. Team
@@ -663,7 +665,7 @@ export default function TeamDetail() {
       <div className="card card-pad mb">
         <h2 className="mb">Tore &amp; Splits</h2>
         <div className="section-label">Offense / Defense</div>
-        <div className="tiles" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+        <div className="tiles" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))' }}>
           <div className="tile"><div className="label">Tore/Spiel</div><div className="value mono">{gpg}</div></div>
           <div className="tile"><div className="label">Gegentore/Spiel</div><div className="value mono">{gpa}</div></div>
           <div className="tile"><div className="label">SOG/Spiel</div><div className="value mono">{sogForPg != null ? sogForPg.toFixed(1) : '–'}</div></div>
@@ -834,6 +836,91 @@ export default function TeamDetail() {
       {editing && <PlayerModal player={editing} onSave={savePlayer} onClose={() => setEditing(null)} />}
       {editTeam && <TeamModal team={team} onSave={saveTeam} onClose={() => setEditTeam(false)} />}
     </>
+  )
+}
+
+// Formleiste: ein Balken pro Spiel (älteste links), Höhe = Tordifferenz aus Sicht
+// des Teams (grün = Tore-Plus, rot = Minus), darüber Ergebnis-Badge, darunter
+// Gegner/Heim-Auswärts. Nur vorhandene Resultate (recentResults), keine neue Kennzahl.
+function FormStrip({ results }) {
+  if (!results.length) return null
+  const rows = results.map((r) => {
+    const my = r.isHome ? r.game.homeGoals : r.game.awayGoals
+    const opp = r.isHome ? r.game.awayGoals : r.game.homeGoals
+    return { r, my, opp, gd: my - opp, won: my > opp }
+  })
+  const maxAbs = Math.max(1, ...rows.map((x) => Math.abs(x.gd)))
+  const H = 34
+  return (
+    <div>
+      <div className="muted" style={{ fontSize: 11.5, marginBottom: 6 }}>
+        Letzte {rows.length} Spiele · Balken = Tordifferenz je Spiel (älteste links)
+      </div>
+      <div className="row" style={{ gap: 4, alignItems: 'stretch' }}>
+        {rows.map(({ r, my, opp, gd, won }) => (
+          <div
+            key={r.game.id}
+            title={`${r.game.date} ${r.isHome ? 'vs.' : '@'} ${r.opp?.short}: ${my}:${opp}${r.game.decision !== 'REG' ? ' (' + r.game.decision + ')' : ''} · Tordifferenz ${gd > 0 ? '+' : ''}${gd}`}
+            style={{ flex: 1, minWidth: 0, textAlign: 'center', fontSize: 10.5 }}
+          >
+            <div className="muted" style={{ fontSize: 10 }}>{fmtDateShort(r.game.date)}</div>
+            <div style={{ margin: '3px 0' }}><ResultBadge code={resultCode(won, r.game.decision)} /></div>
+            <div style={{ position: 'relative', height: H * 2 + 2 }}>
+              <div style={{ position: 'absolute', left: 0, right: 0, top: H, height: 1, background: 'var(--border-strong)' }} />
+              {gd !== 0 && (
+                <div style={{
+                  position: 'absolute', left: '20%', right: '20%', borderRadius: 3,
+                  background: gd > 0 ? 'var(--good)' : 'var(--bad)',
+                  height: Math.max(3, (Math.abs(gd) / maxAbs) * H),
+                  ...(gd > 0 ? { bottom: H + 1 } : { top: H + 1 }),
+                }} />
+              )}
+            </div>
+            <div style={{ fontWeight: 700, color: gd > 0 ? 'var(--good)' : gd < 0 ? 'var(--bad)' : undefined }}>{gd > 0 ? '+' : ''}{gd}</div>
+            <div className="muted" style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>{my}:{opp}</div>
+            <div className="muted" style={{ fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.isHome ? '' : '@'}{r.opp?.short}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ELO-Range Start / Tief / Aktuell / Hoch + Trend (nur Lesen von
+// eloRow/eloHistory aus elo.js, unverändert; fehlende Werte als "–").
+function EloRange({ start, current, low, high, deltaLast, deltaLast5, power, color }) {
+  const ok = [start, current, low, high].every((v) => v != null)
+  const fmtD = (v) => (v == null ? '–' : (v > 0 ? '+' : '') + (Math.round(v * 10) / 10))
+  const cls = (v) => (v > 0 ? 'good' : v < 0 ? 'bad' : '')
+  const since = ok ? Math.round(current - start) : null
+  const span = ok ? Math.max(1, high - low) : 1
+  const pos = (v) => `${Math.max(0, Math.min(100, ((v - low) / span) * 100))}%`
+  return (
+    <div className="mb">
+      {ok ? (
+        <>
+          <div style={{ position: 'relative', height: 28, margin: '4px 8px 6px' }}>
+            <div style={{ position: 'absolute', left: 0, right: 0, top: 13, height: 3, borderRadius: 2, background: 'var(--border-strong)' }} />
+            <div title={`Start ${Math.round(start)}`} style={{ position: 'absolute', left: pos(start), top: 7, width: 14, height: 14, marginLeft: -7, borderRadius: 999, border: '2px solid var(--text-dim)', background: 'var(--bg-elev)' }} />
+            <div title={`Aktuell ${Math.round(current)}`} style={{ position: 'absolute', left: pos(current), top: 5, width: 18, height: 18, marginLeft: -9, borderRadius: 999, background: color, border: '2px solid var(--bg-elev)', boxShadow: '0 0 0 1px var(--border-strong)' }} />
+          </div>
+          <div className="row spread" style={{ fontSize: 12, gap: 6, flexWrap: 'wrap' }}>
+            <span><span className="muted">Tief</span> <strong>{Math.round(low)}</strong></span>
+            <span><span className="muted">Start</span> <strong>{Math.round(start)}</strong></span>
+            <span><span className="muted">Aktuell</span> <strong style={{ color }}>{Math.round(current)}</strong></span>
+            <span><span className="muted">Hoch</span> <strong>{Math.round(high)}</strong></span>
+          </div>
+        </>
+      ) : (
+        <div className="muted" style={{ fontSize: 12.5 }}>ELO-Range erscheint, sobald Verlaufsdaten vorhanden sind.</div>
+      )}
+      <div className="stat-strip" style={{ marginTop: 12 }}>
+        <div className="stat" title="Aktuelles ELO minus Start-ELO des Teams"><strong className={cls(since)}>{since == null ? '–' : (since > 0 ? '+' : '') + since}</strong><span>Seit Start</span></div>
+        <div className="stat"><strong className={cls(deltaLast5)}>{fmtD(deltaLast5)}</strong><span>Letzte 5 Spiele</span></div>
+        <div className="stat"><strong className={cls(deltaLast)}>{fmtD(deltaLast)}</strong><span>Letztes Spiel</span></div>
+        <div className="stat"><strong>{power ?? '–'}</strong><span>Power Score</span></div>
+      </div>
+    </div>
   )
 }
 
