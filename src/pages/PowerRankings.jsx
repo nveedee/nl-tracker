@@ -61,12 +61,13 @@ export default function PowerRankings() {
                 <th className="left">#</th>
                 <th className="left">Team</th>
                 <th className="num">Power</th>
+                <th className="num" title="Anzahl abgeschlossener Spiele, auf denen das Ranking basiert">SP</th>
                 <th className="num">ELO</th>
                 <th className="num">OFF</th>
                 <th className="num">DEF</th>
                 <th className="num">Form</th>
                 <th className="num">Pts/Sp</th>
-                <th className="left">Letzte 5</th>
+                <th className="left" title="Die letzten 5 abgeschlossenen Spiele, älteste links. W = Sieg, OTW = Sieg n.V./SO, OTL = Niederlage n.V./SO, L = Niederlage">Letzte 5</th>
               </tr>
             </thead>
             <tbody>
@@ -75,14 +76,15 @@ export default function PowerRankings() {
                   <td className="left rank">{i + 1}</td>
                   <td className="left"><TeamBadge team={r.team} /></td>
                   <td className="num"><strong>{r.powerScore}</strong></td>
+                  <td className="num muted">{r.gp}</td>
                   <td className="num">{Math.round(r.elo)}</td>
                   <td className="num">{r.components.offense}</td>
                   <td className="num">{r.components.defense}</td>
                   <td className="num">{r.components.form}</td>
                   <td className="num">{r.ptsPerGame.toFixed(2)}</td>
-                  <td className="left" style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>
+                  <td className="left" style={{ fontFamily: 'var(--mono)', fontSize: 11.5, whiteSpace: 'nowrap' }}>
                     {r.recentForm.map((res, j) => (
-                      <span key={j} className={res.startsWith('W') ? 'good' : 'bad'} style={{ marginRight: 3, fontWeight: 700 }}>
+                      <span key={j} className={res.startsWith('W') ? 'good' : 'bad'} style={{ display: 'inline-block', minWidth: 28, textAlign: 'center', padding: '1px 3px', marginRight: 4, border: '1px solid var(--border)', borderRadius: 4, fontWeight: 700 }}>
                         {res}
                       </span>
                     ))}
