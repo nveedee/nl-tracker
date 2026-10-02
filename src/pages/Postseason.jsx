@@ -19,7 +19,7 @@ import { usePreseasonElo, computePreseasonRatings } from '../preseasonElo.js'
 import { computeMarketValuePrior, DEFAULT_PRIOR_SPREAD } from '../marketValuePrior.js'
 import { TeamBadge, SectionHeader, StatTile, ProbBar, Tabs } from '../components/ui.jsx'
 import PostseasonMatchups from '../components/PostseasonMatchups.jsx'
-import PostseasonBracket from '../components/PostseasonBracket.jsx'
+import { isFinalGame } from '../stats.js'
 
 const RUNS = 10000
 
@@ -108,6 +108,8 @@ export default function Postseason() {
     )
   }
 
+  const playedCount = data.games.filter(isFinalGame).length
+  const staleSim = sim && sim.scheduledCount != null && sim.scheduledCount !== scheduledCount
   const row = sim?.rows.find((r) => r.team.id === selectedTeamId) || null
   const tp = aggregate?.teamPaths?.[selectedTeamId] || null
 
@@ -117,13 +119,20 @@ export default function Postseason() {
         <div>
           <h1>Postseason Paths</h1>
           <div className="sub">
-            How the National League postseason could unfold
+            So könnte die Postseason der National League verlaufen
             {sim ? ` · ${sim.runs.toLocaleString()} Simulationen` : ''}
             {updatedAt ? ` · aktualisiert ${updatedAt.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })}` : ''}
+          </div>
+          <div className="sub">
+            Aktueller Saisonstand: {playedCount} Spiele gespielt · {scheduledCount} offen
+            {sim?.scheduledCount != null ? ` · Simulation basiert auf ${sim.scheduledCount} offenen Spielen` : ''}
           </div>
           <span className="chip" style={{ fontSize: 10.5, marginTop: 4 }}>
             Restsaison → Seeding → Bracket: eine gemeinsame Monte-Carlo-Kette pro Lauf, kein fixiertes Seeding
           </span>
+          <div className="muted" style={{ fontSize: 11.5, marginTop: 4 }}>
+            Eigener Simulationslauf: Zahlen können gegenüber „Playoff Odds“ um etwa ±1 Prozentpunkt abweichen (Monte-Carlo-Rauschen).
+          </div>
         </div>
       </div>
 
@@ -132,6 +141,12 @@ export default function Postseason() {
           {simulating ? 'Simuliert…' : sim ? `Simulation aktualisieren (${RUNS.toLocaleString()} Läufe)` : `Simulation starten (${RUNS.toLocaleString()} Läufe)`}
         </button>
       </div>
+
+      {staleSim && (
+        <div className="card card-pad mb" style={{ fontSize: 13, borderColor: 'var(--warn)' }}>
+          <strong>Simulation basiert auf einem älteren Saisonstand</strong> ({sim.scheduledCount} statt {scheduledCount} offene Spiele). Mit „Simulation aktualisieren“ neu berechnen.
+        </div>
+      )}
 
       {!sim && !simulating && (
         <div className="card card-pad">
@@ -151,6 +166,9 @@ export default function Postseason() {
             <select value={selectedTeamId ?? ''} onChange={(e) => setSelectedTeamId(e.target.value)} style={{ width: 'auto', minHeight: 40 }}>
               {sim.rows.map((r) => <option key={r.team.id} value={r.team.id}>{r.team.name}</option>)}
             </select>
+            {teamById.has('team_klo') && (
+              <button className="btn ghost sm" style={{ minHeight: 40 }} onClick={() => setSelectedTeamId('team_klo')}>Kloten</button>
+            )}
           </div>
 
           {row && tp && (
@@ -158,14 +176,13 @@ export default function Postseason() {
               <div className="row gap-sm mb"><TeamBadge team={row.team} /></div>
 
               <div className="tiles mb">
-                <StatTile label="Playoff Qualification" value={fmtPct(row.pPlayoffs)} />
-                <StatTile label="Quarterfinal" value={fmtPct(tp.quarterfinal.reachProbability)} />
-                <StatTile label="Semifinal" value={fmtPct(tp.semifinal.reachProbability)} />
-                <StatTile label="Final" value={fmtPct(tp.final.reachProbability)} />
-                <StatTile label="Champion" value={fmtPct(tp.championshipProbability)} accent />
+                <StatTile label="Playoffs" value={fmtPct(row.pPlayoffs)} hint="Viertelfinal erreicht (Top 6 oder Play-in-Sieger)" />
+                <StatTile label="Halbfinale" value={fmtPct(tp.semifinal.reachProbability)} hint="erreicht, über alle Läufe" />
+                <StatTile label="Finale" value={fmtPct(tp.final.reachProbability)} hint="erreicht, über alle Läufe" />
+                <StatTile label="Meister" value={fmtPct(tp.championshipProbability)} accent />
               </div>
 
-              <SectionHeader title="Most Likely Path" caption="Der tatsächlich am häufigsten beobachtete komplette Pfad dieses Teams über alle Simulationsläufe - keine nachträglich kombinierten Einzelwahrscheinlichkeiten." />
+              <SectionHeader title="Wahrscheinlichster Pfad" caption="Der am häufigsten beobachtete komplette Pfad dieses Teams (alle Runden mit Gegnern). Es gibt sehr viele mögliche Pfade, daher ist auch der häufigste oft nur wenige Prozent wahrscheinlich - das ist normal." />
               <div className="card card-pad mb">
                 {tp.mostLikelyPath ? (
                   <>
@@ -184,7 +201,7 @@ export default function Postseason() {
                     <div className="row spread" style={{ marginTop: 14 }}>
                       <div>
                         <div className="stat-tile" style={{ padding: 0 }}>
-                          <div className="label">Path Probability</div>
+                          <div className="label">Pfadwahrscheinlichkeit</div>
                           <div className="value accent">{fmtPct(tp.mostLikelyPath.probability)}</div>
                           <div className="hint">{tp.mostLikelyPath.count.toLocaleString('de-CH')} von {aggregate.runs.toLocaleString('de-CH')} simulierten Läufen</div>
                         </div>
@@ -192,7 +209,7 @@ export default function Postseason() {
                     </div>
                     {tp.topPaths.length > 1 && (
                       <div style={{ marginTop: 14 }}>
-                        <div className="section-label">Weitere häufige Pfade</div>
+                        <div className="section-label">Weitere häufige Pfade (Anteil aller Läufe)</div>
                         {tp.topPaths.slice(1).map((p) => (
                           <div key={p.key} className="row spread" style={{ fontSize: 12, padding: '4px 0', borderTop: '1px solid var(--border)' }}>
                             <span className="muted">
@@ -211,7 +228,7 @@ export default function Postseason() {
                 )}
               </div>
 
-              <SectionHeader title="Most Likely Opponents" caption="Gegner-Verteilung je Runde - conditional = Anteil unter den Läufen, in denen die Runde erreicht wurde; absolute = Anteil über alle Läufe." />
+              <SectionHeader title="Wahrscheinlichste Gegner" caption="Gegner-Verteilung je Runde. Balken = Anteil unter den Läufen, in denen das Team diese Runde erreicht (bedingt). Zahl rechts = Anteil über alle Läufe." />
               <div className="card mb">
                 <div style={{ padding: '10px 16px 0' }}><Tabs tabs={OPPONENT_TABS} active={oppTab} onChange={setOppTab} /></div>
                 <div className="card-pad">
@@ -224,7 +241,7 @@ export default function Postseason() {
                       <div key={o.opponentId} className="row" style={{ padding: '7px 0', borderBottom: '1px solid var(--border)', gap: 10 }}>
                         <div style={{ width: 90, flex: 'none' }}><TeamBadge team={opp} short /></div>
                         <div style={{ flex: 1 }}><ProbBar value={o.conditionalProbability} /></div>
-                        <span className="muted" style={{ fontSize: 11, width: 70, textAlign: 'right', flex: 'none' }}>{fmtPct(o.absoluteProbability)} absolut</span>
+                        <span className="muted" style={{ fontSize: 11, width: 70, textAlign: 'right', flex: 'none' }}>{fmtPct(o.absoluteProbability)} aller Läufe</span>
                       </div>
                     )
                   })}
@@ -234,11 +251,15 @@ export default function Postseason() {
               {oppTab === 'playIn' && tp.playIn.reachProbability > 0.005 && (
                 <div className="card card-pad mb">
                   <div className="section-label">Play-in-Analytics</div>
+                  <div className="muted" style={{ fontSize: 12, margin: '2px 0 10px' }}>
+                    Das Team erreicht das Play-in in {fmtPct(tp.playIn.reachProbability)} aller Läufe. Werte mit „bedingt“ gelten nur für Läufe, in denen das Play-in erreicht wird; der Wert „über alle Läufe“ bezieht sich auf alle Simulationen.
+                  </div>
                   <div className="tiles">
-                    <StatTile label="1. Spiel gewonnen" value={fmtPct(tp.playIn.firstGameWinProbability)} />
-                    <StatTile label="1. Spiel verloren" value={fmtPct(tp.playIn.firstGameLossProbability)} />
-                    <StatTile label="2. Chance genutzt" value={fmtPct(tp.playIn.secondChanceProbability)} hint={tp.playIn.secondChanceProbability == null ? 'keine zweite Chance im Format' : undefined} />
-                    <StatTile label="Playoff-Qualifikation gesamt" value={fmtPct(tp.playIn.conditionalQualificationProbability)} accent />
+                    <StatTile label="1. Spiel gewonnen" value={fmtPct(tp.playIn.firstGameWinProbability)} hint="bedingt: Play-in erreicht" />
+                    <StatTile label="1. Spiel verloren" value={fmtPct(tp.playIn.firstGameLossProbability)} hint="bedingt: Play-in erreicht" />
+                    <StatTile label="2. Chance genutzt" value={fmtPct(tp.playIn.secondChanceProbability)} hint={tp.playIn.secondChanceProbability == null ? 'keine zweite Chance im Format' : 'bedingt: zweite Chance vorhanden'} />
+                    <StatTile label="Viertelfinal erreicht" value={fmtPct(tp.playIn.conditionalQualificationProbability)} hint="bedingt: Play-in erreicht" accent />
+                    <StatTile label="Über das Play-in ins Viertelfinal" value={fmtPct(tp.playIn.qualificationProbability)} hint="über alle Läufe" />
                   </div>
                 </div>
               )}
@@ -246,7 +267,6 @@ export default function Postseason() {
           )}
 
           <PostseasonMatchups aggregate={aggregate} teamById={teamById} />
-          <PostseasonBracket aggregate={aggregate} teamById={teamById} />
 
           {issues.length > 0 && (
             <div className="card card-pad mb" style={{ borderColor: '#b4530955' }}>

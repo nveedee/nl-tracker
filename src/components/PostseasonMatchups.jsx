@@ -34,7 +34,7 @@ export default function PostseasonMatchups({ aggregate, teamById }) {
 
   return (
     <>
-      <SectionHeader title="Most Likely Matchups" caption="Wie oft entstand diese konkrete Paarung über alle Simulationsläufe - nicht aus Einzelwahrscheinlichkeiten kombiniert." />
+      <SectionHeader title="Häufigste Paarungen" caption="In welchem Anteil aller Simulationsläufe entstand diese konkrete Paarung (unabhängig von Heimrecht). Darunter: Verteilung der Serienlänge (Spiele bis zur Entscheidung) für diese Paarung." />
       <div className="card mb">
         <div style={{ padding: '10px 16px 0' }}><Tabs tabs={TABS} active={tab} onChange={setTab} /></div>
         <div className="card-pad">
@@ -53,7 +53,7 @@ export default function PostseasonMatchups({ aggregate, teamById }) {
                   <div className="row gap-sm" style={{ marginTop: 4, marginLeft: 88 }}>
                     {[4, 5, 6, 7].map((g) => (
                       <span key={g} className="muted" style={{ fontSize: 10.5 }}>
-                        {g}: {Math.round(lengths.probabilities[g] * 100)}%
+                        {g} Sp.: {Math.round(lengths.probabilities[g] * 100)}%
                       </span>
                     ))}
                   </div>
