@@ -36,6 +36,14 @@ import {
   mergeMatchups, summarizeRecord, summarizeHomeAway,
   computeRecentFormDetailed, computeShotsAllowedPerGame, useHistoricalH2H,
 } from '../headToHead.js'
+import {
+  computeShotsForPerGame, getPeriodBreakdown, getPostGameTeamStats,
+  getSkaterBoxscore, getGoalieBoxscore, whoDroveTheGame, computeGamePredictionScore,
+} from '../gameCenter.js'
+import PostGameTeamStats from '../components/PostGameTeamStats.jsx'
+import PeriodBreakdown from '../components/PeriodBreakdown.jsx'
+import PlayerBoxscore from '../components/PlayerBoxscore.jsx'
+import FormSparkline from '../components/FormSparkline.jsx'
 
 function fmt2(v) { return v == null ? '–' : v.toFixed(2) }
 function fmtPct(v) { return v == null ? '–' : (v * 100).toFixed(1) + '%' }
@@ -252,6 +260,26 @@ export default function MatchupDetail() {
     const homeSplitsHome = computeHomeSplits(homeTeam.id, data.games).home
     const homeSplitsAway = computeHomeSplits(awayTeam.id, data.games).away
 
+    // Pre-Game Snapshot/Formvergleich (Game Center, Auftrag Punkt 2/3/12):
+    // ausschliesslich Spiele VOR diesem Spiel - verhindert Leakage des
+    // heutigen Saisonstands in einen historischen Pre-Game-Snapshot. Für ein
+    // noch nicht gespieltes Spiel entspricht das ohnehin "alle bisherigen
+    // Spiele" (= dieselben Werte wie oben), daher dieselbe Funktion für
+    // beide Fälle.
+    const cutoffGames = data.games.filter((g) => g.date < game.date)
+    const standingsCutoff = computeStandings(data.teams, cutoffGames)
+    const standingsCutoffByTeam = Object.fromEntries(standingsCutoff.map((s) => [s.team.id, s]))
+    const pgForm5Home = computeRecentFormDetailed(homeTeam.id, cutoffGames, historical, 5)
+    const pgForm5Away = computeRecentFormDetailed(awayTeam.id, cutoffGames, historical, 5)
+    const pgForm10Home = computeRecentFormDetailed(homeTeam.id, cutoffGames, historical, 10)
+    const pgForm10Away = computeRecentFormDetailed(awayTeam.id, cutoffGames, historical, 10)
+    const pgSogForHome = computeShotsForPerGame(homeTeam.id, cutoffGames, players)
+    const pgSogForAway = computeShotsForPerGame(awayTeam.id, cutoffGames, players)
+    const pgSogAllowedHome = computeShotsAllowedPerGame(homeTeam.id, cutoffGames, players)
+    const pgSogAllowedAway = computeShotsAllowedPerGame(awayTeam.id, cutoffGames, players)
+    const pgHomeSplits = computeHomeSplits(homeTeam.id, cutoffGames).home
+    const pgAwaySplits = computeHomeSplits(awayTeam.id, cutoffGames).away
+
     const allMatchups = mergeMatchups(homeTeam.id, awayTeam.id, data.games, historical)
     const hasAnyH2H = allMatchups.length > 0
     const overall = hasAnyH2H
@@ -300,6 +328,10 @@ export default function MatchupDetail() {
       formHome, formAway, sogHome, sogAway, homeSplitsHome, homeSplitsAway,
       hasAnyH2H, overall, last5, homeAwaySplit,
       eh, ea, homeAdv, pHomeWin, pAwayWin, monteCarlo, restAdjustment,
+      pgStandingsHome: standingsCutoffByTeam[homeTeam.id], pgStandingsAway: standingsCutoffByTeam[awayTeam.id],
+      pgForm5Home, pgForm5Away, pgForm10Home, pgForm10Away,
+      pgSogForHome, pgSogForAway, pgSogAllowedHome, pgSogAllowedAway,
+      pgHomeSplits, pgAwaySplits,
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game, homeTeam, awayTeam, data, derived, historical, loadingHistorical, played, preseasonSeasonEnd])
@@ -328,6 +360,20 @@ export default function MatchupDetail() {
         expHomeGoals: mc.avgHomeGoals, expAwayGoals: mc.avgAwayGoals,
       })
     : null
+
+  // Pre-Game ELO/Power für die "Pre-Game Snapshot"-Karte (Game Center,
+  // Auftrag Punkt 2/8): existiert ein eingefrorener Prediction-Snapshot
+  // (bei allen 2026/27-Spielen der Fall), gelten dessen eloHome/eloAway/
+  // powerHome/powerAway als verbindlich - das ist exakt der Wert, den das
+  // Modell vor dem Spiel tatsächlich hatte. Ohne Snapshot: bei einem noch
+  // nicht gespielten Spiel ist "heute" = "vor dem Spiel", also der aktuelle
+  // Live-Wert korrekt; bei einem bereits gespielten Spiel ohne Snapshot gibt
+  // es keinen leak-freien Weg mehr zurück - "–" statt Rückrechnung mit
+  // heutigen (bereits durch dieses Spiel aktualisierten) Werten.
+  const pgEloHome = predictionSnapshot ? predictionSnapshot.eloHome : (!played && analysis ? Math.round(analysis.eh) : null)
+  const pgEloAway = predictionSnapshot ? predictionSnapshot.eloAway : (!played && analysis ? Math.round(analysis.ea) : null)
+  const pgPowerHome = predictionSnapshot ? predictionSnapshot.powerHome : (!played && analysis ? (analysis.powerByTeam[homeTeam?.id]?.powerScore ?? null) : null)
+  const pgPowerAway = predictionSnapshot ? predictionSnapshot.powerAway : (!played && analysis ? (analysis.powerByTeam[awayTeam?.id]?.powerScore ?? null) : null)
 
   // Echte Live-Anbindung (src/liveGameClient.js): aktiv, sobald das Spiel
   // weder gespielt noch abgesagt ist UND die geplante Startzeit bereits
@@ -461,6 +507,56 @@ export default function MatchupDetail() {
                 verifiziert sind. `realLiveMatch.raw.teamStats` enthält die
                 Rohdaten bereits (siehe liveGameClient.js), für eine spätere
                 Ergänzung. */}
+          </div>
+        </div>
+      )}
+
+      {/* 1a. Pre-Game Team Snapshot (Game Center, Auftrag Punkt 2) - direkt
+          oberhalb des Resultats. ELO/Power kommen aus dem eingefrorenen
+          Prediction-Snapshot (bzw. live, falls das Spiel noch nicht
+          gespielt ist und kein Snapshot existiert) - siehe pgEloHome/
+          pgPowerHome oben. Form/Bilanz/Tore/SOG stammen aus `cutoffGames`
+          (nur Spiele VOR diesem Spiel, siehe analysis-useMemo) - kein
+          Rückrechnen mit dem heutigen Saisonstand bei bereits gespielten
+          Spielen (Auftrag Punkt 12). "Schedule Strength" existiert in
+          diesem Projekt nicht als Kennzahl -> immer "–", keine Erfindung. */}
+      {!showLiveDemo && !showReplay && analysis && (
+        <div className="card mb">
+          <div className="card-pad" style={{ paddingBottom: 0 }}>
+            <h2>Pre-Game Snapshot</h2>
+          </div>
+          <div className="table-wrap" style={{ border: 'none' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th className="left">Kennzahl</th>
+                  <th className="num">{homeTeam.short}</th>
+                  <th className="num">{awayTeam.short}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <CompareRow label="ELO" v1={pgEloHome} v2={pgEloAway} />
+                <CompareRow label="Power Score" v1={pgPowerHome} v2={pgPowerAway} />
+                <CompareRow label="Form (Punkte, letzte 5)" v1={analysis.pgForm5Home.gp > 0 ? analysis.pgForm5Home.pts : null} v2={analysis.pgForm5Away.gp > 0 ? analysis.pgForm5Away.pts : null} />
+                <CompareRow label="Form (Punkte, letzte 10)" v1={analysis.pgForm10Home.gp > 0 ? analysis.pgForm10Home.pts : null} v2={analysis.pgForm10Away.gp > 0 ? analysis.pgForm10Away.pts : null} />
+                <CompareRow
+                  label="Heim-/Auswärtsbilanz"
+                  sub={`${homeTeam.short} zuhause vs. ${awayTeam.short} auswärts`}
+                  v1={analysis.pgHomeSplits.gp > 0 ? analysis.pgHomeSplits.pts / analysis.pgHomeSplits.gp : null}
+                  v2={analysis.pgAwaySplits.gp > 0 ? analysis.pgAwaySplits.pts / analysis.pgAwaySplits.gp : null}
+                  fmt={(v) => fmt2(v) + ' Pkt/Sp'}
+                />
+                <CompareRow label="Tore/Spiel" v1={analysis.pgStandingsHome?.gp > 0 ? analysis.pgStandingsHome.gf / analysis.pgStandingsHome.gp : null} v2={analysis.pgStandingsAway?.gp > 0 ? analysis.pgStandingsAway.gf / analysis.pgStandingsAway.gp : null} fmt={fmt2} />
+                <CompareRow label="Gegentore/Spiel" v1={analysis.pgStandingsHome?.gp > 0 ? analysis.pgStandingsHome.ga / analysis.pgStandingsHome.gp : null} v2={analysis.pgStandingsAway?.gp > 0 ? analysis.pgStandingsAway.ga / analysis.pgStandingsAway.gp : null} fmt={fmt2} lowerIsBetter />
+                <CompareRow label="SOG/Spiel" v1={analysis.pgSogForHome} v2={analysis.pgSogForAway} fmt={fmt2} />
+                <CompareRow label="SOG zugelassen/Spiel" v1={analysis.pgSogAllowedHome} v2={analysis.pgSogAllowedAway} fmt={fmt2} lowerIsBetter />
+                <CompareRow label="Schedule Strength" v1={null} v2={null} />
+                <CompareRow label="Punkte/Spiel (Saison)" v1={analysis.pgStandingsHome?.gp > 0 ? analysis.pgStandingsHome.pts / analysis.pgStandingsHome.gp : null} v2={analysis.pgStandingsAway?.gp > 0 ? analysis.pgStandingsAway.pts / analysis.pgStandingsAway.gp : null} fmt={fmt2} />
+                {predictionSnapshot && (
+                  <CompareRow label="Prediction (Heimsieg)" v1={predictionSnapshot.homeWinProbability} v2={predictionSnapshot.awayWinProbability} fmt={fmtPct} />
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -653,6 +749,34 @@ export default function MatchupDetail() {
             </div>
           </div>
 
+          {/* 3b. Formvergleich (Game Center, Auftrag Punkt 3) - direkter
+              Heim/Auswärts-Tabellenvergleich auf Basis der Pre-Game-Werte
+              (cutoffGames, kein Leakage bei bereits gespielten Spielen) +
+              Formverlauf-Sparkline (kumulierte Punkte, letzte 10 Spiele). */}
+          <div className="card card-pad mb">
+            <h2 className="mb">Formvergleich</h2>
+            <div className="table-wrap" style={{ marginBottom: 16 }}>
+              <table>
+                <thead>
+                  <tr><th className="left">Kennzahl</th><th className="num">{homeTeam.short}</th><th className="num">{awayTeam.short}</th></tr>
+                </thead>
+                <tbody>
+                  <CompareRow label="Letzte 5" v1={analysis.pgForm5Home.gp > 0 ? analysis.pgForm5Home.pts : null} v2={analysis.pgForm5Away.gp > 0 ? analysis.pgForm5Away.pts : null} fmt={(v) => v + ' Pkt'} />
+                  <CompareRow label="Letzte 10" v1={analysis.pgForm10Home.gp > 0 ? analysis.pgForm10Home.pts : null} v2={analysis.pgForm10Away.gp > 0 ? analysis.pgForm10Away.pts : null} fmt={(v) => v + ' Pkt'} />
+                  <CompareRow label="Tore/Spiel" v1={analysis.pgStandingsHome?.gp > 0 ? analysis.pgStandingsHome.gf / analysis.pgStandingsHome.gp : null} v2={analysis.pgStandingsAway?.gp > 0 ? analysis.pgStandingsAway.gf / analysis.pgStandingsAway.gp : null} fmt={fmt2} />
+                  <CompareRow label="Gegentore/Spiel" v1={analysis.pgStandingsHome?.gp > 0 ? analysis.pgStandingsHome.ga / analysis.pgStandingsHome.gp : null} v2={analysis.pgStandingsAway?.gp > 0 ? analysis.pgStandingsAway.ga / analysis.pgStandingsAway.gp : null} fmt={fmt2} lowerIsBetter />
+                  <CompareRow label="SOG/Spiel" v1={analysis.pgSogForHome} v2={analysis.pgSogForAway} fmt={fmt2} />
+                  <CompareRow label="SOG zugelassen/Spiel" v1={analysis.pgSogAllowedHome} v2={analysis.pgSogAllowedAway} fmt={fmt2} lowerIsBetter />
+                </tbody>
+              </table>
+            </div>
+            <FormSparkline
+              homeTeam={homeTeam} awayTeam={awayTeam}
+              homeGames={[...analysis.pgForm10Home.games].reverse()}
+              awayGames={[...analysis.pgForm10Away.games].reverse()}
+            />
+          </div>
+
           {/* 4. Head-to-Head */}
           <div className="card card-pad mb">
             <div className="row spread" style={{ marginBottom: 4 }}>
@@ -793,6 +917,12 @@ export default function MatchupDetail() {
             const favIsHome = predictionSnapshot.homeWinProbability >= predictionSnapshot.awayWinProbability
             const homeWon = game.homeGoals > game.awayGoals
             const predictionCorrect = favIsHome === homeWon
+            // Brier-/LogLoss-Beitrag dieses einen Spiels (Game Center,
+            // Auftrag Punkt 7) - dieselbe Formel wie Model Performance
+            // (src/predictionMetrics.js::computeBiggestMisses), hier als
+            // Einzelspiel-Helfer (src/gameCenter.js), zeigt nur an, ändert
+            // nichts am Modell.
+            const score = computeGamePredictionScore(predictionSnapshot, game)
             return (
               <div className="card card-pad mb">
                 <div className="row spread" style={{ alignItems: 'baseline', flexWrap: 'wrap', rowGap: 4 }}>
@@ -801,10 +931,13 @@ export default function MatchupDetail() {
                     Eingefroren · {fmtDateTime(predictionSnapshot.createdAt)}
                   </span>
                 </div>
-                <div style={{ fontSize: 18, fontWeight: 800, marginTop: 6, marginBottom: 14 }}>
+                <div style={{ fontSize: 18, fontWeight: 800, marginTop: 6, marginBottom: 8 }}>
                   <span style={{ color: favIsHome ? 'var(--accent)' : 'inherit' }}>{homeTeam.short} {fmtPct0(predictionSnapshot.homeWinProbability)}</span>
                   <span className="muted" style={{ margin: '0 8px', fontWeight: 600 }}>—</span>
                   <span style={{ color: !favIsHome ? 'var(--accent)' : 'inherit' }}>{fmtPct0(predictionSnapshot.awayWinProbability)} {awayTeam.short}</span>
+                </div>
+                <div className="bar-track" style={{ height: 8, marginBottom: 14 }}>
+                  <div className="bar-fill" style={{ width: `${Math.round(predictionSnapshot.homeWinProbability * 100)}%` }} />
                 </div>
                 <div className="grid grid-2" style={{ marginBottom: 14 }}>
                   <div>
@@ -821,64 +954,112 @@ export default function MatchupDetail() {
                     </div>
                   </div>
                 </div>
-                <div className="tiles" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+                <div className="tiles" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: score ? 14 : 0 }}>
                   <StatTile label={`Erwartete Tore ${homeTeam.short}`} value={fmt2(predictionSnapshot.expectedHomeGoals)} />
                   <StatTile label={`Erwartete Tore ${awayTeam.short}`} value={fmt2(predictionSnapshot.expectedAwayGoals)} />
                   <StatTile label="OT-Wahrscheinlichkeit" value={fmtPct(predictionSnapshot.otProbability)} />
                   <StatTile label="SO-Wahrscheinlichkeit" value={fmtPct(predictionSnapshot.soProbability)} />
                 </div>
+                {score && (
+                  <div className="tiles" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                    <StatTile label="Brier-Beitrag" value={score.brierContribution.toFixed(4)} />
+                    <StatTile label="LogLoss-Beitrag" value={score.logLossPenalty.toFixed(4)} />
+                  </div>
+                )}
               </div>
             )
           })()}
 
-          {/* 5b. Match-Statistiken (nur bereits gespielte Spiele) */}
-          {played && (
+          {/* 8. "Was sagte das Modell vor dem Spiel?" - unveränderlicher
+              Pre-Game-Faktencheck (Game Center, Auftrag Punkt 8), getrennt
+              von der Prediction-Karte oben: beweist, welche Rohwerte dem
+              Modell vor Spielbeginn tatsächlich vorlagen (ELO, Heimvorteil,
+              Power). Alles 1:1 aus predictionSnapshot - keine Neuberechnung. */}
+          {played && predictionSnapshot && (
             <div className="card card-pad mb">
-              <h2>Match-Statistiken</h2>
-              {(!game.playerStats || game.playerStats.length === 0) ? (
-                <div className="muted">Keine detaillierten Spielstatistiken erfasst.</div>
-              ) : (
-                <div className="grid grid-2">
-                  {[homeTeam, awayTeam].map((t) => {
-                    const rosterIds = new Set(data.players.filter((p) => p.teamId === t.id).map((p) => p.id))
-                    const stats = game.playerStats.filter((s) => rosterIds.has(s.playerId))
-                    const skaters = stats.filter((s) => (s.goals || 0) > 0 || (s.assists || 0) > 0)
-                    const goalies = stats.filter((s) => s.saves != null || s.goalsAgainst != null)
-                    return (
-                      <div key={t.id}>
-                        <div className="row gap-sm" style={{ marginBottom: 8 }}><TeamBadge team={t} link={false} /></div>
-                        {skaters.length === 0 && goalies.length === 0 ? (
-                          <div className="muted" style={{ fontSize: 13 }}>Keine Statistiken für dieses Team.</div>
-                        ) : (
-                          <>
-                            {skaters.map((s, i) => {
-                              const p = data.players.find((x) => x.id === s.playerId)
-                              return <div key={'sk' + i} style={{ fontSize: 13, padding: '3px 0' }}>{p?.name ?? '?'}: {s.goals || 0}T {s.assists || 0}A</div>
-                            })}
-                            {goalies.map((s, i) => {
-                              const p = data.players.find((x) => x.id === s.playerId)
-                              const shots = (Number(s.saves) || 0) + (Number(s.goalsAgainst) || 0)
-                              const svp = shots > 0 ? (Number(s.saves) || 0) / shots : null
-                              return (
-                                <div key={'gk' + i} className="muted" style={{ fontSize: 13, padding: '3px 0' }}>
-                                  {p?.name ?? '?'} (G): {s.saves || 0}/{shots} Paraden{svp != null ? ` (${(svp * 100).toFixed(1)}%)` : ''}
-                                </div>
-                              )
-                            })}
-                          </>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-              {!predictionSnapshot && (
-                <div className="muted mt" style={{ fontSize: 12 }}>
-                  Kein Pre-Game Model Forecast gespeichert – dieses Spiel hatte keinen eingefrorenen Snapshot vor Spielbeginn.
+              <h2 className="mb">Was sagte das Modell vor dem Spiel?</h2>
+              <div className="tiles" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+                <StatTile label={`ELO ${homeTeam.short}`} value={predictionSnapshot.eloHome ?? '–'} />
+                <StatTile label={`ELO ${awayTeam.short}`} value={predictionSnapshot.eloAway ?? '–'} />
+                <StatTile label="Heimvorteil (ELO)" value={`+${analysis.homeAdv}`} />
+                <StatTile label="Zeitpunkt der Prediction" value={fmtDateTime(predictionSnapshot.createdAt)} />
+              </div>
+              {(predictionSnapshot.powerHome != null || predictionSnapshot.powerAway != null) && (
+                <div className="tiles" style={{ gridTemplateColumns: 'repeat(2, 1fr)', marginTop: 10 }}>
+                  <StatTile label={`Power Score ${homeTeam.short}`} value={predictionSnapshot.powerHome ?? '–'} />
+                  <StatTile label={`Power Score ${awayTeam.short}`} value={predictionSnapshot.powerAway ?? '–'} />
                 </div>
               )}
             </div>
           )}
+
+          {/* 1. Boxscore / Game Center (nur bereits gespielte Spiele) - alle
+              Werte 1:1 aus den bereits gespeicherten Boxscore-Rohfeldern
+              (sihfPeriods/sihfShots/nlTeamStatsHome+Away/playerStats, siehe
+              src/gameCenter.js). Leere Teilabschnitte blenden sich selbst
+              aus (siehe Auftrag Punkt 11) - kein NaN/undefined möglich, da
+              jede Komponente nur mit tatsächlich vorhandenen Feldern rechnet. */}
+          {played && (() => {
+            const periods = getPeriodBreakdown(game)
+            const teamStats = getPostGameTeamStats(game)
+            const homeSkaters = getSkaterBoxscore(game, data.players, homeTeam.id)
+            const awaySkaters = getSkaterBoxscore(game, data.players, awayTeam.id)
+            const homeGoalies = getGoalieBoxscore(game, data.players, homeTeam.id)
+            const awayGoalies = getGoalieBoxscore(game, data.players, awayTeam.id)
+            const hasBoxscore = homeSkaters.length > 0 || awaySkaters.length > 0 || homeGoalies.length > 0 || awayGoalies.length > 0
+            const driver = whoDroveTheGame(game, data.players)
+            const teamShort = (teamId) => (teamId === homeTeam.id ? homeTeam.short : teamId === awayTeam.id ? awayTeam.short : '')
+
+            return (
+              <>
+                <PeriodBreakdown homeTeam={homeTeam} awayTeam={awayTeam} periods={periods} />
+                <PostGameTeamStats homeTeam={homeTeam} awayTeam={awayTeam} teamStats={teamStats} />
+
+                <div className="card card-pad mb">
+                  <h2>Spieler-Boxscore</h2>
+                  {!hasBoxscore ? (
+                    <div className="muted">Keine detaillierten Spielerstatistiken erfasst.</div>
+                  ) : (
+                    <div className="grid grid-2">
+                      <PlayerBoxscore team={homeTeam} skaters={homeSkaters} goalies={homeGoalies} />
+                      <PlayerBoxscore team={awayTeam} skaters={awaySkaters} goalies={awayGoalies} />
+                    </div>
+                  )}
+                </div>
+
+                {/* 5. "Wer hat das Spiel geprägt?" - rein deskriptiv, keine
+                    erfundene Gesamtbewertung/MVP (Auftrag Punkt 5). */}
+                {driver && (
+                  <div className="card card-pad mb">
+                    <h2 className="mb">Wer hat das Spiel geprägt?</h2>
+                    <div className="tiles" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                      {driver.topScorer && (
+                        <StatTile label="Top Scorer" value={`${driver.topScorer.player.name} (${teamShort(driver.topScorer.player.teamId)}) – ${driver.topScorer.value} Pkt.`} />
+                      )}
+                      {driver.topShooter && (
+                        <StatTile label="Top Shooter" value={`${driver.topShooter.player.name} (${teamShort(driver.topShooter.player.teamId)}) – ${driver.topShooter.value} SOG`} />
+                      )}
+                      {driver.mostTOI && (
+                        <StatTile label="Meiste Eiszeit" value={`${driver.mostTOI.player.name} (${teamShort(driver.mostTOI.player.teamId)}) – ${Math.floor(driver.mostTOI.value / 60)}:${String(driver.mostTOI.value % 60).padStart(2, '0')}`} />
+                      )}
+                      {driver.bestPlusMinus && (
+                        <StatTile label="Beste +/-" value={`${driver.bestPlusMinus.player.name} (${teamShort(driver.bestPlusMinus.player.teamId)}) – ${driver.bestPlusMinus.value > 0 ? '+' : ''}${driver.bestPlusMinus.value}`} />
+                      )}
+                      {driver.bestGoalie && (
+                        <StatTile label="Beste Goalie-Leistung" value={`${driver.bestGoalie.player.name} (${teamShort(driver.bestGoalie.player.teamId)}) – ${(driver.bestGoalie.value * 100).toFixed(1)}% SV`} />
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {!predictionSnapshot && (
+                  <div className="muted mb" style={{ fontSize: 12 }}>
+                    Kein Pre-Game Model Forecast gespeichert – dieses Spiel hatte keinen eingefrorenen Snapshot vor Spielbeginn.
+                  </div>
+                )}
+              </>
+            )
+          })()}
         </>
       )}
     </div>
