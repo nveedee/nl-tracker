@@ -20,7 +20,7 @@ import LiveMatchHeader from './LiveMatchHeader.jsx'
 // Monte-Carlo), falls für ein live laufendes Spiel ausnahmsweise kein
 // Snapshot existiert. buildRealLiveMatch() ist exakt dieselbe Funktion, die
 // auch MatchupDetail.jsx für die echte Live-Ansicht verwendet.
-export default function LiveNowSection() {
+export default function LiveNowSection({ emptyNote = false }) {
   const { data } = useData()
   const preseasonSeasonEnd = usePreseasonElo()
   const initialRatings = useMemo(() => {
@@ -59,7 +59,11 @@ export default function LiveNowSection() {
       .filter(Boolean)
   }, [rawLiveStates, gameById, teamById, forecastByGameId])
 
-  if (liveGames.length === 0) return null
+  if (liveGames.length === 0) {
+    // Optional (Dashboard): kompakte Zeile statt leerem Block. Ohne emptyNote
+    // (Schedule.jsx) bleibt das Verhalten unverändert: nichts rendern.
+    return emptyNote ? <div className="muted mb" style={{ fontSize: 12.5 }}>Aktuell kein Live-Spiel</div> : null
+  }
 
   return (
     <>

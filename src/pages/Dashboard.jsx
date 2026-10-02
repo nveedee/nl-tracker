@@ -16,6 +16,7 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useData } from '../DataContext.jsx'
 import { TeamBadge, Empty, SectionHeader, ProbBar } from '../components/ui.jsx'
+import { computePowerRankings } from '../powerRankings.js'
 import { isFinalGame, computeTeamForm, fmtChf } from '../stats.js'
 import { useSimResults, getProbsRow } from '../simResultsContext.jsx'
 import { computeMatchForecasts } from '../playoffSim.js'
@@ -44,7 +45,7 @@ export default function Dashboard() {
     .slice(0, 5)
 
   const playedGames = games.filter(isFinalGame)
-  const recent = [...playedGames].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 6)
+  const recent = [...playedGames].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : (b.time || '') < (a.time || '') ? -1 : 1)).slice(0, 5)
   const scheduledCount = games.filter((g) => g.status === 'scheduled').length
 
   // 3) Playoff Picture: aus dem zentralen Live-Ergebnis-Store
@@ -175,6 +176,34 @@ export default function Dashboard() {
     return { topPoints, topPpg, topImpact }
   }, [playerStats, data.players, baselines, playerHistoryData])
 
+  // Ligaform: letzte 5 abgeschlossene Spiele je Team (stats.js::computeTeamForm,
+  // unverändert), Reihenfolge wie die Tabelle. Nur Spiele der aktuellen Saison
+  // (data.games) - keine Vorsaison. Ein Ergebnis = eine Pill.
+  const leagueForm = useMemo(
+    () => standings.map((r) => ({ team: r.team, form: computeTeamForm(r.team.id, data.games, 5) })),
+    [standings, data.games]
+  )
+  const formByTeam = useMemo(() => new Map(leagueForm.map((r) => [r.team.id, r.form])), [leagueForm])
+
+  // Kloten kompakt (nur bestehende Werte: Tabelle, ELO-Ranking, Power Ranking,
+  // Form, nächster Eintrag aus den Forecasts inkl. Pre-Game-Snapshot).
+  const kloten = useMemo(() => {
+    const team = data.teams.find((t) => t.id === 'team_klo')
+    if (!team) return null
+    const idx = standings.findIndex((r) => r.team.id === team.id)
+    const row = idx >= 0 ? standings[idx] : null
+    const eloRating = elo.ranking.find((r) => r.team.id === team.id)?.rating
+    const power = computePowerRankings(data.teams, data.games, elo.ratings, data.players || []).find((r) => r.team.id === team.id)
+    const next = forecasts
+      .filter((f) => !isFinalGame(gameById.get(f.gameId) || {}))
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+      .find((f) => f.homeTeam.id === team.id || f.awayTeam.id === team.id)
+    return { team, rank: idx >= 0 ? idx + 1 : null, row, elo: eloRating, power, next }
+  }, [data, standings, elo, forecasts, gameById])
+  const tableRows = standings.slice(0, 6).map((r, i) => ({ ...r, rank: i + 1 }))
+  const klotenIdx = standings.findIndex((r) => r.team.id === 'team_klo')
+  if (klotenIdx >= 6) tableRows.push({ ...standings[klotenIdx], rank: klotenIdx + 1 })
+
   return (
     <>
       {/* 1) Season Hero / Status */}
@@ -206,7 +235,39 @@ export default function Dashboard() {
               (src/components/LiveNowSection.jsx, auch auf Schedule.jsx
               verwendet) - rendert selbst nichts, solange kein Spiel live
               ist (kein Platzhalter, keine leere Card). */}
-          <LiveNowSection />
+          <LiveNowSection emptyNote />
+
+          {/* H) Kloten kompakt */}
+          {kloten && (
+            <div className="card card-pad mb">
+              <div className="row spread" style={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 6, marginBottom: 10 }}>
+                <TeamBadge team={kloten.team} />
+                <Link className="btn ghost sm" to={`/teams/${kloten.team.id}`}>EHC Kloten öffnen →</Link>
+              </div>
+              <div className="stat-strip">
+                <div className="stat"><strong>{kloten.rank ?? '–'}</strong><span>Rang</span></div>
+                <div className="stat"><strong>{kloten.row?.gp > 0 ? kloten.row.pts : '–'}</strong><span>Punkte</span></div>
+                <div className="stat"><strong>{kloten.row?.gp > 0 ? (kloten.row.pts / kloten.row.gp).toFixed(2) : '–'}</strong><span>Pkt/Spiel</span></div>
+                <div className="stat"><strong>{kloten.elo != null ? Math.round(kloten.elo) : '–'}</strong><span>ELO (aktuell)</span></div>
+                <div className="stat"><strong>{kloten.power?.powerScore ?? '–'}</strong><span>Power Score</span></div>
+              </div>
+              <div className="row gap-sm wrap" style={{ marginTop: 12, alignItems: 'center' }}>
+                <span className="muted" style={{ fontSize: 12 }}>Letzte 5:</span>
+                <FormPills form={formByTeam.get(kloten.team.id)} />
+              </div>
+              {kloten.next && (
+                <Link to={`/matchup/${kloten.next.gameId}`} style={{ display: 'block', marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+                  <div className="muted" style={{ fontSize: 11.5, marginBottom: 4 }}>Nächste Partie · {new Date(kloten.next.date).toLocaleDateString('de-CH', { weekday: 'short', day: '2-digit', month: '2-digit' })}</div>
+                  <div className="row spread" style={{ flexWrap: 'wrap', rowGap: 4 }}>
+                    <strong>{kloten.next.homeTeam.short} – {kloten.next.awayTeam.short}</strong>
+                    {Number.isFinite(kloten.next.pHomeWin) && Number.isFinite(kloten.next.pAwayWin)
+                      ? <span className="muted" style={{ fontSize: 12.5 }}>Prognose {kloten.next.homeTeam.short} {Math.round(kloten.next.pHomeWin * 100)}% · {Math.round(kloten.next.pAwayWin * 100)}% {kloten.next.awayTeam.short}</span>
+                      : <span className="muted" style={{ fontSize: 12.5 }}>Keine Pre-Game-Prognose gespeichert</span>}
+                  </div>
+                </Link>
+              )}
+            </div>
+          )}
 
           {/* 2) Next Games */}
           {forecasts.length > 0 && (
@@ -320,15 +381,32 @@ export default function Dashboard() {
           <div className="grid grid-2">
             <div className="card card-pad">
               <SectionHeader
-                title="Tabelle" caption="Top 6 nach Punkten."
+                title="Tabelle" caption={klotenIdx >= 6 ? "Top 6 nach Punkten + Kloten." : "Top 6 nach Punkten."}
                 action={<Link className="btn ghost sm" to="/standings">Alle →</Link>}
               />
-              {standings.slice(0, 6).map((r, i) => (
-                <div key={r.team.id} className="row spread" style={{ padding: '7px 0', borderBottom: '1px solid var(--border)' }}>
-                  <span className="row gap-sm"><span className="rank">{i + 1}</span><TeamBadge team={r.team} /></span>
-                  <span className="num" style={{ fontFamily: 'var(--mono)' }}>{r.pts} <span className="muted">Pkt</span></span>
-                </div>
-              ))}
+              <div className="table-wrap" style={{ border: 'none' }}>
+                <table>
+                  <thead>
+                    <tr><th className="left">#</th><th className="left">Team</th><th className="num">Sp</th><th className="num">Pkt</th><th className="num">P/Sp</th><th className="num">TD</th></tr>
+                  </thead>
+                  <tbody>
+                    {tableRows.map((r) => {
+                      const isKlo = r.team.id === 'team_klo'
+                      const diff = r.gf - r.ga
+                      return (
+                        <tr key={r.team.id} style={isKlo ? { background: 'var(--accent-soft)' } : undefined}>
+                          <td className="left rank">{r.rank}</td>
+                          <td className="left"><TeamBadge team={r.team} short /></td>
+                          <td className="num">{r.gp}</td>
+                          <td className="num"><strong>{r.pts}</strong></td>
+                          <td className="num">{r.gp > 0 ? (r.pts / r.gp).toFixed(2) : '–'}</td>
+                          <td className={`num ${diff > 0 ? 'good' : diff < 0 ? 'bad' : ''}`}>{diff > 0 ? '+' : ''}{diff}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             <div className="card card-pad">
@@ -349,14 +427,46 @@ export default function Dashboard() {
                       <strong style={{ fontFamily: 'var(--mono)' }}>{g.homeGoals}:{g.awayGoals}</strong>
                       <TeamBadge team={a} short link={false} />
                     </span>
+                    <span style={{ width: 34, flex: 'none', textAlign: 'right' }}>{g.decision && g.decision !== 'REG' ? <span className="chip">{g.decision}</span> : null}</span>
                   </Link>
                 )
               })}
             </div>
           </div>
+
+          {/* F) Ligaform */}
+          <div className="card card-pad" style={{ marginTop: 16 }}>
+            <SectionHeader title="Aktuelle Form" caption="Letzte 5 Spiele je Team (nur diese Saison), Tabellenreihenfolge." />
+            {leagueForm.map((r) => (
+              <div key={r.team.id} className="row spread" style={{ padding: '7px 0', borderBottom: '1px solid var(--border)', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ width: 70, flex: 'none' }}><TeamBadge team={r.team} short /></span>
+                <FormPills form={r.form} />
+                <span className="num muted" style={{ fontFamily: 'var(--mono)', fontSize: 12, width: 44, textAlign: 'right' }}>{r.form.gp > 0 ? `${r.form.avgPts * r.form.gp} Pkt` : '–'}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="muted" style={{ fontSize: 11.5, marginTop: 14 }}>
+            Prognosen basieren auf dem gespeicherten Pre-Game-Snapshot; ohne Snapshot wird der aktuelle Modellstand als Fallback angezeigt.
+          </div>
         </>
       )}
     </>
+  )
+}
+
+const PILL_STYLE = { S: 'var(--good)', OTS: 'var(--good)', N: 'var(--bad)', OTN: 'var(--bad)' }
+// Eine Pill pro Spiel (OTS/OTN = EIN Ergebnis). computeTeamForm liefert die
+// Ergebnisse neueste zuerst - hier ältestes links, neuestes rechts.
+function FormPills({ form }) {
+  const letters = form?.form ? form.form.split('/').reverse() : []
+  if (letters.length === 0) return <span className="muted" style={{ fontSize: 12 }}>–</span>
+  return (
+    <span className="row" style={{ gap: 4, flexWrap: 'nowrap' }}>
+      {letters.map((l, i) => (
+        <span key={i} style={{ display: 'inline-block', minWidth: 28, textAlign: 'center', padding: '2px 4px', borderRadius: 5, fontSize: 11, fontWeight: 700, color: '#fff', background: PILL_STYLE[l] || 'var(--text-dim)' }}>{l}</span>
+      ))}
+    </span>
   )
 }
 
