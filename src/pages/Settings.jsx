@@ -4,11 +4,67 @@ import { TeamBadge } from '../components/ui.jsx'
 import { toast } from '../components/ui.jsx'
 import { computeMarketValuePrior, computeTeamMarketValueSums, DEFAULT_PRIOR_SPREAD } from '../marketValuePrior.js'
 import { DEFAULT_BACK_TO_BACK_PENALTY } from '../restDays.js'
+import { ELO_CONFIG } from '../elo.js'
 import { fmtChf } from '../stats.js'
 
 function fmtDateTime(iso) {
   if (!iso) return null
   return new Date(iso).toLocaleString('de-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
+
+// Hinweis zu den Auswirkungen beim Speichern (technisch geprüft: gespeicherte
+// Pre-Game-Snapshots in db.predictions werden von Einstellungen nie verändert;
+// ELO-Rangliste/-Verlauf, Power Ranking, Simulationen und Prognosen OHNE
+// Snapshot werden live aus den Einstellungen berechnet, neue Snapshots
+// (server/scripts/predictions.js) lesen sie beim Erstellen).
+function SaveImpactNote() {
+  return (
+    <div className="muted" style={{ fontSize: 12, marginTop: 8, lineHeight: 1.5 }}>
+      ⚠️ Änderungen gelten für neue Berechnungen und Prognosen (ELO-Rangliste und -Verlauf, Power Ranking,
+      Simulationen, neue Spiel-Prognosen). <strong>Bereits gespeicherte Pre-Game-Prognosen (Snapshots) werden nicht
+      rückwirkend verändert.</strong> Das heutige ELO wird mit den neuen Werten aber komplett neu durchgerechnet.
+    </div>
+  )
+}
+
+// Kompakte Übersicht der AKTIV gespeicherten Modellkonfiguration (liest
+// data.settings bzw. dieselben Defaults/Fallbacks wie die Berechnung selbst,
+// nicht die noch ungespeicherten Eingabefelder darunter).
+function ModelConfigCard() {
+  const { data, derived } = useData()
+  const s = data.settings
+  const priorEnabled = s.marketValuePriorEnabled !== false
+  const spread = s.priorSpread ?? DEFAULT_PRIOR_SPREAD
+  const restEnabled = s.restDaysEnabled !== false
+  const b2b = (s.backToBackPenalty ?? DEFAULT_BACK_TO_BACK_PENALTY) * 100
+  const eloStart = s.eloStart ?? ELO_CONFIG.eloStart
+  const eloK = s.eloK ?? ELO_CONFIG.baseK
+  const homeAdv = s.eloHomeAdvantage ?? ELO_CONFIG.homeAdvantage
+  const sourceLabel = derived.eloPriorSource === 'marketValue' ? 'Kader-Marktwert'
+    : derived.eloPriorSource === 'historicalArchive' ? 'Vorsaison-Archiv' : 'Einheitlicher Startwert'
+  const Row = ({ label, value, hint }) => (
+    <div className="stat" style={{ minWidth: 150 }}>
+      <strong>{value}</strong><span>{label}</span>
+      {hint && <span className="muted" style={{ fontSize: 10.5, display: 'block' }}>{hint}</span>}
+    </div>
+  )
+  return (
+    <div className="card card-pad mb">
+      <h2>Aktuelle Modellkonfiguration</h2>
+      <div className="muted" style={{ fontSize: 12.5, marginBottom: 10 }}>
+        Gespeicherter, aktiver Stand. Diese Einstellungen beeinflussen neue Prognosen und Simulationen.
+      </div>
+      <div className="stat-strip">
+        <Row label="Marktwert-Prior" value={priorEnabled ? 'Aktiviert' : 'Deaktiviert'} hint={`Start-ELO-Quelle: ${sourceLabel}`} />
+        <Row label="Prior-Spread" value={priorEnabled ? `±${spread} ELO` : '–'} hint={priorEnabled ? undefined : 'nur bei aktivem Prior'} />
+        <Row label="Back-to-back" value={restEnabled ? 'Aktiviert' : 'Deaktiviert'} />
+        <Row label="B2B-Anpassung" value={restEnabled ? `${b2b.toLocaleString('de-CH', { maximumFractionDigits: 1 })} %` : '–'} hint={restEnabled ? undefined : 'nur bei aktiver Funktion'} />
+        <Row label="ELO-Startwert" value={eloStart} />
+        <Row label="K-Faktor" value={eloK} />
+        <Row label="Heimvorteil" value={`+${homeAdv} ELO`} />
+      </div>
+    </div>
+  )
 }
 
 // Prognose-Erweiterungen (Marktwert-Prior + Ruhetage/Back-to-back) - eigene
@@ -79,6 +135,15 @@ function PredictionSettingsCard() {
             </div>
           </div>
         )}
+        {marketValuePriorEnabled && (
+          <div className="muted" style={{ fontSize: 12, marginTop: 6, marginLeft: 24, lineHeight: 1.5 }}>
+            Der Spread bestimmt, wie stark Marktwert-Unterschiede ins Start-ELO einfliessen: Das Team mit der
+            grössten Abweichung vom Ligamittel startet um genau diesen Wert über bzw. unter {eloStart}, alle anderen
+            proportional dazwischen (Ø bleibt {eloStart}). Kleinerer Spread = Teams starten näher beieinander,
+            grösserer Spread = Marktwert zählt stärker. Bei 0 starten alle Teams gleich bei {eloStart}
+            (der Marktwert hat dann keinen Einfluss mehr).
+          </div>
+        )}
       </div>
 
       <div className="mb">
@@ -102,6 +167,7 @@ function PredictionSettingsCard() {
       </div>
 
       <div className="mt"><button className="btn primary" onClick={savePredictionSettings}>Speichern</button></div>
+      <SaveImpactNote />
 
       <h3 className="mt-lg">Start-ELOs (Vorschau)</h3>
       {!hasMarketData && (
@@ -256,6 +322,8 @@ export default function Settings() {
     <>
       <div className="page-head"><div><h1>Einstellungen</h1><div className="sub">Saison, ELO-Parameter und Backup</div></div></div>
 
+      <ModelConfigCard />
+
       <div className="grid grid-2">
         <div className="card card-pad">
           <h2>Saison & ELO</h2>
@@ -275,6 +343,7 @@ export default function Settings() {
             reguläre Siege (1,0).
           </div>
           <div className="mt"><button className="btn primary" onClick={saveSettings}>Speichern</button></div>
+          <SaveImpactNote />
         </div>
 
         <div className="card card-pad">
