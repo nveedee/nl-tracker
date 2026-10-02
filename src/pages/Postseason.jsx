@@ -34,6 +34,7 @@ const OPPONENT_TABS = [
 function fmtPct(v) {
   if (v == null) return '–'
   const pct = v * 100
+  if (pct > 0 && pct < 0.05) return '<0,1%'
   if (pct > 0 && pct < 1) return pct.toFixed(1) + '%'
   return Math.round(pct) + '%'
 }
@@ -232,9 +233,26 @@ export default function Postseason() {
               <div className="card mb">
                 <div style={{ padding: '10px 16px 0' }}><Tabs tabs={OPPONENT_TABS} active={oppTab} onChange={setOppTab} /></div>
                 <div className="card-pad">
-                  {tp[oppTab].opponents.length === 0 && (
-                    <div className="muted" style={{ fontSize: 12.5 }}>Dieses Team erreicht diese Runde in keinem Simulationslauf.</div>
-                  )}
+                  {(() => {
+                    // Anzahl Läufe, in denen das Team diese Runde erreicht (= Basis der bedingten Verteilung)
+                    const reachedRuns = Math.round(tp[oppTab].reachProbability * aggregate.runs)
+                    const stageName = OPPONENT_TABS.find((t) => t.key === oppTab)?.label
+                    if (reachedRuns === 0 || tp[oppTab].opponents.length === 0) {
+                      return (
+                        <div className="muted" style={{ fontSize: 12.5 }}>
+                          <strong>Keine {stageName}-Teilnahme simuliert</strong> – dieses Team erreicht diese Runde in 0,0 % der {aggregate.runs.toLocaleString('de-CH')} Läufe.
+                        </div>
+                      )
+                    }
+                    if (reachedRuns < aggregate.runs / 100) {
+                      return (
+                        <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>
+                          ⚠️ Sehr kleine Stichprobe: Das Team erreicht diese Runde nur in {reachedRuns.toLocaleString('de-CH')} von {aggregate.runs.toLocaleString('de-CH')} Läufen ({fmtPct(tp[oppTab].reachProbability)}). Die bedingte Gegnerverteilung unten basiert nur auf diesen Läufen und ist wenig aussagekräftig.
+                        </div>
+                      )
+                    }
+                    return null
+                  })()}
                   {tp[oppTab].opponents.map((o) => {
                     const opp = teamById.get(o.opponentId)
                     return (
