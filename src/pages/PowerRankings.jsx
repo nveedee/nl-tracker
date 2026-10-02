@@ -41,8 +41,9 @@ export default function PowerRankings() {
       <div className="page-head">
         <div>
           <h1>Power Ranking</h1>
+          <div className="muted" style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 2 }}>0–100 relativer Liga-Score · keine Prozentwerte</div>
           <div className="sub">
-            Siegkraft {Math.round(weights.strength * 100)}% (ELO {Math.round(w.elo * 100)}% + Pts/Sp {Math.round(w.pointsPerGame * 100)}% + Win% {Math.round(w.winRate * 100)}%)
+            Siegkraft · Gewichtung {Math.round(weights.strength * 100)}% (ELO {Math.round(w.elo * 100)}% + Pts/Sp {Math.round(w.pointsPerGame * 100)}% + Win% {Math.round(w.winRate * 100)}%)
             {' '}· Offensive {Math.round(weights.offense * 100)}% · Defensive {Math.round(weights.defense * 100)}% · Form {Math.round(weights.form * 100)}%
           </div>
           {derived.eloPriorSource === 'marketValue' && (
@@ -60,7 +61,7 @@ export default function PowerRankings() {
               <tr>
                 <th className="left">#</th>
                 <th className="left">Team</th>
-                <th className="num">Power</th>
+                <th className="num">Power Score</th>
                 <th className="num" title="Anzahl abgeschlossener Spiele, auf denen das Ranking basiert">SP</th>
                 <th className="num">ELO</th>
                 <th className="num">OFF</th>
