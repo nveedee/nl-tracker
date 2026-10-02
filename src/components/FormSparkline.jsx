@@ -5,7 +5,7 @@
 // Teamfarben sind die bestehenden, app-weiten Markenfarben (homeTeam.color/
 // awayTeam.color, siehe ExpectedGoals.jsx etc.), keine neue Palette.
 const WIDTH = 280
-const HEIGHT = 64
+const HEIGHT = 96
 const PAD = 6
 
 function cumulativePoints(games, teamId) {

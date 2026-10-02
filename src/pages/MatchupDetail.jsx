@@ -523,7 +523,17 @@ export default function MatchupDetail() {
       {!showLiveDemo && !showReplay && analysis && (
         <div className="card mb">
           <div className="card-pad" style={{ paddingBottom: 0 }}>
-            <h2>Pre-Game Snapshot</h2>
+            <div className="row spread" style={{ alignItems: 'baseline', flexWrap: 'wrap', rowGap: 4 }}>
+              <h2>Vor dem Spiel</h2>
+              <span className="chip" title="Nur Werte, die vor Spielbeginn gespeichert bzw. aus Spielen davor berechnet wurden">
+                {predictionSnapshot ? `Eingefroren · ${fmtDateTime(predictionSnapshot.createdAt)}` : 'Pre-Game'}
+              </span>
+            </div>
+            {played && (pgEloHome == null || pgPowerHome == null) && (
+              <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>
+                Kein gespeicherter Pre-Game-Wert für {pgEloHome == null && pgPowerHome == null ? 'ELO und Power Score' : pgEloHome == null ? 'ELO' : 'Power Score'} vorhanden – heutige Werte werden bewusst nicht eingesetzt.
+              </div>
+            )}
           </div>
           <div className="table-wrap" style={{ border: 'none' }}>
             <table>
@@ -681,7 +691,10 @@ export default function MatchupDetail() {
           {/* 2. Teamvergleich */}
           <div className="card mb">
             <div className="card-pad" style={{ paddingBottom: 0 }}>
-              <h2>Teamvergleich</h2>
+              <div className="row spread" style={{ alignItems: 'baseline', flexWrap: 'wrap', rowGap: 4 }}>
+                <h2>Teamvergleich</h2>
+                <span className="chip" title="Heutiger Stand, nicht der Stand vor dem Spiel">{played ? 'AKTUELL · heutiger Stand, nicht vor dem Spiel' : 'AKTUELL'}</span>
+              </div>
             </div>
             <div className="table-wrap" style={{ border: 'none' }}>
               <table>
@@ -722,7 +735,10 @@ export default function MatchupDetail() {
 
           {/* 3. Form */}
           <div className="card card-pad mb">
-            <h2>Aktuelle Form</h2>
+            <div className="row spread" style={{ alignItems: 'baseline', flexWrap: 'wrap', rowGap: 4, marginBottom: 8 }}>
+              <h2>Aktuelle Form</h2>
+              <span className="chip">AKTUELL · letzte 5 Spiele bis heute</span>
+            </div>
             <div className="grid grid-2">
               {[[homeTeam, analysis.formHome], [awayTeam, analysis.formAway]].map(([t, f]) => (
                 <div key={t.id}>
@@ -754,7 +770,10 @@ export default function MatchupDetail() {
               (cutoffGames, kein Leakage bei bereits gespielten Spielen) +
               Formverlauf-Sparkline (kumulierte Punkte, letzte 10 Spiele). */}
           <div className="card card-pad mb">
-            <h2 className="mb">Formvergleich</h2>
+            <div className="row spread mb" style={{ alignItems: 'baseline', flexWrap: 'wrap', rowGap: 4 }}>
+              <h2>Formvergleich</h2>
+              <span className="chip">VOR DEM SPIEL · nur frühere Spiele</span>
+            </div>
             <div className="table-wrap" style={{ marginBottom: 16 }}>
               <table>
                 <thead>
@@ -787,7 +806,16 @@ export default function MatchupDetail() {
               <div className="muted mt">Keine historischen Daten verfügbar.</div>
             ) : (
               <>
-                <div className="grid grid-2" style={{ marginTop: 16, marginBottom: 16 }}>
+                <div style={{ textAlign: 'center', margin: '14px 0 12px' }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--mono)' }}>
+                    {homeTeam.short} {analysis.overall.home.wins} – {analysis.overall.away.wins} {awayTeam.short}
+                  </div>
+                  <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>
+                    {analysis.overall.home.gf}:{analysis.overall.home.ga} Tore · {analysis.overall.home.otw + analysis.overall.home.sow}:{analysis.overall.away.otw + analysis.overall.away.sow} OT/SO-Siege · {analysis.overall.home.gp} Spiele
+                  </div>
+                </div>
+                <div className="section-label">Details je Team</div>
+                <div className="grid grid-2" style={{ marginTop: 8, marginBottom: 12 }}>
                   {[[homeTeam, analysis.overall.home], [awayTeam, analysis.overall.away]].map(([t, r]) => (
                     <div key={t.id}>
                       <div className="row gap-sm" style={{ marginBottom: 8 }}><TeamBadge team={t} link={false} /></div>
@@ -926,7 +954,7 @@ export default function MatchupDetail() {
             return (
               <div className="card card-pad mb">
                 <div className="row spread" style={{ alignItems: 'baseline', flexWrap: 'wrap', rowGap: 4 }}>
-                  <div className="section-label">Pre-Game Prediction</div>
+                  <div className="section-label">Modellprognose vor dem Spiel</div>
                   <span className="muted" style={{ fontSize: 11 }} title={`Modellversion: ${predictionSnapshot.modelVersion} · Seed: ${predictionSnapshot.seed}`}>
                     Eingefroren · {fmtDateTime(predictionSnapshot.createdAt)}
                   </span>
