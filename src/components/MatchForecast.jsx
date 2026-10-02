@@ -88,10 +88,10 @@ export default function MatchForecast({ forecasts, title = 'Per-Match-Forecast',
               </div>
               {hasExtras && f.expHomeGoals != null && (
                 <div className="match-extra">
-                  <span><span className="muted">xG</span> {f.expHomeGoals.toFixed(1)}–{f.expAwayGoals.toFixed(1)}</span>
+                  <span title="Erwartete Tore laut Prognosemodell (ELO + Schussfaktor) - kein xG aus Schussqualität"><span className="muted">Erw. Tore</span> {f.expHomeGoals.toFixed(1)}–{f.expAwayGoals.toFixed(1)}</span>
                   <span><span className="muted">OT</span> {fmtPct(f.pOT)}</span>
                   <span><span className="muted">SO</span> {fmtPct(f.pSO)}</span>
-                  {f.eloHome != null && <span><span className="muted">ELO</span> {Math.round(f.eloHome)}–{Math.round(f.eloAway)}</span>}
+                  {f.eloHome != null && <span title={f.predictionSource === 'snapshot' ? 'ELO vor dem Spiel (gespeicherter Pre-Game-Snapshot)' : 'Aktuelles ELO (kein Snapshot gespeichert)'}><span className="muted">{f.predictionSource === 'snapshot' ? 'Pre-Game ELO' : 'ELO aktuell'}</span> {Math.round(f.eloHome)}–{Math.round(f.eloAway)}</span>}
                   {f.restNote && <span title={f.restNote}><span className="muted">B2B</span></span>}
                 </div>
               )}

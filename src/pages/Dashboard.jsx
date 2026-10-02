@@ -28,7 +28,6 @@ import { computeLeagueMarketMovers } from '../marketValueHistory.js'
 import { usePlayerHistory, usePositionBaselines, getPlayerSeasons, computeImpactScore, POSITION_LABEL } from '../playerHistory.js'
 import MatchForecast from '../components/MatchForecast.jsx'
 import LiveNowSection from '../components/LiveNowSection.jsx'
-import SyncStatus from '../components/SyncStatus.jsx'
 
 const PULSE_MARKET_WINDOW_DAYS = 14
 
@@ -211,7 +210,7 @@ export default function Dashboard() {
         <div>
           <h1>{data.settings.seasonName}</h1>
         </div>
-        <SyncStatus />
+        {/* Sync-Status steht global in der Topbar (App.jsx) - keine zweite Instanz hier, sonst können zwei getrennte Abfragen abweichende Zustände zeigen. */}
       </div>
 
       {games.length === 0 ? (
@@ -436,7 +435,7 @@ export default function Dashboard() {
 
           {/* F) Ligaform */}
           <div className="card card-pad" style={{ marginTop: 16 }}>
-            <SectionHeader title="Aktuelle Form" caption="Letzte 5 Spiele je Team (nur diese Saison), Tabellenreihenfolge." />
+            <SectionHeader title="Aktuelle Form" caption="Letzte 5 Spiele je Team (nur diese Saison), Tabellenreihenfolge. S = Sieg, OTS = Sieg n.V./SO, N = Niederlage, OTN = Niederlage n.V./SO." />
             {leagueForm.map((r) => (
               <div key={r.team.id} className="row spread" style={{ padding: '7px 0', borderBottom: '1px solid var(--border)', gap: 8, flexWrap: 'wrap' }}>
                 <span style={{ width: 70, flex: 'none' }}><TeamBadge team={r.team} short /></span>
@@ -455,6 +454,7 @@ export default function Dashboard() {
   )
 }
 
+const PILL_TITLE = { S: 'Sieg nach regulärer Spielzeit', OTS: 'Sieg nach Verlängerung/Shootout', N: 'Niederlage nach regulärer Spielzeit', OTN: 'Niederlage nach Verlängerung/Shootout' }
 const PILL_STYLE = { S: 'var(--good)', OTS: 'var(--good)', N: 'var(--bad)', OTN: 'var(--bad)' }
 // Eine Pill pro Spiel (OTS/OTN = EIN Ergebnis). computeTeamForm liefert die
 // Ergebnisse neueste zuerst - hier ältestes links, neuestes rechts.
@@ -464,7 +464,7 @@ function FormPills({ form }) {
   return (
     <span className="row" style={{ gap: 4, flexWrap: 'nowrap' }}>
       {letters.map((l, i) => (
-        <span key={i} style={{ display: 'inline-block', minWidth: 28, textAlign: 'center', padding: '2px 4px', borderRadius: 5, fontSize: 11, fontWeight: 700, color: '#fff', background: PILL_STYLE[l] || 'var(--text-dim)' }}>{l}</span>
+        <span key={i} title={PILL_TITLE[l]} style={{ display: 'inline-block', minWidth: 28, textAlign: 'center', padding: '2px 4px', borderRadius: 5, fontSize: 11, fontWeight: 700, color: '#fff', background: PILL_STYLE[l] || 'var(--text-dim)' }}>{l}</span>
       ))}
     </span>
   )
