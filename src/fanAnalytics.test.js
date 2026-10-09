@@ -6,6 +6,7 @@ import {
   hasRealAttendance,
   pearsonCorrelation,
   resultForTeam,
+  summarizeSelectedUtilization,
   weekdayForDate,
 } from './fanAnalytics.js'
 import { ARENA_CAPACITIES, capacityForGame } from './arenaCapacities.js'
@@ -358,4 +359,37 @@ test('games with missing attendance or unknown capacity do not enter utilization
   assert.equal(result.averageUtilization, (10000 / 17031) * 100)
   assert.equal(result.missingAttendanceGames, 1)
   assert.equal(result.attendanceWithoutCapacity, 1)
+})
+
+test('selected utilization follows the filtered games and uses each game home arena', () => {
+  const selected = buildFanAnalytics({
+    games,
+    teams,
+    filters: { teamId: 'a', venuePerspective: 'away' },
+  })
+  const summary = summarizeSelectedUtilization(selected.observedGames, {
+    ...ARENA_CAPACITIES,
+    a: { ...ARENA_CAPACITIES.team_ajo, confidence: 'provisional', capacityPeriods: [{ validFrom: '2026-07-01', validTo: '2027-06-30', capacity: 1000 }] },
+    b: { ...ARENA_CAPACITIES.team_bie, confidence: 'provisional', capacityPeriods: [{ validFrom: '2026-07-01', validTo: '2027-06-30', capacity: 2000 }] },
+  })
+
+  assert.deepEqual(selected.observedGames.map((entry) => entry.id), ['g2'])
+  assert.equal(summary.games, 1)
+  assert.equal(summary.average, 45)
+  assert.equal(summary.withoutCapacity, 0)
+  assert.equal(summary.conflicts.length, 0)
+
+  const noCapacity = summarizeSelectedUtilization(selected.observedGames, {
+    ...ARENA_CAPACITIES,
+    b: { ...ARENA_CAPACITIES.team_bie, confidence: 'unverified', capacityPeriods: [] },
+  })
+  assert.equal(noCapacity.average, null)
+  assert.equal(noCapacity.withoutCapacity, 1)
+
+  const overCapacity = summarizeSelectedUtilization(selected.observedGames, {
+    ...ARENA_CAPACITIES,
+    b: { ...ARENA_CAPACITIES.team_bie, capacityPeriods: [{ validFrom: '2026-07-01', validTo: '2027-06-30', capacity: 100 }] },
+  })
+  assert.equal(overCapacity.average, 900)
+  assert.equal(overCapacity.conflicts.length, 1)
 })

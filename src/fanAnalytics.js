@@ -204,6 +204,30 @@ export function buildArenaUtilization({
   }
 }
 
+/** Summarizes capacity utilization for the currently selected game set. */
+export function summarizeSelectedUtilization(games = [], capacities = ARENA_CAPACITIES) {
+  const eligibleGames = games.filter((game) => isFinalGame(game) && hasRealAttendance(game))
+  const withoutCapacity = []
+  const observations = eligibleGames.flatMap((game) => {
+    const capacity = capacityForGame(game.homeTeamId, game.date, capacities)
+    if (capacity == null) {
+      withoutCapacity.push(game)
+      return []
+    }
+    const utilization = (game.attendance / capacity) * 100
+    return [{ game, attendance: game.attendance, capacity, utilization, capacityConflict: utilization > 100 }]
+  })
+  return {
+    observations,
+    games: observations.length,
+    average: observations.length
+      ? observations.reduce((sum, observation) => sum + observation.utilization, 0) / observations.length
+      : null,
+    withoutCapacity: withoutCapacity.length,
+    conflicts: observations.filter((observation) => observation.capacityConflict),
+  }
+}
+
 export function buildFanAnalytics({ games = [], teams = [], standings = [], filters = {}, formLength = 5 } = {}) {
   const teamById = new Map(teams.map((team) => [team.id, team]))
   const allFinalGames = games.filter(isFinalGame)

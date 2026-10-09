@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useData } from '../DataContext.jsx'
-import { buildArenaUtilization, buildFanAnalytics, weekdayForDate } from '../fanAnalytics.js'
+import { buildArenaUtilization, buildFanAnalytics, summarizeSelectedUtilization, weekdayForDate } from '../fanAnalytics.js'
 
 const nf = new Intl.NumberFormat('de-CH', { maximumFractionDigits: 0 })
 const oneDecimal = new Intl.NumberFormat('de-CH', { maximumFractionDigits: 1, minimumFractionDigits: 1 })
@@ -121,7 +121,7 @@ function MiniBars({ title, detail, rows, emptyText, selectedKey, onSelect }) {
   )
 }
 
-function TeamComparison({ analysis, selectedTeamId, onSelect }) {
+function TeamComparison({ analysis, selectedTeamId, standings, onSelect }) {
   const [rankMode, setRankMode] = useState('utilization')
   const isUtilization = rankMode === 'utilization'
   const ranked = isUtilization ? analysis.ranking : analysis.attendanceRanking
@@ -130,6 +130,7 @@ function TeamComparison({ analysis, selectedTeamId, onSelect }) {
     .sort((a, b) => a.team.name.localeCompare(b.team.name))]
   const valueFor = (row) => isUtilization ? row.averageUtilization : row.averageAttendance
   const max = Math.max(...ordered.map((row) => valueFor(row) || 0), 1)
+  const tableRankById = new Map((standings || []).map((row, index) => [row.team?.id || row.id, index + 1]))
   if (!ordered.length) return <EmptyChart title="Noch kein Team mit Messwerten" detail="Erfasste Heimspiele erscheinen hier, sobald Zuschauerzahlen vorliegen." />
   return (
     <div className="fan-arena-ranking">
@@ -142,6 +143,7 @@ function TeamComparison({ analysis, selectedTeamId, onSelect }) {
           const value = valueFor(row)
           const unresolved = row.capacityConfidence === 'unverified'
           const sampleSize = isUtilization ? row.utilizationGames : row.attendanceGames
+          const tableRank = tableRankById.get(row.team.id)
           const title = `${row.arena || row.team.name} · Quelle: ${row.capacitySource || 'keine'} · geprüft am ${row.capacityCheckedAt || 'unbekannt'}${row.capacityConfidence === 'provisional' ? ' · Kapazität vorläufig' : ''}`
           return <button type="button" key={row.team.id} title={title} className={`fan-team-row fan-arena-team-row${selectedTeamId === row.team.id ? ' selected' : ''}`} onClick={() => onSelect(selectedTeamId === row.team.id ? '' : row.team.id)} aria-pressed={selectedTeamId === row.team.id}>
             <span className="fan-team-name"><i style={{ background: row.team.color || 'var(--accent)' }} />{row.team.short || row.team.name}</span>
@@ -151,9 +153,9 @@ function TeamComparison({ analysis, selectedTeamId, onSelect }) {
             <span className="fan-arena-status">
               {row.state === 'no-home-games-yet' && <span className="fan-status-badge">Noch keine Heimspiele{row.upcomingHomeGames ? ` · ${row.upcomingHomeGames} geplant` : ''}</span>}
               {unresolved && <span className="fan-status-badge is-warning">Kapazität ungeklärt</span>}
-              {row.capacityConfidence === 'provisional' && <span className="fan-status-badge">Kapazität vorläufig</span>}
-              {sampleSize > 0 && <span className="fan-status-badge">{sampleSize < analysis.preliminarySampleSize ? 'Schnitt vorläufig' : 'Saisonwert'} · n={sampleSize}</span>}
-              {row.capacityConflicts.length > 0 && <span className="fan-status-badge is-conflict">Möglicher Daten- oder Kapazitätskonflikt</span>}
+              {isUtilization && row.capacityConfidence === 'provisional' && <span className="fan-status-badge">Kapazität vorläufig</span>}
+              {sampleSize > 0 && <span className="fan-status-badge">{sampleSize < analysis.preliminarySampleSize ? 'Vorläufig · ' : ''}n={sampleSize}</span>}
+              {tableRank != null && <span className="fan-status-badge">Tabellenplatz #{tableRank}</span>}
             </span>
           </button>
         })}
@@ -166,6 +168,7 @@ function TeamComparison({ analysis, selectedTeamId, onSelect }) {
           <span>{row.capacityPeriods.length === 0 ? 'Kapazität ungeklärt' : row.capacityPeriods.map((period) => `${nf.format(period.capacity)} Plätze (${period.validFrom}–${period.validTo})`).join(' · ')}</span>
           <span>Geprüft am {row.capacityCheckedAt || 'unbekannt'} · {row.capacityConfidence === 'unverified' ? 'ungeprüft' : 'vorläufig'}</span>
           {row.capacityNote && <span>{row.capacityNote}</span>}
+          {row.capacityConflicts.length > 0 && <span className="fan-capacity-conflict-note">Mögliche Kapazitäts- oder Datenkonflikte: {row.capacityConflicts.map((entry) => `${fmtDate(entry.game.date)} · ${fmtUtilization(entry.utilization)}`).join(' · ')}</span>}
           {row.capacitySource && <a href={row.capacitySource} target="_blank" rel="noreferrer">Quelle öffnen</a>}
         </li>)}</ul>
       </details>
@@ -173,44 +176,36 @@ function TeamComparison({ analysis, selectedTeamId, onSelect }) {
   )
 }
 
-function FormScatter({ points, correlation }) {
+function FormScatter({ points, correlation, teamById }) {
   if (!points.length) return <EmptyChart title="Noch keine Form-Vorgeschichte" detail="Für diese Spiele sind keine früheren Resultate des betrachteten Teams vorhanden." />
-  const width = 620, height = 258
-  const pad = { left: 52, right: 16, top: 18, bottom: 42 }
+  const width = 720, height = 292
+  const pad = { left: 62, right: 18, top: 18, bottom: 48 }
   const maxAttendance = Math.max(...points.map((point) => point.y), 1000)
   const ceiling = Math.ceil(maxAttendance / 2000) * 2000
   const x = (value) => pad.left + (value / 3) * (width - pad.left - pad.right)
   const y = (value) => height - pad.bottom - (value / ceiling) * (height - pad.top - pad.bottom)
+  const teams = [...new Map(points.filter((point) => point.team).map((point) => [point.team.id, point.team])).values()]
   return (
-    <div className="fan-svg-scroll">
-      <svg className="fan-scatter-svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Zuschauerzahl im Vergleich zur Punkteform vor dem Spiel">
-        {[0, 1, 2, 3].map((tick) => <g key={tick}><line x1={pad.left} x2={width - pad.right} y1={y(tick * ceiling / 3)} y2={y(tick * ceiling / 3)} className="fan-grid-line" /><text x={pad.left - 8} y={y(tick * ceiling / 3) + 4} textAnchor="end" className="fan-axis-label">{fmtCount(tick * ceiling / 3)}</text></g>)}
-        <text x="12" y={(pad.top + height - pad.bottom) / 2} transform={`rotate(-90 12 ${(pad.top + height - pad.bottom) / 2})`} textAnchor="middle" className="fan-axis-label">Zuschauer</text>
-        {[0, 1, 2, 3].map((tick) => <g key={tick}><line x1={x(tick)} x2={x(tick)} y1={pad.top} y2={height - pad.bottom} className="fan-grid-line vertical" /><text x={x(tick)} y={height - 13} textAnchor="middle" className="fan-axis-label">{tick} Pkt./Sp.</text></g>)}
-        {points.map((point) => <circle key={point.game.id} cx={x(point.x)} cy={y(point.y)} r="5" fill={point.team?.color || 'var(--accent)'} className="fan-scatter-point"><title>{`${point.game.date} · ${point.team?.short || 'Team'} · ${fmtCount(point.y)} Zuschauer · Form ${fmtAverage(point.x)} Punkte/Spiel aus ${point.priorGames} vorherigen Spielen`}</title></circle>)}
-      </svg>
-      <div className="fan-correlation">Pearson r {correlation == null ? 'nicht berechenbar' : oneDecimal.format(correlation)} <span>·</span> n={points.length}</div>
-    </div>
-  )
-}
-
-function RankScatter({ rows }) {
-  if (rows.length < 4) return <EmptyChart title="Zu wenig Teamdaten für den Querschnitt" detail={`Benötigt mindestens vier Teams mit Heim-Zuschauerschnitt; vorhanden: ${rows.length}.`} />
-  const width = 560, height = 252
-  const pad = { left: 56, right: 18, top: 18, bottom: 42 }
-  const maxRank = Math.max(...rows.map((row) => row.rank), 1)
-  const maxAttendance = Math.max(...rows.map((row) => row.average), 1000)
-  const ceiling = Math.ceil(maxAttendance / 2000) * 2000
-  const x = (rank) => pad.left + ((rank - 1) / Math.max(1, maxRank - 1)) * (width - pad.left - pad.right)
-  const y = (value) => height - pad.bottom - (value / ceiling) * (height - pad.top - pad.bottom)
-  return (
-    <div className="fan-svg-scroll">
-      <svg className="fan-rank-svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Aktuelle Tabellenposition und durchschnittliche Zuschauerzahl bei Heimspielen">
-        {[0, 0.5, 1].map((fraction) => <g key={fraction}><line x1={pad.left} x2={width - pad.right} y1={y(ceiling * fraction)} y2={y(ceiling * fraction)} className="fan-grid-line" /><text x={pad.left - 8} y={y(ceiling * fraction) + 4} textAnchor="end" className="fan-axis-label">{fmtCount(ceiling * fraction)}</text></g>)}
-        <text x="13" y={(pad.top + height - pad.bottom) / 2} transform={`rotate(-90 13 ${(pad.top + height - pad.bottom) / 2})`} textAnchor="middle" className="fan-axis-label">Ø Zuschauer</text>
-        {[1, Math.round(maxRank / 2), maxRank].map((rank, index) => <text key={`${rank}-${index}`} x={x(rank)} y={height - 13} textAnchor="middle" className="fan-axis-label">Rang {rank}</text>)}
-        {rows.map((row) => <g key={row.team.id}><circle cx={x(row.rank)} cy={y(row.average)} r="6" fill={row.team.color || 'var(--accent)'} className="fan-scatter-point"><title>{`Rang ${row.rank} · ${row.team.name} · Ø ${fmtCount(row.average)} · n=${row.recorded}/${row.games}`}</title></circle><text x={x(row.rank)} y={y(row.average) - 10} textAnchor="middle" className="fan-rank-team-label">{row.team.short}</text></g>)}
-      </svg>
+    <div className="fan-form-chart">
+      <div className="fan-chart-meta"><span>Explorativ · Pearson r <strong>{correlation == null ? '–' : oneDecimal.format(correlation)}</strong></span><i /><span>n={points.length}{points.length < 30 ? ' · kleine Stichprobe' : ''}</span></div>
+      <div className="fan-svg-scroll">
+        <svg className="fan-scatter-svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Zuschauerzahl im Vergleich zur Punkteform vor dem Spiel">
+          {[0, 0.25, 0.5, 0.75, 1].map((fraction) => <g key={fraction}><line x1={pad.left} x2={width - pad.right} y1={y(ceiling * fraction)} y2={y(ceiling * fraction)} className="fan-grid-line" /><text x={pad.left - 9} y={y(ceiling * fraction) + 4} textAnchor="end" className="fan-axis-label">{fmtCount(ceiling * fraction)}</text></g>)}
+          <text x="14" y={(pad.top + height - pad.bottom) / 2} transform={`rotate(-90 14 ${(pad.top + height - pad.bottom) / 2})`} textAnchor="middle" className="fan-axis-label">Zuschauer</text>
+          {[0, 1, 2, 3].map((tick) => <g key={tick}><text x={x(tick)} y={height - 25} textAnchor="middle" className="fan-axis-label">{tick}</text></g>)}
+          <text x={(pad.left + width - pad.right) / 2} y={height - 5} textAnchor="middle" className="fan-axis-title">Punkte pro Spiel vor der Partie (bis zu 5 Spiele)</text>
+          {points.map((point) => {
+            const home = teamById.get(point.game.homeTeamId)?.name || 'Heimteam'
+            const away = teamById.get(point.game.awayTeamId)?.name || 'Auswärtsteam'
+            const matchup = `${home} ${point.game.homeGoals}–${point.game.awayGoals} ${away}`
+            const tooltip = `${point.game.date} · ${point.team?.name || 'Team'} · ${matchup} · ${fmtCount(point.y)} Zuschauer · Form ${fmtAverage(point.x)} Punkte/Spiel aus ${point.priorGames} vorherigen Spielen`
+            return <circle key={point.game.id} cx={x(point.x)} cy={y(point.y)} r="4.5" fill={point.team?.color || 'var(--accent)'} className="fan-scatter-point"><title>{tooltip}</title></circle>
+          })}
+        </svg>
+      </div>
+      <div className="fan-form-legend" aria-label="Teams im Diagramm">
+        {teams.map((team) => <span key={team.id}><i style={{ background: team.color || 'var(--accent)' }} />{team.short || team.name}</span>)}
+      </div>
     </div>
   )
 }
@@ -261,6 +256,8 @@ export default function FanAnalytics() {
     teams: data?.teams || [],
   }), [arenaGames, data?.teams])
 
+  const selectedUtilization = useMemo(() => summarizeSelectedUtilization(analytics.observedGames), [analytics.observedGames])
+
   const teamById = useMemo(() => new Map((data?.teams || []).map((team) => [team.id, team])), [data?.teams])
   const selectedTeam = teamById.get(teamId)
   const perspectiveText = !selectedTeam
@@ -274,6 +271,10 @@ export default function FanAnalytics() {
   const resetFilters = () => { setTeamId(''); setVenuePerspective('all'); setFrom(''); setTo(''); setWeekday('') }
   const activeFilters = Boolean(teamId || from || to || weekday !== '')
   const hasFinals = finals.length > 0
+  const formCorrelationIsWeak = analytics.formCorrelation != null && Math.abs(analytics.formCorrelation) < 0.3
+  const formInterpretation = formCorrelationIsWeak
+    ? 'In diesen Spielen ist kein klarer linearer Zusammenhang erkennbar.'
+    : 'Der beobachtete Zusammenhang ist explorativ und keine Aussage über Ursache und Wirkung.'
 
   return (
     <div className="fan-page">
@@ -303,9 +304,7 @@ export default function FanAnalytics() {
         <section className="fan-stats" aria-label="Kennzahlen zur aktuellen Auswahl">
           <StatCard label="Zuschauer im Ausschnitt" value={fmtCount(analytics.totalAttendance)} detail={`${analytics.observedGames.length} Spiele mit echtem Wert`} accent />
           <StatCard label="Schnitt pro Spiel" value={fmtAverage(analytics.average)} detail={`Abdeckung ${analytics.coverage == null ? '–' : percent.format(analytics.coverage)} · ${analytics.missingAttendance} ohne Wert`} />
-          <StatCard label="Ø Stadionauslastung" value={fmtUtilization(arenaUtilization.averageUtilization)} detail={`n=${arenaUtilization.utilizationGames} Heimspiele · ${arenaUtilization.attendanceWithoutCapacity} ohne Kapazität · ${arenaUtilization.missingAttendanceGames} ohne Zuschauerwert${arenaUtilization.averageUtilization > 100 ? ' · möglicher Kapazitätskonflikt' : ''}`} />
-          <StatCard label="Höchster Besuch" value={fmtCount(analytics.highest?.attendance)} detail={analytics.highest ? `${fmtDate(analytics.highest.date)} · ${teamById.get(analytics.highest.homeTeamId)?.short || 'Heim'}` : '–'} />
-          <StatCard label="Niedrigster Besuch" value={fmtCount(analytics.lowest?.attendance)} detail={analytics.lowest ? `${fmtDate(analytics.lowest.date)} · ${teamById.get(analytics.lowest.homeTeamId)?.short || 'Heim'}` : '–'} />
+          <StatCard label="Ø Stadionauslastung" value={fmtUtilization(selectedUtilization.average)} detail={`Vorläufig · n=${selectedUtilization.games} in der Auswahl · ${selectedUtilization.withoutCapacity} ohne Kapazität · ${analytics.missingAttendance} ohne Zuschauerwert${selectedUtilization.conflicts.length ? ` · ${selectedUtilization.conflicts.length} mögliche Konflikte` : ''}`} />
         </section>
 
         <section className="fan-grid fan-grid-main">
@@ -332,28 +331,25 @@ export default function FanAnalytics() {
 
         <section className="fan-grid fan-grid-secondary">
           <article className="card fan-card">
-            <CardHeader eyebrow="SPORTLICHER KONTEXT" title="Form vor dem Spiel und Besuch" detail={`Punkte pro Spiel aus bis zu fünf vorherigen Resultaten von ${selectedTeam ? selectedTeam.name : 'jeweils dem Heimteam'}.`} right={<span className="fan-period-tag">r {analytics.formCorrelation == null ? '–' : oneDecimal.format(analytics.formCorrelation)} · n {analytics.formPoints.length}</span>} />
-            <FormScatter points={analytics.formPoints} correlation={analytics.formCorrelation} />
+            <CardHeader eyebrow="SPORTLICHER KONTEXT" title="Form vor dem Spiel und Besuch" detail={`Explorative Gegenüberstellung mit bis zu fünf vorherigen Resultaten von ${selectedTeam ? selectedTeam.name : 'jeweils dem Heimteam'}.`} />
+            <FormScatter points={analytics.formPoints} correlation={analytics.formCorrelation} teamById={teamById} />
+            <p className="fan-form-interpretation">{formInterpretation}{analytics.formPoints.length < 30 ? ' Kleine Stichprobe; bitte vorsichtig einordnen.' : ''}</p>
             <div className="fan-outcome-list">
               <div className="fan-outcome-head"><strong>Ø nach Resultat</strong><span>Gewähltes Team, sonst Heimteam · Stichprobe</span></div>
-              {analytics.outcomeRows.map((row) => <div className="fan-outcome-row" key={row.key}><span>{row.label}</span><strong>{fmtAverage(row.average)}</strong><small>n={row.games}</small></div>)}
+              <div className="fan-outcome-grid">{analytics.outcomeRows.map((row) => <div className="fan-outcome-row" key={row.key}><span>{row.label}</span><strong>{fmtAverage(row.average)}</strong><small>n={row.games}</small></div>)}</div>
             </div>
-            <p className="fan-caveat">Deskriptiver Zusammenhang, keine Aussage über Ursache und Wirkung. Frühe Saisonphase und kleine Stichproben schränken die Aussagekraft ein.</p>
-          </article>
-          <article className="card fan-card">
-            <CardHeader eyebrow="TABELLENQUERSCHNITT" title="Rang und Heim-Publikum" detail="Aktuelle lokale Tabellenposition im Vergleich zum Heim-Zuschauerschnitt der Saison." right={<span className="fan-period-tag">{analytics.rankAttendance.length} Teams</span>} />
-            <RankScatter rows={analytics.rankAttendance} />
-            <p className="fan-caveat">Die Daten enthalten keine historische Tabelle pro Spieltag. Gezeigt wird daher ein aktueller Querschnitt, keine gemeinsame Zeitentwicklung und keine Kausalität.</p>
+            <details className="fan-methodology"><summary>Methodik und Einschränkungen</summary><p>Die Form nutzt bis zu fünf vorherige Resultate. Pearson r beschreibt nur einen linearen Zusammenhang; mehrere Spiele desselben Teams sind nicht unabhängig. Eine Kausalität lässt sich daraus nicht ableiten.</p></details>
           </article>
         </section>
 
         {analytics.missingAttendance > 0 && <div className="fan-missing-banner"><strong>{analytics.missingAttendance} Spiel(e) ohne Zuschauerwert</strong><span>Diese Partien fehlen in Durchschnitt und Diagrammen. Es wird nichts geschätzt.</span></div>}
       </>}
 
-      {(data?.teams || []).length > 0 && <section className="fan-grid fan-grid-secondary">
+      {(data?.teams || []).length > 0 && <section className="fan-grid fan-grid-secondary fan-grid-single">
         <article className="card fan-card">
-          <CardHeader eyebrow="HEIMARENEN" title="Heimteam-Ranking" detail="Auslastung als Mittelwert der einzelnen Heimspiele. Stichprobe und Datenabdeckung bleiben sichtbar; Kapazitätsquelle und Prüfdatum stehen in den Details. Klick auf ein Team setzt den Teamfilter." right={<span className="fan-period-tag">{arenaUtilization.utilizationGames} Spiele auswertbar</span>} />
-          <TeamComparison analysis={arenaUtilization} selectedTeamId={teamId} onSelect={(id) => { setTeamId(id); setVenuePerspective('all') }} />
+          <CardHeader eyebrow="TEAMVERGLEICH" title="Heimarenen im Vergleich" detail="Auslastung ist vorläufig, solange Kapazitäten provisorisch sind. Das Ranking folgt Zeitraum und Wochentag, nicht dem Team- oder Heim-/Auswärtsfilter." right={<span className="fan-period-tag">{arenaUtilization.utilizationGames} auswertbare Spiele</span>} />
+          <TeamComparison analysis={arenaUtilization} selectedTeamId={teamId} standings={derived?.standings || []} onSelect={(id) => { setTeamId(id); setVenuePerspective('all') }} />
+          <details className="fan-methodology"><summary>Methodik und Einordnung</summary><p>Der Zuschauerschnitt und die Auslastung verwenden nur abgeschlossene Heimspiele mit echten Zuschauerwerten. Vorläufige Kapazitäten können die Rangfolge verändern. Der Tabellenplatz ist der aktuelle Stand; historische Tabellenstände pro Spieltag liegen nicht vor.</p></details>
         </article>
       </section>}
       <div className="fan-footer">Quelle: game.attendance · offizielle Zuschauerangabe je Spiel · Schweizer Zahlenformat</div>
