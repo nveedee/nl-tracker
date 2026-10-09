@@ -25,6 +25,7 @@ import LiveMatchHeader from '../components/LiveMatchHeader.jsx'
 import LiveWinProbabilityPanel from '../components/LiveWinProbabilityPanel.jsx'
 import LiveGameTimeline from '../components/LiveGameTimeline.jsx'
 import LiveStatistics from '../components/LiveStatistics.jsx'
+import LineupBoard from '../components/LineupBoard.jsx'
 import { buildDemoLiveMatch, DEMO_PERIOD_MARKERS, DEMO_MAX_MINUTE } from '../liveDemoData.js'
 import { useLiveGame } from '../liveGameClient.js'
 import GameReplayView from '../components/GameReplayView.jsx'
@@ -495,6 +496,12 @@ export default function MatchupDetail() {
               sourceLabel="Live-Daten (SIHF)"
             />
             <LiveGameTimeline homeTeam={homeTeam} awayTeam={awayTeam} events={realLiveMatch.events} sourceLabel="Live-Daten (SIHF)" />
+            {/* Aufstellungen (SIHF lineUps -> sync-sihf.cjs::parseLineups ->
+                liveGameClient.js). Fehlt die Aufstellung, zeigt LineupBoard
+                selbst den Hinweis "derzeit nicht verfügbar" (kein leerer
+                Block). Reine Zusatzanzeige - Score/Events/Drittel/Live-
+                Wahrscheinlichkeit darüber bleiben unberührt. */}
+            <LineupBoard homeTeam={homeTeam} awayTeam={awayTeam} lineups={realLiveMatch.lineups} sourceLabel="Live-Daten (SIHF)" />
             {/* LiveStatistics bewusst NICHT hier eingebunden: die Komponente
                 erwartet ein flaches {sogHome, shotsHome, ...}-Objekt mit
                 fest benannten Kennzahlen, das SIHF-Rohfeld (raw.stats,

@@ -145,6 +145,72 @@ test('parseLiveSnapshot: abgesagtes Spiel -> status scheduled, nicht live', () =
 })
 
 // ---------------------------------------------------------------------------
+// parseLineups: SIHF raw.lineUps -> aufgelöste Positionsgruppen.
+// ---------------------------------------------------------------------------
+const { parseLineups } = sihfSync
+
+function rawWithLineups() {
+  const raw = baseRaw({ percent: 10, name: '1. Drittel' })
+  raw.players = [
+    { id: 1, fullName: 'Muster Hans', jerseyNumber: 30, teamId: HOME_SIHF_ID },
+    { id: 2, fullName: 'Beispiel Urs', jerseyNumber: 5, teamId: HOME_SIHF_ID },
+    { id: 3, fullName: 'Probe Max', jerseyNumber: 7, teamId: HOME_SIHF_ID },
+    { id: 4, fullName: 'Gast Tim', jerseyNumber: 91, teamId: AWAY_SIHF_ID },
+  ]
+  raw.lineUps = {
+    homeTeam: {
+      goalkeepers: [1],
+      defenders: { left: [2], right: [] },
+      forwarders: { left: [], center: [3], right: [] },
+      otherPlayers: [],
+      captain: 3,
+      coach: { id: 0, fullName: 'Trainer Toni', jerseyNumber: 0 },
+      taggedPlayers: [
+        { id: 3, name: 'Captain', acronym: 'C', type: 'captain' },
+        { id: 1, name: '1st Goalkeeper', acronym: '1st', type: 'goalkeeper' },
+      ],
+    },
+    awayTeam: {
+      goalkeepers: [],
+      defenders: { left: [], right: [] },
+      forwarders: { left: [4], center: [], right: [] },
+      otherPlayers: [],
+    },
+  }
+  return raw
+}
+
+test('parseLineups: löst IDs zu Name/Nummer auf und ordnet Positionsgruppen zu', () => {
+  const lu = parseLineups(rawWithLineups())
+  assert.equal(lu.home.goalkeepers.length, 1)
+  assert.equal(lu.home.goalkeepers[0].name, 'Muster Hans')
+  assert.equal(lu.home.goalkeepers[0].number, 30)
+  assert.deepEqual(lu.home.goalkeepers[0].tags, ['1st'])
+  assert.equal(lu.home.defenders.length, 1)
+  assert.equal(lu.home.forwards.length, 1)
+  assert.deepEqual(lu.home.forwards[0].tags, ['C'])
+  assert.equal(lu.home.coach, 'Trainer Toni')
+  assert.equal(lu.away.forwards[0].name, 'Gast Tim')
+})
+
+test('parseLineups: fehlt raw.lineUps komplett -> null (sauberer Fallback in der UI)', () => {
+  assert.equal(parseLineups(baseRaw()), null)
+})
+
+test('parseLineups: nicht auflösbare Spieler-ID wird ausgelassen, nicht erfunden', () => {
+  const raw = rawWithLineups()
+  raw.lineUps.homeTeam.defenders.left = [999] // keine passende players[]-ID
+  const lu = parseLineups(raw)
+  assert.equal(lu.home.defenders.length, 0)
+})
+
+test('parseLiveSnapshot: enthält die aufgelösten lineups', () => {
+  const snap = parseLiveSnapshot(rawWithLineups())
+  assert.ok(snap.lineups)
+  assert.equal(snap.lineups.home.goalkeepers[0].name, 'Muster Hans')
+})
+
+// ---------------------------------------------------------------------------
 // pollLiveGames: In-Flight-Lock, API-Ausfall, Cache-Räumung bei Spielende.
 // ---------------------------------------------------------------------------
 

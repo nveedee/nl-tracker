@@ -364,6 +364,56 @@ function parseLiveTeamStats(raw) {
   return teamStats
 }
 
+// Linienaufstellungen aus raw.lineUps (SIHF liefert sie im selben
+// gameDetail-Response wie Score/Events - siehe Erkundung). WICHTIG: SIHF
+// gruppiert hier NUR nach Position/Schusshand (Torhüter; Verteidiger
+// left/right = Schusshand; Stürmer left/center/right = Position), NICHT nach
+// echten Sturmlinien/Verteidigungspaaren oder Powerplay-Einheiten. Es wird
+// deshalb ausschliesslich diese Gruppierung durchgereicht - keine Linie/kein
+// Paar/keine Formation wird erfunden oder aus Torschützen/Eiszeiten
+// abgeleitet. Spieler-IDs werden über raw.players[] zu Name + Trikotnummer
+// aufgelöst (nie geraten; ohne Treffer wird der Eintrag ausgelassen).
+function parseLineups(raw) {
+  const lu = raw.lineUps
+  if (!lu || (!lu.homeTeam && !lu.awayTeam)) return null
+  const byId = new Map((raw.players || []).map((p) => [p.id, p]))
+
+  const parseTeam = (t) => {
+    if (!t) return null
+    // taggedPlayers (Captain "C", Assistenten "A", 1. Torhüter "1st",
+    // PostFinance Top Scorer "PF-TS") -> id -> Liste der Kürzel, roh von SIHF.
+    const tags = {}
+    for (const tp of t.taggedPlayers || []) {
+      if (tp.id == null || !tp.acronym) continue
+      ;(tags[tp.id] || (tags[tp.id] = [])).push(tp.acronym)
+    }
+    const resolve = (id) => {
+      const p = byId.get(id)
+      if (!p) return null
+      return { id, name: p.fullName || null, number: p.jerseyNumber ?? null, tags: tags[id] || [] }
+    }
+    const resolveList = (ids) => (Array.isArray(ids) ? ids.map(resolve).filter(Boolean) : [])
+    const d = t.defenders || {}
+    const f = t.forwarders || {}
+    const team = {
+      // Reihenfolge wie von SIHF geliefert; left/right bei Verteidigern =
+      // Schusshand, nicht Paarbildung - deshalb zu EINER Liste zusammengefasst.
+      goalkeepers: resolveList(t.goalkeepers),
+      defenders: [...resolveList(d.left), ...resolveList(d.right)],
+      forwards: [...resolveList(f.left), ...resolveList(f.center), ...resolveList(f.right)],
+      others: resolveList(t.otherPlayers),
+      coach: (t.coach && t.coach.fullName) || null,
+    }
+    const hasAny = team.goalkeepers.length || team.defenders.length || team.forwards.length || team.others.length
+    return hasAny ? team : null
+  }
+
+  const home = parseTeam(lu.homeTeam)
+  const away = parseTeam(lu.awayTeam)
+  if (!home && !away) return null
+  return { home, away }
+}
+
 // `raw` = eine einzelne SIHF gameoverview-Antwort (dieselbe Quelle wie
 // parseSihfGame). Liefert einen Live-Snapshot unabhängig vom Spielstatus
 // (scheduled/live/final) - der Aufrufer (liveSync.js) entscheidet anhand von
@@ -458,6 +508,7 @@ function parseLiveSnapshot(raw) {
     homeGoals, awayGoals,
     periods, shots, goals, penalties,
     teamStats: parseLiveTeamStats(raw),
+    lineups: parseLineups(raw),
     updatedAt: new Date().toISOString(),
   }
 }
@@ -659,7 +710,7 @@ async function main() {
   }
 }
 
-module.exports = { runSync, runDiscover, parseSihfGame, computeGameUpdate, fetchSihfGame, SIHF_TO_TEAM_ID, readSyncStatus, parseLiveSnapshot }
+module.exports = { runSync, runDiscover, parseSihfGame, computeGameUpdate, fetchSihfGame, SIHF_TO_TEAM_ID, readSyncStatus, parseLiveSnapshot, parseLineups }
 
 if (require.main === module) {
   main()

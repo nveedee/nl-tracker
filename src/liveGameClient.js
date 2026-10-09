@@ -120,6 +120,11 @@ export function buildRealLiveMatch({ liveState, homeTeam, awayTeam, pregame, his
     probabilityHistory: history,
     events: buildEvents(liveState, homeTeam.id),
     stats: liveState.teamStats,
+    // Linienaufstellungen (Positionsgruppen aus SIHF raw.lineUps, serverseitig
+    // zu Name/Nummer aufgelöst - siehe sync-sihf.cjs::parseLineups). null,
+    // wenn SIHF für dieses Spiel keine Aufstellung liefert (Replay-Snapshots
+    // haben das Feld gar nicht -> undefined); die UI zeigt dann einen Hinweis.
+    lineups: liveState.lineups ?? null,
     raw: liveState,
   }
 }
