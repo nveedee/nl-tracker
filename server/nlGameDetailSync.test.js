@@ -176,3 +176,44 @@ test('parseAndMergeGameDetail: keine NaN/Infinity in den ergänzten Feldern', ()
     }
   }
 })
+
+// --- Zuschauerzahl (game.attendance aus overview.spectators) ----------------
+test('parseAndMergeGameDetail: gültige Zuschauerzahl wird aus overview.spectators übernommen', () => {
+  const { db, game } = buildTestDb()
+  parseAndMergeGameDetail(db, game, raw, () => {})
+  // Fixture: overview.spectators = "5434"
+  assert.equal(game.attendance, Number(raw.overview.spectators))
+  assert.equal(game.attendance, 5434)
+})
+
+test('parseAndMergeGameDetail: fehlende spectators -> kein attendance-Feld (nichts erfunden)', () => {
+  const { db, game } = buildTestDb()
+  const r = structuredClone(raw)
+  delete r.overview.spectators
+  parseAndMergeGameDetail(db, game, r, () => {})
+  assert.equal('attendance' in game, false)
+})
+
+test('parseAndMergeGameDetail: ungültige spectators ("", "0", "abc") -> kein attendance', () => {
+  for (const bad of ['', '0', 'abc', null, '-10']) {
+    const { db, game } = buildTestDb()
+    const r = structuredClone(raw)
+    r.overview.spectators = bad
+    parseAndMergeGameDetail(db, game, r, () => {})
+    assert.equal('attendance' in game, false, `spectators=${JSON.stringify(bad)} hätte kein attendance setzen dürfen`)
+  }
+})
+
+test('parseAndMergeGameDetail: vorhandene gültige Zuschauerzahl wird NICHT überschrieben', () => {
+  const { db, game } = buildTestDb()
+  game.attendance = 9999 // bereits vorhanden (gültig)
+  parseAndMergeGameDetail(db, game, raw, () => {}) // raw hätte 5434
+  assert.equal(game.attendance, 9999)
+})
+
+test('parseAndMergeGameDetail: ungültige vorhandene Zuschauerzahl (0) wird durch gültigen Wert ersetzt', () => {
+  const { db, game } = buildTestDb()
+  game.attendance = 0 // ungültig -> darf durch echten Wert ersetzt werden
+  parseAndMergeGameDetail(db, game, raw, () => {})
+  assert.equal(game.attendance, 5434)
+})

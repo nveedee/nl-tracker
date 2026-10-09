@@ -110,6 +110,10 @@ async function fetchGameDetail(gameId, { retries = 2, log } = {}) {
   throw lastErr
 }
 
+// Gezielt auch vom manuellen Attendance-Backfill genutzt. Der Backfill
+// verarbeitet die Antwort separat und schreibt keine Detaildaten um.
+export { fetchGameDetail }
+
 // ============================================================================
 // PARSING
 // ============================================================================
@@ -339,6 +343,17 @@ export function parseAndMergeGameDetail(db, game, raw, log) {
   //     unangetastet, siehe server/scripts/sync-sihf.cjs) ---
   game.nlTeamStatsHome = raw.teamStatsHome || null
   game.nlTeamStatsAway = raw.teamStatsAway || null
+
+  // --- Zuschauerzahl (additiv) - echte NL-API-Zahl aus overview.spectators
+  //     (z.B. "5434"). NUR gesetzt, wenn ein gültiger, positiver Wert vorliegt;
+  //     fehlt/ungültig das Feld, wird NICHTS erfunden. Eine bereits vorhandene
+  //     gültige Zuschauerzahl wird NIE überschrieben (ein späterer, evtl.
+  //     fehlender Wert darf einen guten nicht ersetzen).
+  const spectators = Number(raw.overview?.spectators)
+  const hasValidAttendance = Number.isFinite(game.attendance) && game.attendance > 0
+  if (!hasValidAttendance && Number.isFinite(spectators) && spectators > 0) {
+    game.attendance = spectators
+  }
 
   // --- Special Teams (PP/SH-Tore+Assists) + Game Winning Goal, aus dem
   //     Play-by-Play (actions[]) hergeleitet - siehe Funktionskommentare oben. ---
