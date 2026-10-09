@@ -54,8 +54,13 @@ const fs = require('fs')
 const path = require('path')
 const https = require('https')
 
-const DB_PATH = path.join(__dirname, '..', 'data', 'db.json')
-const STATUS_PATH = path.join(__dirname, '..', 'data', 'sihf-sync-status.json')
+// Persistentes Laufzeit-Verzeichnis (Render-Disk) - lokal/ohne PERSIST_DIR =
+// server/data (unverändert). __dirname ist hier server/scripts, daher '..'.
+// Identisch zu server/index.js/sync.js aufgelöst, damit alle Module dieselbe
+// db.json verwenden.
+const PERSIST_DIR = process.env.PERSIST_DIR || path.join(__dirname, '..', 'data')
+const DB_PATH = path.join(PERSIST_DIR, 'db.json')
+const STATUS_PATH = path.join(PERSIST_DIR, 'sihf-sync-status.json')
 
 const SIHF_BASE = 'https://data.sihf.ch/statistic/api/cms/gameoverview'
 

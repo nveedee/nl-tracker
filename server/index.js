@@ -11,7 +11,16 @@ const { runSync: runSihfSync, runDiscover: runSihfDiscover, readSyncStatus } = s
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DATA_DIR = path.join(__dirname, 'data')
-const DB_PATH = path.join(DATA_DIR, 'db.json')
+// Persistentes Laufzeit-Verzeichnis für die SCHREIBBAREN Dateien (db.json +
+// Sync-Status). Auf Render per Umgebungsvariable PERSIST_DIR auf den
+// gemounteten Disk-Pfad (/opt/render/project/src/server/data/persistent)
+// gesetzt, damit diese Dateien Redeploys/Spin-downs überleben. Lokal/ohne
+// PERSIST_DIR bleibt es exakt das bisherige Verzeichnis server/data
+// (unverändertes Verhalten). seed.json und fixtures/ bleiben BEWUSST unter
+// DATA_DIR (Repo-Pfad) - der Mount liegt nur auf dem Unterordner `persistent`
+// und verdeckt sie deshalb NICHT (siehe render.yaml).
+const PERSIST_DIR = process.env.PERSIST_DIR || DATA_DIR
+const DB_PATH = path.join(PERSIST_DIR, 'db.json')
 const SEED_PATH = path.join(DATA_DIR, 'seed.json')
 const DIST_DIR = path.join(__dirname, '..', 'dist')
 const PORT = process.env.PORT || 3001
@@ -21,12 +30,20 @@ const PORT = process.env.PORT || 3001
 // seed.json (14 NL-Teams) erzeugt.
 // ---------------------------------------------------------------------------
 function ensureDb() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
+  if (!fs.existsSync(PERSIST_DIR)) fs.mkdirSync(PERSIST_DIR, { recursive: true })
   if (!fs.existsSync(DB_PATH)) {
-    const seed = fs.existsSync(SEED_PATH)
-      ? fs.readFileSync(SEED_PATH, 'utf-8')
-      : JSON.stringify(emptyDb(), null, 2)
-    fs.writeFileSync(DB_PATH, seed)
+    // Erstinitialisierung (leeres/frisches persistentes Verzeichnis): IMMER
+    // aus seed.json (Repo-Pfad, nie im Mount). Ein leeres persistentes
+    // Verzeichnis darf NICHT unbemerkt zu einer leeren DB führen - fehlt
+    // seed.json, wird das laut geloggt (deutet auf eine Fehlkonfiguration hin,
+    // z.B. Disk versehentlich über server/data statt .../persistent gemountet).
+    if (fs.existsSync(SEED_PATH)) {
+      fs.writeFileSync(DB_PATH, fs.readFileSync(SEED_PATH, 'utf-8'))
+      console.log(`  DB initialisiert aus seed.json (${SEED_PATH})`)
+    } else {
+      console.warn(`  ⚠ seed.json NICHT gefunden (${SEED_PATH}) - DB wird LEER initialisiert. Prüfe, ob der persistente Disk-Mount versehentlich über server/data statt server/data/persistent liegt.`)
+      fs.writeFileSync(DB_PATH, JSON.stringify(emptyDb(), null, 2))
+    }
   }
 }
 
@@ -362,10 +379,29 @@ app.listen(PORT, () => {
   console.log(`\n  NL Tracker API läuft auf http://localhost:${PORT}`)
   console.log(`  Daten: ${DB_PATH}\n`)
 
+  // Kontrollierter, SCHREIBFREIER Erststart (für den Render-Persistenz-Restore):
+  // BOOT_SKIP_SYNC=1 unterdrückt beim Start ALLE automatischen Jobs, die
+  // db.json verändern könnten - den unbedingten Start-NL-Sync (pollNl), den
+  // SIHF-Auto-Discover und den SIHF-Auto-Sync - sowie das Live-Polling. So
+  // kann nach einem Deploy mit leerer Disk zuerst das Backup per
+  // POST /api/import eingespielt werden, ohne dass ein parallel laufender Job
+  // den Import überschreibt (siehe render.yaml/Restore-Ablauf).
+  //
+  // WICHTIG: Die MANUELLEN Endpunkte bleiben BEWUSST aktiv - BOOT_SKIP_SYNC
+  // schaltet NUR die automatischen Startjobs ab, NICHT POST /api/sync,
+  // /api/sync-nl, /api/import oder /api/reset. Während des Restore-Fensters
+  // darf daher ausser dem Import selbst niemand einen dieser Endpunkte
+  // auslösen. Ohne BOOT_SKIP_SYNC (bzw. BOOT_SKIP_SYNC != '1') bleibt das
+  // bisherige Startverhalten exakt unverändert.
+  const bootSkipSync = process.env.BOOT_SKIP_SYNC === '1'
+  if (bootSkipSync) {
+    console.log('  ⏸ BOOT_SKIP_SYNC=1 - automatische Start-Jobs (NL-Sync, SIHF-Discover, SIHF-Sync, Live-Poll) deaktiviert. Manuelle /api/*-Endpunkte bleiben aktiv.')
+  }
+
   // Automatischer SIHF-Poll: standardmässig AN (Dauerbetrieb, siehe `npm run
   // serve`/README) - alle 5 Minuten während der Saison. Abschaltbar mit
   // SIHF_AUTO_SYNC=0, Intervall überschreibbar mit SIHF_SYNC_INTERVAL_MIN.
-  if (process.env.SIHF_AUTO_SYNC !== '0') {
+  if (!bootSkipSync && process.env.SIHF_AUTO_SYNC !== '0') {
     const intervalMs = (Number(process.env.SIHF_SYNC_INTERVAL_MIN) || 5) * 60 * 1000
     console.log(`  SIHF-Auto-Sync aktiv (alle ${intervalMs / 60000} Min.)`)
     const poll = () => {
@@ -395,9 +431,12 @@ app.listen(PORT, () => {
       .catch((e) => console.error('[NL SYNC/GAME DETAIL] Fehler:', e.message))
       .finally(() => { nlSyncRunning = false })
   }
-  pollNl()
+  // Unbedingter Start-NL-Sync - NUR durch BOOT_SKIP_SYNC unterdrückbar
+  // (NL_AUTO_SYNC steuert weiterhin nur das Intervall unten, nicht diesen
+  // einmaligen Startlauf).
+  if (!bootSkipSync) pollNl()
 
-  if (process.env.NL_AUTO_SYNC !== '0') {
+  if (!bootSkipSync && process.env.NL_AUTO_SYNC !== '0') {
     const nlIntervalMs = (Number(process.env.NL_SYNC_INTERVAL_MIN) || DEFAULT_NL_SYNC_INTERVAL_MIN) * 60 * 1000
     console.log(`  NL-Auto-Sync aktiv (alle ${nlIntervalMs / 60000} Min.)`)
     setInterval(pollNl, nlIntervalMs)
@@ -407,7 +446,7 @@ app.listen(PORT, () => {
   // pollt nur Spiele innerhalb des Live-Fensters (siehe isCandidate() dort) -
   // bei 0 laufenden Spielen ist das ein billiger No-Op (leerer Filter, kein
   // Request). Abschaltbar mit LIVE_AUTO_POLL=0.
-  if (process.env.LIVE_AUTO_POLL !== '0') {
+  if (!bootSkipSync && process.env.LIVE_AUTO_POLL !== '0') {
     console.log(`  Live-Auto-Poll aktiv (alle ${LIVE_POLL_INTERVAL_MS / 1000}s, nur für laufende Spiele)`)
     setInterval(() => {
       pollLiveGames(readDb(), { log: (...a) => console.log('[LIVE SYNC]', ...a) }).catch((e) => console.error('[LIVE SYNC] Fehler:', e.message))
@@ -449,7 +488,7 @@ app.listen(PORT, () => {
       .finally(() => { discoverRunning = false })
   }
 
-  if (process.env.SIHF_AUTO_DISCOVER !== '0') {
+  if (!bootSkipSync && process.env.SIHF_AUTO_DISCOVER !== '0') {
     const discoverIntervalMs = (Number(process.env.SIHF_DISCOVER_INTERVAL_HOURS) || 24) * 60 * 60 * 1000
     console.log(`  SIHF-Auto-Discover aktiv (beim Start + alle ${discoverIntervalMs / 3600000} h)`)
     runDiscoverSafe()

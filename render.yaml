@@ -8,18 +8,25 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 20
-    # Persistenter Disk für server/data (db.json, sync-status, Historien-
-    # Caches) - ohne diesen wird server/data bei jedem Redeploy/Spin-down
-    # neu aus seed.json erzeugt (Render-Webservices haben sonst ein
-    # ephemeres Dateisystem), wodurch der laufende Sync-Fortschritt verloren
-    # geht und ein frisch gestarteter Service Mobile/anderen Clients einen
-    # veralteten Stand zeigt, während ein durchgehend laufender lokaler
-    # Server bereits weiter ist. Persistent Disks sind auf Render erst ab
-    # einem bezahlten Plan verfügbar - dieser Block ist vorbereitet, greift
-    # aber erst nach einem Plan-Wechsel weg von `plan: free` (siehe Auftrag:
-    # noch kein Plan-Upgrade). Mountpfad folgt Renders Standard-Projektpfad
-    # für native (nicht containerisierte) Node-Services.
+      # Weist die App an, die SCHREIBBAREN Laufzeitdateien (db.json,
+      # nl-sync-status.json, sihf-sync-status.json) in den unten gemounteten
+      # persistenten Disk-Unterordner zu legen. MUSS exakt dem disk.mountPath
+      # entsprechen. Ohne diese Variable würde die App weiter nach
+      # server/data (ephemer) schreiben - der Disk-Mount brächte dann nichts.
+      - key: PERSIST_DIR
+        value: /opt/render/project/src/server/data/persistent
+    # Persistenter Disk NUR für den Unterordner `persistent` von server/data -
+    # bewusst NICHT auf server/data selbst, da ein Mount dort die im Repo
+    # mitgelieferte seed.json (und fixtures/) verdecken würde: ein leerer Disk
+    # würde seed.json unsichtbar machen und ensureDb() auf eine LEERE DB
+    # zurückfallen lassen. Durch den Unterordner bleiben seed.json/fixtures im
+    # Image sichtbar, während db.json + Sync-Status Redeploys/Spin-downs
+    # überleben. Persistent Disks sind auf Render erst ab einem BEZAHLTEN Plan
+    # verfügbar - dieser Block greift erst nach dem Plan-Wechsel weg von
+    # `plan: free` (im Render-Dashboard vorzunehmen). WICHTIG: Beim ersten
+    # Mount ist die Disk leer -> die 364 sihfGameId müssen einmalig per
+    # POST /api/import (vorhandenes Backup) auf die Disk zurückgespielt werden.
     disk:
       name: nl-tracker-data
-      mountPath: /opt/render/project/src/server/data
+      mountPath: /opt/render/project/src/server/data/persistent
       sizeGB: 1

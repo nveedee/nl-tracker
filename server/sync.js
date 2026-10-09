@@ -35,8 +35,13 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const DB_PATH = path.join(__dirname, 'data', 'db.json')
-const STATUS_PATH = path.join(__dirname, 'data', 'nl-sync-status.json')
+// Persistentes Laufzeit-Verzeichnis (Render-Disk) für die schreibbaren
+// Dateien - lokal/ohne PERSIST_DIR = server/data (unverändert). Muss mit
+// server/index.js identisch aufgelöst werden, damit alle Module dieselbe
+// db.json schreiben/lesen.
+const PERSIST_DIR = process.env.PERSIST_DIR || path.join(__dirname, 'data')
+const DB_PATH = path.join(PERSIST_DIR, 'db.json')
+const STATUS_PATH = path.join(PERSIST_DIR, 'nl-sync-status.json')
 
 const NL_API_BASE = 'https://www.nationalleague.ch/api'
 const GAMES_URL = `${NL_API_BASE}/games?lang=de-CH`

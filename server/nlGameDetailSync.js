@@ -42,7 +42,11 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const DB_PATH = path.join(__dirname, 'data', 'db.json')
+// Persistentes Laufzeit-Verzeichnis (Render-Disk) - lokal/ohne PERSIST_DIR =
+// server/data (unverändert). Identisch zu server/index.js/sync.js aufgelöst,
+// damit alle Module dieselbe db.json verwenden.
+const PERSIST_DIR = process.env.PERSIST_DIR || path.join(__dirname, 'data')
+const DB_PATH = path.join(PERSIST_DIR, 'db.json')
 
 const NL_API_BASE = 'https://www.nationalleague.ch/api'
 
