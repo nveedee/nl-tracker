@@ -19,6 +19,7 @@ import PlayerRankings from './pages/PlayerRankings.jsx'
 import Settings from './pages/Settings.jsx'
 import ModelPerformance from './pages/ModelPerformance.jsx'
 import Backtesting from './pages/Backtesting.jsx'
+import FanAnalytics from './pages/FanAnalytics.jsx'
 import MatchupDetail from './pages/MatchupDetail.jsx'
 import SyncStatus from './components/SyncStatus.jsx'
 // DEV-ONLY: Live-Replay-Testseite (siehe DevLiveReplay.jsx-Kopfkommentar) -
@@ -36,6 +37,7 @@ const primaryNav = [
   { to: '/', label: 'Dashboard', end: true },
   { to: '/standings', label: 'Tabelle' },
   { to: '/schedule', label: 'Spielplan' },
+  { to: '/fan-analytics', label: 'Fan Analytics' },
   { to: '/elo', label: 'ELO' },
   { to: '/power', label: 'Power Ranking' },
   { to: '/playoff-odds', label: 'Playoff Odds' },
@@ -172,6 +174,7 @@ export default function App() {
                 Lesezeichen weiter funktionieren. */}
             <Route path="/games" element={<Navigate to="/schedule" replace />} />
             <Route path="/schedule" element={<Schedule />} />
+            <Route path="/fan-analytics" element={<FanAnalytics />} />
             <Route path="/matchup/:gameId" element={<MatchupDetail />} />
             <Route path="/teams" element={<Teams />} />
             <Route path="/teams/:id" element={<TeamDetail />} />

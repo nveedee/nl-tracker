@@ -1224,6 +1224,135 @@ td.num strong, th.num strong { font-weight: 800; }
    auf diese eine Tabelle statt einer sitewide Änderung. */
 .table-wrap.ranking-scroll { max-height: 640px; overflow-y: auto; }
 
+/* ---------- Fan Analytics ---------- */
+.fan-page { --fan-ink: #17212b; --fan-subtle: #74808d; }
+.fan-page-head { align-items: center; margin-bottom: 15px; }
+.fan-page-head h1 { font-size: 26px; letter-spacing: -0.045em; margin-top: 2px; }
+.fan-page-head .sub { max-width: 660px; }
+.fan-eyebrow, .fan-card-eyebrow { color: var(--accent-strong); font-size: 9px; line-height: 1.4; font-weight: 800; letter-spacing: .13em; }
+.fan-eyebrow { display: flex; align-items: center; gap: 7px; }
+.fan-eyebrow-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.fan-title-note { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; color: var(--text-dim); font-size: 11px; }
+.fan-title-note strong { color: var(--text); font: 700 12px var(--mono); }
+.fan-filter-card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 15px 10px; margin-bottom: 14px; }
+.fan-filter-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; color: var(--text); font-size: 11px; font-weight: 800; }
+.fan-reset { padding: 0; border: 0; background: transparent; color: var(--accent-strong); font: 700 11px var(--font); cursor: pointer; }
+.fan-reset:hover { text-decoration: underline; }
+.fan-filters { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr; gap: 9px; }
+.fan-filters label { display: flex; min-width: 0; flex-direction: column; gap: 4px; color: var(--text-dim); font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; }
+.fan-filters select, .fan-filters input { width: 100%; min-width: 0; height: 35px; padding: 0 9px; font-size: 11px; font-weight: 600; }
+.fan-filters select:disabled { opacity: .5; }
+.fan-perspective-note { display: flex; align-items: center; gap: 7px; margin-top: 9px; color: var(--text-dim); font-size: 10px; }
+.fan-note-icon { display: inline-grid; place-items: center; width: 14px; height: 14px; border: 1px solid var(--border-strong); border-radius: 50%; font-size: 9px; font-weight: 800; flex: none; }
+.fan-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.fan-stat-card { min-width: 0; padding: 12px 14px 10px; background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.fan-stat-card.is-accent { border-top: 2px solid var(--accent); padding-top: 11px; }
+.fan-stat-label { color: var(--text-faint); font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .09em; }
+.fan-stat-value { margin: 6px 0 3px; color: var(--text); font: 800 clamp(20px, 2.3vw, 26px)/1.15 var(--mono); letter-spacing: -.06em; }
+.fan-stat-detail { color: var(--text-dim); font-size: 10px; line-height: 1.35; }
+.fan-grid { display: grid; gap: 14px; margin-bottom: 14px; }
+.fan-grid-main { grid-template-columns: minmax(0, 1.65fr) minmax(240px, .75fr); }
+.fan-grid-secondary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.fan-card { min-width: 0; padding: 16px 17px 14px; overflow: hidden; }
+.fan-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.fan-card-head h2 { margin: 2px 0 2px; color: var(--text); font-size: 14px; letter-spacing: -.02em; }
+.fan-card-head p { max-width: 620px; margin: 0; color: var(--text-dim); font-size: 10.5px; line-height: 1.45; }
+.fan-card-right { flex: none; }
+.fan-period-tag { display: inline-flex; align-items: center; min-height: 23px; padding: 3px 8px; border: 1px solid var(--border); border-radius: 999px; background: var(--bg); color: var(--text-dim); font: 700 9px var(--mono); white-space: nowrap; }
+.fan-trend-svg, .fan-scatter-svg, .fan-rank-svg { display: block; width: 100%; min-width: 520px; height: auto; overflow: visible; }
+.fan-trend-svg { min-width: 540px; }
+.fan-svg-scroll { max-width: 100%; overflow-x: auto; scrollbar-width: thin; }
+.fan-grid-line { stroke: var(--border); stroke-width: 1; stroke-dasharray: 3 5; }
+.fan-grid-line.vertical { stroke-dasharray: 2 5; opacity: .65; }
+.fan-axis-label { fill: var(--text-faint); font: 9px var(--mono); }
+.fan-average-line { stroke: var(--text-dim); stroke-width: 1; stroke-dasharray: 4 5; opacity: .75; }
+.fan-average-label { fill: var(--text-dim); font: 700 9px var(--font); }
+.fan-trend-line { fill: none; stroke: var(--accent); stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
+.fan-trend-point { fill: var(--bg-elev); stroke: var(--accent); stroke-width: 2.5; }
+.fan-chart-caption { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 5px; color: var(--text-faint); font-size: 9px; }
+.fan-chart-caption > span:first-child { display: inline-flex; align-items: center; gap: 6px; }
+.fan-legend-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+.fan-highlights { display: grid; gap: 10px; margin-top: 17px; }
+.fan-highlight { display: flex; flex-direction: column; min-width: 0; padding: 12px; border-radius: var(--radius); background: var(--bg); border: 1px solid var(--border); }
+.fan-highlight > span { color: var(--text-faint); font-size: 8px; font-weight: 800; letter-spacing: .1em; }
+.fan-highlight strong { margin: 3px 0; color: var(--text); font: 800 24px/1.2 var(--mono); letter-spacing: -.05em; }
+.fan-highlight small { color: var(--text-dim); font-size: 10px; }
+.fan-sample-note { display: flex; flex-direction: column; gap: 2px; margin-top: 12px; color: var(--text-faint); font-size: 9px; line-height: 1.4; }
+.fan-sample-note strong { color: var(--text-dim); font-size: 10px; }
+.fan-team-bars { display: grid; gap: 1px; }
+.fan-team-row { display: grid; grid-template-columns: 54px minmax(70px, 1fr) 55px 100px; align-items: center; gap: 8px; width: 100%; min-height: 25px; padding: 2px 4px; border: 0; border-radius: 4px; background: transparent; color: var(--text); text-align: left; font: inherit; cursor: pointer; }
+.fan-team-row:hover, .fan-team-row.selected { background: var(--bg-hover); }
+.fan-team-name { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 800; }
+.fan-team-name i { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.fan-team-track, .fan-bar-track { display: block; height: 5px; border-radius: 999px; background: var(--bg-elev-2); overflow: hidden; }
+.fan-team-track i, .fan-bar-track i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+.fan-team-row > strong { text-align: right; font: 700 10px var(--mono); }
+.fan-team-sample { color: var(--text-faint); text-align: right; font: 9px var(--mono); }
+.fan-mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.fan-mini-chart { min-width: 0; }
+.fan-mini-head { display: flex; flex-direction: column; gap: 1px; margin: 2px 0 9px; }
+.fan-mini-head h3 { margin: 0; font-size: 11px; }
+.fan-mini-head span { color: var(--text-faint); font-size: 9px; }
+.fan-bars { display: grid; gap: 7px; }
+.fan-bar-row { display: grid; grid-template-columns: 76px minmax(30px, 1fr) 38px 25px; align-items: center; gap: 6px; min-width: 0; padding: 1px 0; border: 0; background: transparent; color: var(--text); text-align: left; font: inherit; }
+button.fan-bar-row { cursor: pointer; border-radius: 4px; }
+button.fan-bar-row:hover, button.fan-bar-row.active { background: var(--bg-hover); }
+.fan-bar-label { overflow: hidden; color: var(--text-dim); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.fan-bar-value { text-align: right; font: 700 9px var(--mono); }
+.fan-bar-n { color: var(--text-faint); text-align: right; font: 8px var(--mono); }
+.fan-bar-track { height: 5px; }
+.fan-bar-track i { background: var(--accent); }
+.fan-scatter-point { stroke: var(--bg-elev); stroke-width: 1.8; opacity: .84; }
+.fan-scatter-point:hover { opacity: 1; stroke: var(--text); }
+.fan-correlation { margin-top: -3px; color: var(--text-dim); text-align: right; font: 700 9px var(--mono); }
+.fan-correlation span { padding: 0 4px; color: var(--text-faint); }
+.fan-outcome-list { margin-top: 10px; border-top: 1px solid var(--border); }
+.fan-outcome-head { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0 5px; color: var(--text-dim); font-size: 9px; }
+.fan-outcome-head strong { color: var(--text); }
+.fan-outcome-row { display: grid; grid-template-columns: 1fr 62px 34px; gap: 7px; padding: 4px 0; border-top: 1px solid var(--border); color: var(--text-dim); font-size: 9px; }
+.fan-outcome-row strong { color: var(--text); text-align: right; font: 700 9px var(--mono); }
+.fan-outcome-row small { color: var(--text-faint); text-align: right; font: 8px var(--mono); }
+.fan-rank-team-label { fill: var(--text-dim); font: 700 8px var(--font); }
+.fan-caveat { margin: 9px 0 0; padding-top: 8px; border-top: 1px solid var(--border); color: var(--text-faint); font-size: 9px; line-height: 1.45; }
+.fan-empty { display: flex; min-height: 130px; flex-direction: column; align-items: center; justify-content: center; gap: 5px; padding: 14px; color: var(--text-dim); text-align: center; }
+.fan-empty-mark { color: var(--text-faint); font: 700 22px var(--mono); }
+.fan-empty strong { color: var(--text); font-size: 11px; }
+.fan-empty > span:last-child { max-width: 320px; font-size: 10px; }
+.fan-page-empty { margin-top: 14px; }
+.fan-missing-banner { display: flex; flex-wrap: wrap; gap: 4px 9px; align-items: baseline; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-elev); color: var(--text-dim); font-size: 10px; }
+.fan-missing-banner strong { color: var(--warn); }
+.fan-footer { margin-top: 17px; color: var(--text-faint); font-size: 9px; text-align: right; }
+
+@media (max-width: 1000px) {
+  .fan-grid-main { grid-template-columns: minmax(0, 1.35fr) minmax(210px, .8fr); }
+  .fan-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .fan-team-row { grid-template-columns: 48px minmax(50px, 1fr) 48px 83px; gap: 6px; }
+}
+@media (max-width: 760px) {
+  .fan-grid-main, .fan-grid-secondary { grid-template-columns: 1fr; }
+  .fan-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fan-extremes-card { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+  .fan-extremes-card .fan-card-head { grid-column: 1 / -1; }
+  .fan-highlights { margin-top: 2px; }
+  .fan-sample-note { align-self: end; }
+}
+@media (max-width: 520px) {
+  .fan-page-head h1 { font-size: 23px; }
+  .fan-title-note { align-items: flex-start; width: 100%; }
+  .fan-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fan-filters label:first-child { grid-column: 1 / -1; }
+  .fan-card { padding: 13px 12px 12px; }
+  .fan-card-head { gap: 7px; }
+  .fan-card-head p { font-size: 10px; }
+  .fan-card-right { max-width: 42%; white-space: normal; text-align: right; }
+  .fan-mini-grid { grid-template-columns: 1fr; gap: 15px; }
+  .fan-team-row { grid-template-columns: 48px minmax(36px, 1fr) 42px 78px; gap: 5px; }
+  .fan-team-name { font-size: 9px; }
+  .fan-team-sample { font-size: 8px; }
+  .fan-stat-card { padding: 10px 11px 9px; }
+  .fan-stat-value { font-size: 20px; }
+}
+
 /* Pagination (grosse Spieleranzahl, siehe Auftrag Punkt E) */
 .pagination-bar {
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
