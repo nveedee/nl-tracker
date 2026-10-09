@@ -202,6 +202,49 @@ function computeGameDurationMinutes(game) {
   return end
 }
 
+// Shape-Validierung eines gespeicherten game.replayTimeline (persistiert von
+// server/scripts/sync-sihf.cjs::parseReplayTimeline beim Finalisieren). Nur
+// strukturell gültige, nicht-leere Datensätze werden verwendet - sonst
+// (ungültig/unvollständig) sauberer Fallback auf den SIHF-Abruf.
+function isUsableStoredTimeline(tl) {
+  return !!tl
+    && tl.homeTeam && tl.homeTeam.sihfId != null
+    && tl.awayTeam && tl.awayTeam.sihfId != null
+    && Array.isArray(tl.periods) && tl.periods.length > 0
+    && Array.isArray(tl.events) && tl.events.length > 0
+}
+
+// Liefert das "GameRecord"-Zwischenformat (homeTeam/awayTeam/decision/date/
+// periods/shots/shootout/events) für den Replay. BEVORZUGT die lokal
+// gespeicherte Timeline (game.replayTimeline) - dann ist KEIN SIHF-Abruf
+// nötig (Option A: dauerhaft, netzunabhängig). Fehlt sie oder ist sie
+// ungültig, wird wie bisher die SIHF-Schlusspayload geholt und normalisiert.
+// decision/date kommen IMMER aus dem aktuellen lokalen Spiel (nie aus der
+// gespeicherten Kopie), damit ein später korrigiertes Resultat/Entscheid
+// greift. Die Wahrscheinlichkeitsberechnung selbst ist unverändert (erfolgt
+// weiterhin clientseitig über liveProbability.js auf Basis dieses Records).
+async function getGameRecord(localGame, { log } = {}) {
+  const stored = localGame.replayTimeline
+  if (isUsableStoredTimeline(stored)) {
+    return {
+      homeTeam: stored.homeTeam,
+      awayTeam: stored.awayTeam,
+      decision: localGame.decision,
+      date: localGame.date,
+      periods: stored.periods,
+      shots: Array.isArray(stored.shots) ? stored.shots : [],
+      shootout: stored.shootout || null,
+      events: stored.events,
+      _source: 'gespeichert',
+    }
+  }
+  if (!localGame.sihfGameId) throw new Error(`Spiel ${localGame.id} hat keine sihfGameId - historische SIHF-Daten nicht verknüpft`)
+  const raw = await fetchFinalRaw(localGame.sihfGameId, { log })
+  const rec = normalizeSihfRawToGameRecord(raw, localGame)
+  rec._source = 'SIHF'
+  return rec
+}
+
 // `elapsedSeconds` fehlt/ist grösser als die tatsächliche Spieldauer ->
 // vollständiger Endstand (wird jetzt korrekt auf die ECHTE Spieldauer
 // gekappt, siehe computeGameDurationMinutes(), nicht mehr auf einen
@@ -210,10 +253,8 @@ export const FULL_GAME_SENTINEL_SECONDS = 6 * 3600
 
 export async function buildRealGameReplayState(localGame, elapsedSeconds, { log } = {}) {
   if (localGame.status !== 'final') throw new Error(`Spiel ${localGame.id} ist nicht abgeschlossen (status=${localGame.status}) - kein historischer Replay möglich`)
-  if (!localGame.sihfGameId) throw new Error(`Spiel ${localGame.id} hat keine sihfGameId - historische SIHF-Daten nicht verknüpft`)
 
-  const raw = await fetchFinalRaw(localGame.sihfGameId, { log })
-  const gameRecord = normalizeSihfRawToGameRecord(raw, localGame)
+  const gameRecord = await getGameRecord(localGame, { log })
   const durationMinutes = computeGameDurationMinutes(gameRecord)
   const requestedMinutes = Math.max(0, Number(elapsedSeconds) || 0) / 60
   const elapsedMinutes = Math.min(durationMinutes, requestedMinutes)
@@ -255,10 +296,8 @@ const DEFAULT_STEP_SECONDS = 1
 
 export async function buildRealGameReplayTimeline(localGame, { log, stepSeconds = DEFAULT_STEP_SECONDS } = {}) {
   if (localGame.status !== 'final') throw new Error(`Spiel ${localGame.id} ist nicht abgeschlossen (status=${localGame.status}) - kein historischer Replay möglich`)
-  if (!localGame.sihfGameId) throw new Error(`Spiel ${localGame.id} hat keine sihfGameId - historische SIHF-Daten nicht verknüpft`)
 
-  const raw = await fetchFinalRaw(localGame.sihfGameId, { log })
-  const gameRecord = normalizeSihfRawToGameRecord(raw, localGame)
+  const gameRecord = await getGameRecord(localGame, { log })
   const durationMinutes = computeGameDurationMinutes(gameRecord)
   const durationSeconds = Math.round(durationMinutes * 60)
 

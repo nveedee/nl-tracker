@@ -562,6 +562,58 @@ function computeGameUpdate(existing, parsed) {
 }
 
 // ============================================================================
+// Replay-Timeline (Option A): beim Finalisieren die für die historische
+// Spielverlaufs-Rückschau nötigen SIHF-Rohfelder lokal persistieren, damit
+// server/liveReplay.js sie später OHNE erneuten SIHF-Abruf verwenden kann.
+// Format ist exakt das "GameRecord"-Zwischenformat, das liveReplay.js::
+// buildRawPayloadAt() erwartet (homeTeam/awayTeam-SIHF-Meta, periods, shots,
+// shootout, events mit rohen Zeitstempeln) - decision/date kommen beim Lesen
+// aus dem lokalen Spiel. AUSSCHLIESSLICH tatsächlich von SIHF gelieferte
+// Ereignisse/Zeitstempel - nichts wird erfunden. Die Wahrscheinlichkeit selbst
+// wird weiterhin NICHT gespeichert (clientseitig aus diesen Fakten berechnet).
+// ============================================================================
+function parseReplayTimeline(raw) {
+  if (!raw || !raw.details || !raw.details.homeTeam || !raw.details.awayTeam) return null
+  const scores = (raw.result && raw.result.scores) || []
+  const sogs = (raw.result && raw.result.sogs) || []
+  const periodsSummary = (raw.summary && raw.summary.periods) || []
+  return {
+    v: 1,
+    source: 'sihf',
+    savedAt: new Date().toISOString(),
+    homeTeam: { sihfId: raw.details.homeTeam.id, name: raw.details.homeTeam.name, acronym: raw.details.homeTeam.acronym },
+    awayTeam: { sihfId: raw.details.awayTeam.id, name: raw.details.awayTeam.name, acronym: raw.details.awayTeam.acronym },
+    periods: scores.map((s) => ({ name: s.name, indicator: s.indicator, home: Number(s.homeTeam), away: Number(s.awayTeam) })),
+    shots: sogs.map((s) => ({ name: s.name, indicator: s.indicator, home: Number(s.homeTeam), away: Number(s.awayTeam) })),
+    shootout: (raw.summary && raw.summary.shootout && raw.summary.shootout.shoots) || null,
+    events: periodsSummary.map((p) => ({ name: p.name, goals: p.goals || [], fouls: p.fouls || [] })),
+  }
+}
+
+// Ein Replay-Datensatz gilt als "vollständig", wenn Team-SIHF-IDs, Perioden
+// und Ereignisse vorhanden sind (bei SO zusätzlich die Shootout-Versuche).
+function isReplayTimelineComplete(tl, decision) {
+  if (!tl || !tl.homeTeam || tl.homeTeam.sihfId == null || !tl.awayTeam || tl.awayTeam.sihfId == null) return false
+  if (!Array.isArray(tl.periods) || tl.periods.length === 0) return false
+  if (!Array.isArray(tl.events) || tl.events.length === 0) return false
+  if (decision === 'SO' && !(Array.isArray(tl.shootout) && tl.shootout.length > 0)) return false
+  return true
+}
+
+// Speichert game.replayTimeline NUR, wenn noch kein VOLLSTÄNDIGER Datensatz
+// existiert UND der neue vollständig ist. Dadurch ersetzt ein später evtl.
+// unvollständiger SIHF-Datensatz NIE einen bereits vollständigen, und ein
+// bereits vollständiger wird nicht unnötig überschrieben. Gibt true zurück,
+// wenn tatsächlich gespeichert wurde.
+function saveReplayTimelineIfBetter(game, raw, decision) {
+  if (isReplayTimelineComplete(game.replayTimeline, decision)) return false
+  const tl = parseReplayTimeline(raw)
+  if (!isReplayTimelineComplete(tl, decision)) return false
+  game.replayTimeline = tl
+  return true
+}
+
+// ============================================================================
 // Discovery: lokale Spiele <-> SIHF-gameId zuordnen
 // ============================================================================
 
@@ -658,7 +710,7 @@ async function runSync({ write, log, now = new Date() }) {
   const candidates = db.games.filter((g) => g.sihfGameId && inCheckWindow(g, now))
 
   log(`Prüfe ${candidates.length} Spiele...`)
-  let updated = 0, unchanged = 0, errors = 0, duplicates = 0
+  let updated = 0, unchanged = 0, errors = 0, duplicates = 0, replaySaved = 0
   const seenIds = new Set()
 
   for (const g of candidates) {
@@ -683,9 +735,19 @@ async function runSync({ write, log, now = new Date() }) {
       continue
     }
 
+    // Replay-Timeline additiv persistieren (einmalig, nicht-klobbernd) -
+    // unabhängig davon, ob sich die Resultatfelder geändert haben, damit auch
+    // bereits final gespeicherte Spiele die Timeline nachträglich erhalten.
+    let replayAddedHere = false
+    if (write && saveReplayTimelineIfBetter(g, res.json, parsed.decision)) {
+      replayAddedHere = true
+      replaySaved++
+      log(`  ↳ ${label}: Replay-Timeline gespeichert`)
+    }
+
     const { changed, patch, note } = computeGameUpdate(g, parsed)
     if (!changed) {
-      log(`✓ ${label}: unverändert`)
+      if (!replayAddedHere) log(`✓ ${label}: unverändert`)
       unchanged++
       continue
     }
@@ -707,10 +769,10 @@ async function runSync({ write, log, now = new Date() }) {
   const { ensurePredictionSnapshots } = await import('./predictions.js')
   const predictionSummary = ensurePredictionSnapshots(db, { log })
 
-  if (write && (updated > 0 || predictionSummary.created > 0)) writeDb(db)
+  if (write && (updated > 0 || predictionSummary.created > 0 || replaySaved > 0)) writeDb(db)
 
   const summary = {
-    checked: candidates.length, updated, unchanged, duplicates, errors,
+    checked: candidates.length, updated, unchanged, duplicates, errors, replaySaved,
     predictionsCreated: predictionSummary.created,
   }
   log(`→ ${updated} Spiel${updated === 1 ? '' : 'e'} aktualisiert`)
@@ -750,7 +812,7 @@ async function main() {
   }
 }
 
-module.exports = { runSync, runDiscover, parseSihfGame, computeGameUpdate, fetchSihfGame, SIHF_TO_TEAM_ID, readSyncStatus, parseLiveSnapshot, parseLineups }
+module.exports = { runSync, runDiscover, parseSihfGame, computeGameUpdate, fetchSihfGame, SIHF_TO_TEAM_ID, readSyncStatus, parseLiveSnapshot, parseLineups, parseReplayTimeline, isReplayTimelineComplete, saveReplayTimelineIfBetter }
 
 if (require.main === module) {
   main()
