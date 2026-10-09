@@ -7,7 +7,7 @@ import { runNlSync, readNlSyncStatus, DEFAULT_NL_SYNC_INTERVAL_MIN } from './syn
 import { runNlGameDetailSync } from './nlGameDetailSync.js'
 import { pollLiveGames, ensureFreshLiveState, getAllLiveStates, LIVE_POLL_INTERVAL_MS } from './liveSync.js'
 
-const { runSync: runSihfSync, readSyncStatus } = sihfSync
+const { runSync: runSihfSync, runDiscover: runSihfDiscover, readSyncStatus } = sihfSync
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DATA_DIR = path.join(__dirname, 'data')
@@ -173,6 +173,10 @@ app.post('/api/sync', async (_req, res) => {
 // funktioniert.
 // ---------------------------------------------------------------------------
 let nlSyncRunning = false
+// SIHF-Discover-Lauf-Guard + Fehlerzähler (Log-Drosselung) - siehe
+// runDiscoverSafe() im app.listen()-Callback.
+let discoverRunning = false
+let discoverFailStreak = 0
 
 app.get('/api/sync-nl-status', (_req, res) => {
   res.json(readNlSyncStatus() || { lastRunAt: null, lastSuccessAt: null })
@@ -408,6 +412,48 @@ app.listen(PORT, () => {
     setInterval(() => {
       pollLiveGames(readDb(), { log: (...a) => console.log('[LIVE SYNC]', ...a) }).catch((e) => console.error('[LIVE SYNC] Fehler:', e.message))
     }, LIVE_POLL_INTERVAL_MS)
+  }
+
+  // SIHF-Discover (server/scripts/sync-sihf.cjs::runDiscover): ordnet lokalen
+  // Spielen ihre SIHF-gameId zu (Matching über Datum + Heim/Gast, siehe dort)
+  // und schreibt NUR dieses eine Feld in db.json - vorhandene gültige IDs
+  // bleiben unangetastet (runDiscover filtert intern auf !g.sihfGameId).
+  // Ohne diese ID pollt der Live-Poller oben ein Spiel nie (isCandidate() in
+  // server/liveSync.js verlangt sihfGameId) - deshalb läuft Discover hier
+  // automatisch: einmal beim Start (fire-and-forget, blockiert den Start
+  // nicht) und danach periodisch (Default täglich). Abschaltbar mit
+  // SIHF_AUTO_DISCOVER=0, Intervall überschreibbar mit
+  // SIHF_DISCOVER_INTERVAL_HOURS. `discoverRunning` verhindert parallele
+  // Läufe, falls ein Lauf länger dauert als das Intervall; ein Fehler lässt
+  // Server und Live-Poller unberührt (eigener catch-Pfad). Wiederholte Fehler
+  // werden nach den ersten Vorkommen unterdrückt (discoverFailStreak), um die
+  // Logs nicht zu fluten.
+  const runDiscoverSafe = () => {
+    if (discoverRunning) return
+    discoverRunning = true
+    // Saison-Endjahr wie im CLI-Einstieg (sync-sihf.cjs::main): ab Juli zählt
+    // die kommende Saison, davor die laufende - bestimmt das SIHF-id-Präfix.
+    const now = new Date()
+    const seasonEndYear = now.getMonth() >= 6 ? now.getFullYear() + 1 : now.getFullYear()
+    console.log('[SIHF DISCOVER] Start')
+    runSihfDiscover({ write: true, log: (...a) => console.log('[SIHF DISCOVER]', ...a), seasonEndYear })
+      .then((r) => {
+        discoverFailStreak = 0
+        console.log(`[SIHF DISCOVER] Fertig: ${r.matched} neu zugeordnet (${r.checked} geprüft)`)
+      })
+      .catch((e) => {
+        discoverFailStreak++
+        if (discoverFailStreak <= 3) console.error(`[SIHF DISCOVER] Fehler: ${e.message}`)
+        else if (discoverFailStreak === 4) console.error('[SIHF DISCOVER] weitere Fehler werden bis zum nächsten Erfolg unterdrückt')
+      })
+      .finally(() => { discoverRunning = false })
+  }
+
+  if (process.env.SIHF_AUTO_DISCOVER !== '0') {
+    const discoverIntervalMs = (Number(process.env.SIHF_DISCOVER_INTERVAL_HOURS) || 24) * 60 * 60 * 1000
+    console.log(`  SIHF-Auto-Discover aktiv (beim Start + alle ${discoverIntervalMs / 3600000} h)`)
+    runDiscoverSafe()
+    setInterval(runDiscoverSafe, discoverIntervalMs)
   }
 
   console.log()
