@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { computeLiveWinProbability, remainingFraction, elapsedMinutesFromPeriodClock, OT_SHARE_OF_TIES } from './liveProbability.js'
+import { computeLiveWinProbability, buildLiveProbabilityTimeline, remainingFraction, elapsedMinutesFromPeriodClock, OT_SHARE_OF_TIES } from './liveProbability.js'
 
 // Repräsentative Pre-Game-Werte (Grössenordnung wie CALIBRATION.leagueHomeGPG/
 // leagueAwayGPG in playoffSim.js für ein leicht heimfavorisiertes Spiel) -
@@ -166,4 +166,54 @@ test('keine negativen oder unmöglichen Werte über ein Raster an Score-/Zeit-Ko
       }
     }
   }
+})
+
+// ---------------------------------------------------------------------------
+// buildLiveProbabilityTimeline: durchgehende Kurve aus echten Toren + Engine.
+// ---------------------------------------------------------------------------
+test('buildLiveProbabilityTimeline: laufendes Spiel ergibt eine durchgehende Reihe (nicht nur 1 Punkt)', () => {
+  const hist = buildLiveProbabilityTimeline({
+    ...PREGAME, goals: [{ minute: 12, side: 'home' }], homeGoals: 1, awayGoals: 0, elapsedMinutes: 30, phase: 'REG',
+  })
+  assert.ok(hist.length > 10, 'zu wenige Stützpunkte für eine Kurve')
+  // monoton steigende Spielzeit
+  for (let i = 1; i < hist.length; i++) assert.ok(hist[i].elapsedSeconds >= hist[i - 1].elapsedSeconds)
+  // erster Punkt = Spielbeginn 0:0, letzter = aktueller Stand/Zeit
+  assert.equal(hist[0].elapsedSeconds, 0)
+  assert.equal(hist[0].homeGoals, 0)
+  assert.equal(hist[hist.length - 1].elapsedSeconds, 1800)
+  assert.equal(hist[hist.length - 1].homeGoals, 1)
+  // alle Werte gültig und je Zeile summieren Home+Away der Final-Quote zu 1
+  for (const p of hist) {
+    for (const k of ['homeWin', 'drawAfter60', 'awayWin']) assert.ok(p[k] >= 0 && p[k] <= 1, `${k} ausserhalb [0,1]`)
+    assert.ok(Math.abs(p.homeWin + p.awayWin - 1) < 1e-9, 'homeWin+awayWin != 1')
+  }
+})
+
+test('buildLiveProbabilityTimeline: Score zu jedem Zeitpunkt folgt den echten Torzeiten (harter Sprung)', () => {
+  const hist = buildLiveProbabilityTimeline({
+    ...PREGAME, goals: [{ minute: 20, side: 'away' }], homeGoals: 0, awayGoals: 1, elapsedMinutes: 40, phase: 'REG',
+  })
+  const before = hist.find((p) => p.elapsedSeconds === 20 * 60 - 1)
+  const at = hist.find((p) => p.elapsedSeconds === 20 * 60)
+  assert.ok(before && at, 'Tor-Randpunkte (Sekunde davor/Torsekunde) fehlen')
+  assert.equal(before.awayGoals, 0)
+  assert.equal(at.awayGoals, 1)
+})
+
+test('buildLiveProbabilityTimeline: OT -> Regulationskurve endet bei 60:00, Jetzt-Punkt eingefroren jenseits davon', () => {
+  const hist = buildLiveProbabilityTimeline({
+    ...PREGAME, goals: [{ minute: 10, side: 'home' }, { minute: 50, side: 'away' }], homeGoals: 1, awayGoals: 1, elapsedMinutes: 63, phase: 'OT',
+  })
+  const last = hist[hist.length - 1]
+  assert.ok(last.elapsedSeconds > 60 * 60, 'Jetzt-Punkt liegt nicht jenseits der Regulationszeit')
+  assert.ok(Math.abs(last.drawAfter60 - 1) < 1e-9, 'OT-Jetzt-Punkt nicht eingefroren (drawAfter60≈1)')
+  assert.ok(Math.abs(last.homeWin - PREGAME.pHomePreGame) < 1e-9, 'OT homeFinal != Pre-Game-pHome')
+})
+
+test('buildLiveProbabilityTimeline: keine Tore / Spielbeginn -> trotzdem gültige Reihe', () => {
+  const hist = buildLiveProbabilityTimeline({ ...PREGAME, goals: [], homeGoals: 0, awayGoals: 0, elapsedMinutes: 5, phase: 'REG' })
+  assert.ok(hist.length >= 2)
+  assert.equal(hist[0].eventType, 'START')
+  for (const p of hist) assert.ok(Number.isFinite(p.homeWin) && Number.isFinite(p.awayWin))
 })

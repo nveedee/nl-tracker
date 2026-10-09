@@ -171,6 +171,95 @@ function regulationOutcomeProbabilities(remHomeLambda, remAwayLambda, goalDiff) 
  * @param {number} params.elapsedMinutes Verstrichene REGULATIONS-Spielzeit in Minuten (0-60)
  * @param {'REG'|'OT'|'SO'} [params.phase='REG'] Spielphase - 'OT'/'SO' bedeutet: Regulationszeit ist vorbei (60:00), das Spiel ist bereits unentschieden und wird gerade in der Verlängerung/im Penaltyschiessen entschieden (Sudden Death - keine weitere Restzeit-Poisson-Rechnung sinnvoll, siehe Doku unten)
  */
+// Baut die VOLLSTÄNDIGE Wahrscheinlichkeits-Zeitreihe (Spielbeginn -> jetzt)
+// aus den bereits gefallenen Toren + dem aktuellen Spielzustand - identisches
+// Prinzip wie buildProbabilityHistory() in src/liveDemoData.js und der
+// historische Replay (server/liveReplay.js::buildRealGameReplayTimeline): für
+// jeden Stützpunkt wird der Score ZU DIESEM ZEITPUNKT aus den echten
+// Torzeitstempeln bestimmt und die Wahrscheinlichkeit über die UNVERÄNDERTE
+// computeLiveWinProbability() berechnet. KEINE interpolierten/erfundenen
+// Werte - nur echte Tore, echter Spielstand, echte Spielzeit und die
+// bestehende Engine.
+//
+// Grund: Der echte Live-Hook (src/liveGameClient.js::useLiveGame) sammelte
+// bisher nur EINEN Punkt pro Poll ab Beobachtungsbeginn - bei einem bereits
+// laufenden Spiel ergab das 1-2 Punkte, also keine durchgehende Kurve (nur
+// die Event-/Jetzt-Marker). Diese Funktion rekonstruiert stattdessen die
+// gesamte bisher gespielte Zeit, sodass die Kurven wie in der historischen
+// Ansicht durchgehend sind und mit dem Spielverlauf weiterwachsen.
+//
+// @param goals [{ minute:number (absolute Spielminute), side:'home'|'away' }]
+// @param homeGoals/awayGoals aktueller (massgeblicher) Spielstand
+// @param elapsedMinutes aktuell verstrichene Zeit (REG: 0-60; OT/SO: >=60,
+//        Wanduhr-fortgeschrieben, siehe liveGameClient.js)
+// @param phase 'REG'|'OT'|'SO'
+// Requirement 7 (OT/SO = kein belastbarer Restzeit-Verlauf): die
+// Regulations-Kurve endet sauber bei 60:00; für OT/SO wird NUR der aktuelle,
+// eingefrorene Punkt angehängt (homeFinal=pHome, drawAfter60=1 - exakt
+// computeLiveWinProbability()), nie eine irreführende dynamische Kurve.
+export function buildLiveProbabilityTimeline({
+  expHomeFull, expAwayFull, pHomePreGame,
+  goals = [], homeGoals = 0, awayGoals = 0, elapsedMinutes = 0, phase = 'REG', stepSeconds = 30,
+}) {
+  const cleanGoals = (goals || [])
+    .filter((g) => g && Number.isFinite(g.minute) && (g.side === 'home' || g.side === 'away'))
+    .sort((a, b) => a.minute - b.minute)
+  const scoreAt = (tMinutes) => {
+    let h = 0, a = 0
+    for (const g of cleanGoals) {
+      if (g.minute > tMinutes) break
+      if (g.side === 'home') h++; else a++
+    }
+    return { home: h, away: a }
+  }
+  const pointAt = (elapsedSeconds, phaseAt, scoreOverride) => {
+    const elapsedMin = elapsedSeconds / 60
+    const score = scoreOverride || scoreAt(elapsedMin)
+    const r = computeLiveWinProbability({
+      expHomeFull, expAwayFull, pHomePreGame,
+      homeGoals: score.home, awayGoals: score.away,
+      elapsedMinutes: Math.min(elapsedMin, REGULATION_MINUTES), phase: phaseAt,
+    })
+    return {
+      elapsedSeconds,
+      gameTime: formatClock(elapsedMin),
+      homeGoals: score.home, awayGoals: score.away,
+      homeWin: r.homeFinal, drawAfter60: r.drawAfter60, awayWin: r.awayFinal,
+      eventType: null, event: null,
+    }
+  }
+
+  // Regulations-Stützpunkte: gleichmässiges Raster bis min(jetzt, 60') PLUS
+  // für jedes echte Tor die Sekunde davor (letzter Stand) und die Torsekunde
+  // selbst (Stand danach) -> harte Sprünge an der echten Torzeit statt erst
+  // beim nächsten Raster-Tick (identisch zum historischen Replay).
+  const regEndSeconds = Math.round(Math.min(elapsedMinutes, REGULATION_MINUTES) * 60)
+  const sampleSeconds = new Set()
+  for (let s = 0; s <= regEndSeconds; s += stepSeconds) sampleSeconds.add(s)
+  sampleSeconds.add(regEndSeconds)
+  for (const g of cleanGoals) {
+    const s = Math.round(g.minute * 60)
+    if (s > 0 && s <= regEndSeconds) { sampleSeconds.add(s - 1); sampleSeconds.add(s) }
+  }
+  const history = [...sampleSeconds]
+    .filter((s) => s >= 0 && s <= regEndSeconds)
+    .sort((a, b) => a - b)
+    .map((s) => pointAt(s, 'REG'))
+  if (history.length > 0) history[0].eventType = 'START'
+
+  // Aktueller (massgeblicher) Punkt: Score/Phase/Zeit exakt wie der Live-
+  // Snapshot - garantiert, dass der "Jetzt"-Punkt der Kurve mit der oben
+  // angezeigten aktuellen Quote (buildRealLiveMatch) übereinstimmt. Bei OT/SO
+  // liegt er jenseits von 60:00 (eingefrorene Quote, flache Verbindung).
+  const curSeconds = Math.round(elapsedMinutes * 60)
+  const curPoint = pointAt(curSeconds, phase, { home: homeGoals, away: awayGoals })
+  const last = history[history.length - 1]
+  if (last && last.elapsedSeconds === curSeconds) history[history.length - 1] = curPoint
+  else history.push(curPoint)
+
+  return history
+}
+
 export function computeLiveWinProbability({
   expHomeFull, expAwayFull, pHomePreGame,
   homeGoals, awayGoals, elapsedMinutes, phase = 'REG',

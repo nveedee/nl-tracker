@@ -15,7 +15,7 @@
 // Trennung wie beim Pre-Game-Modell.
 // ---------------------------------------------------------------------------
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { computeLiveWinProbability, REGULATION_MINUTES, formatClock, periodTimeFromElapsed } from './liveProbability.js'
+import { computeLiveWinProbability, buildLiveProbabilityTimeline, REGULATION_MINUTES, formatClock, periodTimeFromElapsed } from './liveProbability.js'
 
 export const LIVE_CLIENT_POLL_MS = 20_000
 
@@ -140,8 +140,6 @@ export function buildRealLiveMatch({ liveState, homeTeam, awayTeam, pregame, his
 export function useLiveGame({ gameId, homeTeam, awayTeam, pregame, enabled }) {
   const [liveMatch, setLiveMatch] = useState(null)
   const [ended, setEnded] = useState(false)
-  const historyRef = useRef([])
-  const lastKeyRef = useRef(null)
   // Wanduhr-Zeitpunkt des ersten beobachteten OT/SO-Ticks (Date.now()) - NUR
   // dafür, dass die Chart-X-Position während OT/SO mit der echten
   // verstrichenen Zeit weiterwandert (siehe otElapsedMinutes()/
@@ -152,8 +150,6 @@ export function useLiveGame({ gameId, homeTeam, awayTeam, pregame, enabled }) {
 
   useEffect(() => {
     if (!enabled || !gameId || !pregame) {
-      historyRef.current = []
-      lastKeyRef.current = null
       otStartRef.current = null
       setLiveMatch(null)
       setEnded(false)
@@ -190,24 +186,22 @@ export function useLiveGame({ gameId, homeTeam, awayTeam, pregame, enabled }) {
         otElapsedMinutes = Math.min(REGULATION_MINUTES + (Date.now() - otStartRef.current) / 60000, OT_DISPLAY_CAP_MINUTES)
       }
       const elapsedMinutes = liveState.phase === 'REG' ? elapsedMinutesFromPercent(liveState.percent) : otElapsedMinutes
-      const key = `${liveState.homeGoals}:${liveState.awayGoals}:${liveState.phase}:${Math.round(elapsedMinutes)}`
-      if (key !== lastKeyRef.current) {
-        lastKeyRef.current = key
-        const prob = computeLiveWinProbability({
-          expHomeFull: pregame.expHomeFull, expAwayFull: pregame.expAwayFull, pHomePreGame: pregame.pHomePreGame,
-          homeGoals: liveState.homeGoals, awayGoals: liveState.awayGoals, elapsedMinutes, phase: liveState.phase,
-        })
-        historyRef.current = [...historyRef.current, {
-          elapsedSeconds: Math.round(elapsedMinutes * 60),
-          gameTime: formatClock(elapsedMinutes),
-          homeGoals: liveState.homeGoals, awayGoals: liveState.awayGoals,
-          homeWin: prob.homeFinal, drawAfter60: prob.drawAfter60, awayWin: prob.awayFinal,
-          eventType: historyRef.current.length === 0 ? 'START' : null,
-          event: null,
-        }]
-      }
+      // Vollständige Kurve (Spielbeginn -> jetzt) bei JEDEM Tick aus den echten
+      // Toren rekonstruieren (statt wie bisher nur einen Punkt pro Poll
+      // anzusammeln - das ergab bei einem bereits laufenden Spiel keine
+      // durchgehende Linie). Reine, getestete Engine-Funktion, dieselbe wie
+      // für Demo/Replay - keine erfundenen Zwischenpunkte (siehe
+      // liveProbability.js::buildLiveProbabilityTimeline).
+      const goalsAbs = (liveState.goals || [])
+        .map((g) => ({ minute: toMinute(g.time), side: g.teamId === homeTeam.id ? 'home' : 'away' }))
+        .filter((g) => g.minute != null)
+      const history = buildLiveProbabilityTimeline({
+        expHomeFull: pregame.expHomeFull, expAwayFull: pregame.expAwayFull, pHomePreGame: pregame.pHomePreGame,
+        goals: goalsAbs, homeGoals: liveState.homeGoals, awayGoals: liveState.awayGoals,
+        elapsedMinutes, phase: liveState.phase,
+      })
 
-      setLiveMatch(buildRealLiveMatch({ liveState, homeTeam, awayTeam, pregame, history: historyRef.current, otElapsedMinutes }))
+      setLiveMatch(buildRealLiveMatch({ liveState, homeTeam, awayTeam, pregame, history, otElapsedMinutes }))
     }
 
     tick()
