@@ -1,3 +1,5 @@
+import { ARENA_CAPACITIES, PRELIMINARY_SAMPLE_SIZE, capacityForGame } from './arenaCapacities.js'
+
 const WEEKDAYS = [
   { id: 1, label: 'Montag' },
   { id: 2, label: 'Dienstag' },
@@ -123,6 +125,85 @@ export function pearsonCorrelation(points) {
   return covariance / Math.sqrt(varianceX * varianceY)
 }
 
+/**
+ * Arena utilization describes each completed home game using its host arena.
+ * Attendance remains the real positive game.attendance observation; unknown
+ * capacities and missing attendance are excluded, never imputed.
+ */
+export function buildArenaUtilization({
+  games = [],
+  teams = [],
+  asOf = new Date().toISOString().slice(0, 10),
+  capacities = ARENA_CAPACITIES,
+} = {}) {
+  const allObservations = []
+  const rows = teams.map((team) => {
+    const capacityRecord = capacities[team.id] || null
+    const completedHomeGames = games.filter((game) => game.homeTeamId === team.id && isFinalGame(game))
+    const upcomingHomeGames = games.filter((game) => game.homeTeamId === team.id
+      && game.status === 'scheduled' && typeof game.date === 'string'
+      && weekdayForDate(game.date) != null && game.date > asOf)
+    const attendanceGames = completedHomeGames.filter(hasRealAttendance)
+    const coverage = completedHomeGames.length
+      ? attendanceGames.length / completedHomeGames.length
+      : null
+    const observations = attendanceGames.flatMap((game) => {
+      const capacity = capacityForGame(team.id, game.date, capacities)
+      if (capacity == null) return []
+      const utilization = (game.attendance / capacity) * 100
+      return [{ game, attendance: game.attendance, capacity, utilization, capacityConflict: utilization > 100 }]
+    })
+    const sorted = observations.slice().sort((a, b) => a.utilization - b.utilization)
+    const mean = (values) => values.length
+      ? values.reduce((sum, value) => sum + value, 0) / values.length
+      : null
+    const utilizationSampleSize = observations.length
+    allObservations.push(...observations)
+    return {
+      team,
+      arena: capacityRecord?.arena || null,
+      capacity: capacityRecord?.confidence === 'unverified' ? null : capacityRecord?.capacity ?? null,
+      capacityPeriods: capacityRecord?.capacityPeriods || [],
+      capacityConfidence: capacityRecord?.confidence || 'unverified',
+      capacitySource: capacityRecord?.source || null,
+      capacityCheckedAt: capacityRecord?.checkedAt || null,
+      capacityNote: capacityRecord?.note || null,
+      completedHomeGames: completedHomeGames.length,
+      upcomingHomeGames: upcomingHomeGames.length,
+      attendanceGames: attendanceGames.length,
+      missingAttendance: completedHomeGames.length - attendanceGames.length,
+      coverage,
+      averageAttendance: mean(attendanceGames.map((game) => game.attendance)),
+      utilizationGames: utilizationSampleSize,
+      averageUtilization: mean(observations.map((entry) => entry.utilization)),
+      lowestUtilization: sorted[0] || null,
+      highestUtilization: sorted.at(-1) || null,
+      capacityConflicts: observations.filter((entry) => entry.capacityConflict),
+      isPreliminary: utilizationSampleSize < PRELIMINARY_SAMPLE_SIZE,
+      state: completedHomeGames.length === 0 && upcomingHomeGames.length > 0
+        ? 'no-home-games-yet'
+        : completedHomeGames.length === 0 ? 'no-completed-home-games' : 'has-home-games',
+    }
+  })
+
+  const ranked = rows.filter((row) => row.averageUtilization != null)
+    .sort((a, b) => b.averageUtilization - a.averageUtilization || a.team.name.localeCompare(b.team.name))
+  const attendanceRanking = rows.filter((row) => row.averageAttendance != null)
+    .sort((a, b) => b.averageAttendance - a.averageAttendance || a.team.name.localeCompare(b.team.name))
+  return {
+    rows,
+    ranking: ranked,
+    attendanceRanking,
+    averageUtilization: allObservations.length
+      ? allObservations.reduce((sum, entry) => sum + entry.utilization, 0) / allObservations.length
+      : null,
+    utilizationGames: allObservations.length,
+    missingAttendanceGames: rows.reduce((sum, row) => sum + row.missingAttendance, 0),
+    attendanceWithoutCapacity: rows.reduce((sum, row) => sum + row.attendanceGames - row.utilizationGames, 0),
+    preliminarySampleSize: PRELIMINARY_SAMPLE_SIZE,
+  }
+}
+
 export function buildFanAnalytics({ games = [], teams = [], standings = [], filters = {}, formLength = 5 } = {}) {
   const teamById = new Map(teams.map((team) => [team.id, team]))
   const allFinalGames = games.filter(isFinalGame)
@@ -209,6 +290,7 @@ export function buildFanAnalytics({ games = [], teams = [], standings = [], filt
 
   return {
     finalGames: scopedGames,
+    calendarGames: finalGames,
     observedGames,
     missingAttendance: scopedGames.length - observedGames.length,
     average: observedGames.length

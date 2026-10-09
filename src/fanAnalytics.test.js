@@ -1,12 +1,14 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  buildArenaUtilization,
   buildFanAnalytics,
   hasRealAttendance,
   pearsonCorrelation,
   resultForTeam,
   weekdayForDate,
 } from './fanAnalytics.js'
+import { ARENA_CAPACITIES, capacityForGame } from './arenaCapacities.js'
 
 const teams = [
   { id: 'a', name: 'Ajoie', short: 'AJO' },
@@ -151,4 +153,209 @@ test('result labels and correlations are descriptive and handle small or constan
   assert.equal(pearsonCorrelation([{ x: 1, y: 2 }, { x: 1, y: 3 }, { x: 1, y: 4 }]), null)
   assert.equal(pearsonCorrelation([{ x: 1, y: 1 }, { x: 2, y: 2 }, { x: 3, y: 3 }]), 1)
   assert.equal(pearsonCorrelation([{ x: 1, y: 1 }, { x: Number.NaN, y: 2 }, { x: 3, y: 3 }]), null)
+})
+
+test('arena capacity catalog documents all 14 league teams and uses the SIHF capacities with caveats', () => {
+  assert.equal(Object.keys(ARENA_CAPACITIES).length, 14)
+  assert.equal(Object.values(ARENA_CAPACITIES).filter((record) => record.confidence === 'provisional').length, 14)
+  for (const record of Object.values(ARENA_CAPACITIES)) {
+    assert.ok(record.arena)
+    assert.match(record.source, /^https:\/\//)
+    assert.equal(record.checkedAt, '2026-10-10')
+    assert.ok(record.validForSeason)
+    assert.equal(record.capacityPeriods.length, 1)
+  }
+  const updated = [
+    ['team_ajo', 5366, '1-1-103144', "2'400"],
+    ['team_bie', 6556, '1-1-102128', "6'408"],
+    ['team_fri', 9620, '1-1-103138', "9'372"],
+    ['team_zug', 7450, '1-1-101144', "7'700"],
+  ]
+  for (const [teamId, capacity, sourceSuffix, caveat] of updated) {
+    const record = ARENA_CAPACITIES[teamId]
+    assert.equal(record.confidence, 'provisional')
+    assert.equal(record.capacity, capacity)
+    assert.equal(record.source.endsWith(sourceSuffix), true)
+    assert.ok(record.note.includes(caveat))
+    assert.equal(record.capacityPeriods[0].capacity, capacity)
+    assert.equal(capacityForGame(teamId, '2026-10-10'), capacity)
+  }
+  assert.equal(capacityForGame('team_scb', '2026-10-10'), 17031)
+  assert.equal(capacityForGame('team_scb', '2027-07-01'), null)
+  assert.equal(capacityForGame('team_scb', 'bad-date'), null)
+  assert.equal(ARENA_CAPACITIES.team_scb.capacityPeriods.length, 1)
+  assert.equal(ARENA_CAPACITIES.team_ajo.capacityPeriods[0].capacity, 5366)
+
+  const allTeams = Object.entries(ARENA_CAPACITIES).map(([id, record]) => ({ id, name: record.arena }))
+  const allTeamRows = buildArenaUtilization({ teams: allTeams, games: [] }).rows
+  assert.equal(allTeamRows.length, 14)
+  assert.deepEqual(allTeamRows.map((row) => row.team.id), Object.keys(ARENA_CAPACITIES))
+})
+
+test('utilization averages per-game percentages, keeps over-capacity conflicts, and sorts ranking', () => {
+  const sampleTeams = [
+    { id: 'team_scb', name: 'Bern' },
+    { id: 'team_apk', name: 'Ambri' },
+    { id: 'team_ajo', name: 'Ajoie' },
+  ]
+  const result = buildArenaUtilization({
+    teams: sampleTeams,
+    asOf: '2026-10-10',
+    games: [
+      game('bern-a', '2026-09-15', 'team_scb', 'team_apk', 2, 1, 17031),
+      game('bern-b', '2026-09-18', 'team_scb', 'team_ajo', 3, 1, 8515.5),
+      game('ambri-a', '2026-09-22', 'team_apk', 'team_scb', 1, 4, 6775),
+      game('ajoie-a', '2026-09-25', 'team_ajo', 'team_scb', 2, 3, 8000),
+    ],
+  })
+  const bern = result.rows.find((row) => row.team.id === 'team_scb')
+  assert.equal(bern.averageUtilization, 75)
+  assert.equal(bern.averageAttendance, (17031 + 8515.5) / 2)
+  assert.equal(bern.utilizationGames, 2)
+  assert.equal(bern.isPreliminary, true)
+  assert.deepEqual(result.ranking.map((row) => row.team.id), ['team_ajo', 'team_apk', 'team_scb'])
+  assert.deepEqual(result.attendanceRanking.map((row) => row.team.id), ['team_scb', 'team_ajo', 'team_apk'])
+  const ajoie = result.rows.find((row) => row.team.id === 'team_ajo')
+  assert.equal(ajoie.averageAttendance, 8000)
+  assert.equal(ajoie.averageUtilization, (8000 / 5366) * 100)
+  assert.equal(ajoie.utilizationGames, 1)
+  assert.equal(ajoie.capacityConflicts.length, 1)
+})
+
+test('utilization excludes missing or invalid attendance and ignores scheduled/live games', () => {
+  const result = buildArenaUtilization({
+    teams: [{ id: 'team_scb', name: 'Bern' }],
+    asOf: '2026-10-10',
+    games: [
+      game('valid', '2026-09-15', 'team_scb', 'team_apk', 2, 1, 10000),
+      game('missing', '2026-09-18', 'team_scb', 'team_apk', 2, 1, null),
+      game('string', '2026-09-19', 'team_scb', 'team_apk', 2, 1, '16000'),
+      game('scheduled', '2026-10-23', 'team_scb', 'team_apk', null, null, 16000, { status: 'scheduled' }),
+      game('live', '2026-10-24', 'team_scb', 'team_apk', 1, 0, 16000, { status: 'live' }),
+    ],
+  })
+  const bern = result.rows[0]
+  assert.equal(bern.completedHomeGames, 3)
+  assert.equal(bern.attendanceGames, 1)
+  assert.equal(bern.missingAttendance, 2)
+  assert.equal(bern.coverage, 1 / 3)
+  assert.equal(bern.upcomingHomeGames, 1)
+  assert.equal(bern.utilizationGames, 1)
+})
+
+test('utilization handles teams with no completed home games and does not render zero percent', () => {
+  const result = buildArenaUtilization({
+    teams: [{ id: 'team_zug', name: 'Zug' }, { id: 'team_scb', name: 'Bern' }],
+    asOf: '2026-10-10',
+    games: [game('zug-next', '2026-10-23', 'team_zug', 'team_lau', null, null, null, { status: 'scheduled' })],
+  })
+  const zug = result.rows.find((row) => row.team.id === 'team_zug')
+  assert.equal(zug.state, 'no-home-games-yet')
+  assert.equal(zug.completedHomeGames, 0)
+  assert.equal(zug.upcomingHomeGames, 1)
+  assert.equal(zug.averageAttendance, null)
+  assert.equal(zug.averageUtilization, null)
+  assert.equal(zug.coverage, null)
+  assert.deepEqual(result.ranking, [])
+})
+
+test('empty Zug home selection retains calendar-scoped league ranking data', () => {
+  const leagueTeams = [
+    { id: 'team_zug', name: 'Zug' },
+    { id: 'team_scb', name: 'Bern' },
+  ]
+  const analytics = buildFanAnalytics({
+    teams: leagueTeams,
+    games: [
+      game('bern-home', '2026-09-15', 'team_scb', 'team_zug', 2, 1, 12000),
+      game('zug-next', '2026-10-23', 'team_zug', 'team_scb', null, null, null, { status: 'scheduled' }),
+    ],
+    filters: { teamId: 'team_zug', venuePerspective: 'home' },
+  })
+
+  assert.deepEqual(analytics.finalGames, [])
+  assert.deepEqual(analytics.observedGames, [])
+  const calendarScopedGames = [
+    ...analytics.calendarGames,
+    game('zug-next', '2026-10-23', 'team_zug', 'team_scb', null, null, null, { status: 'scheduled' }),
+  ]
+  const ranking = buildArenaUtilization({ games: calendarScopedGames, teams: leagueTeams, asOf: '2026-10-10' })
+  assert.deepEqual(ranking.rows.map((row) => row.team.id), ['team_zug', 'team_scb'])
+  assert.equal(ranking.rows.find((row) => row.team.id === 'team_zug').state, 'no-home-games-yet')
+  assert.equal(ranking.rows.find((row) => row.team.id === 'team_zug').averageAttendance, null)
+  assert.equal(ranking.rows.find((row) => row.team.id === 'team_zug').averageUtilization, null)
+  assert.equal(ranking.rows.find((row) => row.team.id === 'team_zug').coverage, null)
+})
+
+test('utilization above 100 percent remains visible and is explicitly flagged', () => {
+  const result = buildArenaUtilization({
+    teams: [{ id: 'team_scb', name: 'Bern' }],
+    games: [game('over', '2026-09-15', 'team_scb', 'team_apk', 2, 1, 18000)],
+  })
+  assert.ok(result.rows[0].averageUtilization > 100)
+  assert.equal(result.rows[0].highestUtilization.capacityConflict, true)
+  assert.equal(result.rows[0].capacityConflicts.length, 1)
+})
+
+test('utilization uses the date-matched capacity period for each individual game', () => {
+  const splitCapacity = {
+    ...ARENA_CAPACITIES,
+    team_scb: {
+      ...ARENA_CAPACITIES.team_scb,
+      capacityPeriods: [
+        { validFrom: '2026-09-01', validTo: '2026-09-17', capacity: 16000 },
+        { validFrom: '2026-09-18', validTo: '2027-06-30', capacity: 18000 },
+      ],
+    },
+  }
+  const result = buildArenaUtilization({
+    teams: [{ id: 'team_scb', name: 'Bern' }],
+    capacities: splitCapacity,
+    games: [
+      game('before-change', '2026-09-15', 'team_scb', 'team_apk', 2, 1, 16000),
+      game('after-change', '2026-09-18', 'team_scb', 'team_apk', 2, 1, 18000),
+      game('outside-period', '2026-08-31', 'team_scb', 'team_apk', 2, 1, 17000),
+    ],
+  })
+  assert.equal(result.rows[0].utilizationGames, 2)
+  assert.equal(result.rows[0].averageUtilization, 100)
+  assert.equal(result.rows[0].capacityConflicts.length, 0)
+})
+
+test('league utilization average uses SIHF capacity despite a documented source discrepancy', () => {
+  const result = buildArenaUtilization({
+    teams: [{ id: 'team_scb', name: 'Bern' }, { id: 'team_ajo', name: 'Ajoie' }],
+    games: [
+      game('known', '2026-09-15', 'team_scb', 'team_ajo', 2, 1, 8515.5),
+      game('unknown-capacity', '2026-09-18', 'team_ajo', 'team_scb', 2, 1, 4000),
+    ],
+  })
+  assert.equal(result.averageUtilization, (50 + (4000 / 5366) * 100) / 2)
+  assert.equal(result.utilizationGames, 2)
+  assert.equal(result.attendanceWithoutCapacity, 0)
+})
+
+test('games with missing attendance or unknown capacity do not enter utilization averages', () => {
+  const capacities = {
+    ...ARENA_CAPACITIES,
+    team_ajo: {
+      ...ARENA_CAPACITIES.team_ajo,
+      capacity: null,
+      confidence: 'unverified',
+      capacityPeriods: [],
+    },
+  }
+  const result = buildArenaUtilization({
+    teams: [{ id: 'team_scb', name: 'Bern' }, { id: 'team_ajo', name: 'Ajoie' }],
+    capacities,
+    games: [
+      game('valid', '2026-09-15', 'team_scb', 'team_ajo', 2, 1, 10000),
+      game('missing-attendance', '2026-09-18', 'team_scb', 'team_ajo', 2, 1, null),
+      game('unknown-capacity', '2026-09-22', 'team_ajo', 'team_scb', 1, 2, 4000),
+    ],
+  })
+  assert.equal(result.utilizationGames, 1)
+  assert.equal(result.averageUtilization, (10000 / 17031) * 100)
+  assert.equal(result.missingAttendanceGames, 1)
+  assert.equal(result.attendanceWithoutCapacity, 1)
 })

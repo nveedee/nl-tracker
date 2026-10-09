@@ -1244,7 +1244,7 @@ td.num strong, th.num strong { font-weight: 800; }
 .fan-filters select:disabled { opacity: .5; }
 .fan-perspective-note { display: flex; align-items: center; gap: 7px; margin-top: 9px; color: var(--text-dim); font-size: 10px; }
 .fan-note-icon { display: inline-grid; place-items: center; width: 14px; height: 14px; border: 1px solid var(--border-strong); border-radius: 50%; font-size: 9px; font-weight: 800; flex: none; }
-.fan-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.fan-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
 .fan-stat-card { min-width: 0; padding: 12px 14px 10px; background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-lg); }
 .fan-stat-card.is-accent { border-top: 2px solid var(--accent); padding-top: 11px; }
 .fan-stat-label { color: var(--text-faint); font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .09em; }
@@ -1288,6 +1288,23 @@ td.num strong, th.num strong { font-weight: 800; }
 .fan-team-track i, .fan-bar-track i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
 .fan-team-row > strong { text-align: right; font: 700 10px var(--mono); }
 .fan-team-sample { color: var(--text-faint); text-align: right; font: 9px var(--mono); }
+.fan-ranking-toggle { display: flex; gap: 4px; margin: 0 0 9px; padding: 3px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg); width: max-content; max-width: 100%; }
+.fan-ranking-toggle button { padding: 5px 9px; border: 0; border-radius: 5px; background: transparent; color: var(--text-dim); font: 700 9px var(--font); cursor: pointer; }
+.fan-ranking-toggle button.active { background: var(--bg-elev-2); color: var(--text); box-shadow: 0 1px 3px #0002; }
+.fan-arena-team-row { grid-template-columns: 58px minmax(45px, 1fr) 64px minmax(85px, 112px); grid-template-areas: "team bar value sample" "status status status status"; row-gap: 3px; min-height: 34px; padding: 5px 4px; }
+.fan-arena-team-row .fan-team-name { grid-area: team; }
+.fan-arena-team-row .fan-team-track { grid-area: bar; }
+.fan-arena-team-row > strong { grid-area: value; }
+.fan-arena-team-row .fan-team-sample { grid-area: sample; }
+.fan-arena-status { grid-area: status; display: flex; flex-wrap: wrap; gap: 3px 5px; padding-left: 0; }
+.fan-status-badge { color: var(--text-faint); font-size: 8px; line-height: 1.35; }
+.fan-status-badge.is-warning, .fan-status-badge.is-conflict { color: var(--warn); font-weight: 800; }
+.fan-capacity-sources { margin-top: 10px; border-top: 1px solid var(--border); color: var(--text-dim); font-size: 9px; }
+.fan-capacity-sources summary { padding: 8px 2px 4px; color: var(--text-dim); font-weight: 700; cursor: pointer; }
+.fan-capacity-sources ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 14px; margin: 5px 0 0; padding: 0; list-style: none; }
+.fan-capacity-sources li { display: grid; align-content: start; gap: 2px; min-width: 0; padding: 7px; border-radius: 5px; background: var(--bg); line-height: 1.4; overflow-wrap: anywhere; }
+.fan-capacity-sources li strong { color: var(--text); }
+.fan-capacity-sources a { width: max-content; color: var(--accent-strong); text-decoration: underline; }
 .fan-mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 .fan-mini-chart { min-width: 0; }
 .fan-mini-head { display: flex; flex-direction: column; gap: 1px; margin: 2px 0 9px; }
@@ -1326,7 +1343,9 @@ button.fan-bar-row:hover, button.fan-bar-row.active { background: var(--bg-hover
 @media (max-width: 1000px) {
   .fan-grid-main { grid-template-columns: minmax(0, 1.35fr) minmax(210px, .8fr); }
   .fan-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .fan-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .fan-team-row { grid-template-columns: 48px minmax(50px, 1fr) 48px 83px; gap: 6px; }
+  .fan-arena-team-row { grid-template-columns: 52px minmax(40px, 1fr) 58px minmax(78px, 100px); row-gap: 3px; }
 }
 @media (max-width: 760px) {
   .fan-grid-main, .fan-grid-secondary { grid-template-columns: 1fr; }
@@ -1346,7 +1365,9 @@ button.fan-bar-row:hover, button.fan-bar-row.active { background: var(--bg-hover
   .fan-card-head p { font-size: 10px; }
   .fan-card-right { max-width: 42%; white-space: normal; text-align: right; }
   .fan-mini-grid { grid-template-columns: 1fr; gap: 15px; }
+  .fan-capacity-sources ul { grid-template-columns: 1fr; }
   .fan-team-row { grid-template-columns: 48px minmax(36px, 1fr) 42px 78px; gap: 5px; }
+  .fan-arena-team-row { grid-template-columns: 45px minmax(35px, 1fr) 52px 78px; row-gap: 3px; }
   .fan-team-name { font-size: 9px; }
   .fan-team-sample { font-size: 8px; }
   .fan-stat-card { padding: 10px 11px 9px; }

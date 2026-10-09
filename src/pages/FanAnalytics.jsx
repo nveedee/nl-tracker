@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useData } from '../DataContext.jsx'
-import { buildFanAnalytics } from '../fanAnalytics.js'
+import { buildArenaUtilization, buildFanAnalytics, weekdayForDate } from '../fanAnalytics.js'
 
 const nf = new Intl.NumberFormat('de-CH', { maximumFractionDigits: 0 })
 const oneDecimal = new Intl.NumberFormat('de-CH', { maximumFractionDigits: 1, minimumFractionDigits: 1 })
@@ -9,6 +9,8 @@ const compactDate = new Intl.DateTimeFormat('de-CH', { day: '2-digit', month: 's
 
 function fmtCount(value) { return value == null ? '–' : nf.format(value) }
 function fmtAverage(value) { return value == null ? '–' : oneDecimal.format(value) }
+function fmtUtilization(value) { return value == null ? '—' : `${oneDecimal.format(value)}%` }
+
 function fmtDate(value) {
   if (!value) return 'Datum fehlt'
   const date = new Date(`${value}T12:00:00Z`)
@@ -119,21 +121,54 @@ function MiniBars({ title, detail, rows, emptyText, selectedKey, onSelect }) {
   )
 }
 
-function TeamComparison({ rows, selectedTeamId, onSelect }) {
-  const max = Math.max(...rows.map((row) => row.average || 0), 1)
-  const ordered = [...rows].sort((a, b) => (b.average ?? -1) - (a.average ?? -1))
-  if (!ordered.some((row) => row.recorded)) return <EmptyChart title="Noch kein Team mit Messwerten" detail="Erfasste Heimspiele erscheinen hier, sobald Zuschauerzahlen vorliegen." />
+function TeamComparison({ analysis, selectedTeamId, onSelect }) {
+  const [rankMode, setRankMode] = useState('utilization')
+  const isUtilization = rankMode === 'utilization'
+  const ranked = isUtilization ? analysis.ranking : analysis.attendanceRanking
+  const rankedIds = new Set(ranked.map((row) => row.team.id))
+  const ordered = [...ranked, ...analysis.rows.filter((row) => !rankedIds.has(row.team.id))
+    .sort((a, b) => a.team.name.localeCompare(b.team.name))]
+  const valueFor = (row) => isUtilization ? row.averageUtilization : row.averageAttendance
+  const max = Math.max(...ordered.map((row) => valueFor(row) || 0), 1)
+  if (!ordered.length) return <EmptyChart title="Noch kein Team mit Messwerten" detail="Erfasste Heimspiele erscheinen hier, sobald Zuschauerzahlen vorliegen." />
   return (
-    <div className="fan-team-bars">
-      {ordered.map((row) => (
-        <button type="button" key={row.team.id} className={`fan-team-row${selectedTeamId === row.team.id ? ' selected' : ''}`} onClick={() => onSelect(selectedTeamId === row.team.id ? '' : row.team.id)} aria-pressed={selectedTeamId === row.team.id}>
-          <span className="fan-team-name"><i style={{ background: row.team.color || 'var(--accent)' }} />{row.team.short || row.team.name}</span>
-          <span className="fan-team-track"><i style={{ width: `${row.average == null ? 0 : (row.average / max) * 100}%`, background: row.team.color || 'var(--accent)' }} /></span>
-          <strong>{fmtAverage(row.average)}</strong>
-          <span className="fan-team-sample">{row.recorded}/{row.games} · {row.coverage == null ? '–' : percent.format(row.coverage)}</span>
-        </button>
-      ))}
-      <div className="fan-chart-caption">Ø Zuschauer pro Heimspiel · n erfasst / Heimspiele · Abdeckung</div>
+    <div className="fan-arena-ranking">
+      <div className="fan-ranking-toggle" role="group" aria-label="Ranking sortieren nach">
+        <button type="button" className={isUtilization ? 'active' : ''} aria-pressed={isUtilization} onClick={() => setRankMode('utilization')}>Auslastung</button>
+        <button type="button" className={!isUtilization ? 'active' : ''} aria-pressed={!isUtilization} onClick={() => setRankMode('attendance')}>Zuschauerschnitt</button>
+      </div>
+      <div className="fan-team-bars">
+        {ordered.map((row) => {
+          const value = valueFor(row)
+          const unresolved = row.capacityConfidence === 'unverified'
+          const sampleSize = isUtilization ? row.utilizationGames : row.attendanceGames
+          const title = `${row.arena || row.team.name} · Quelle: ${row.capacitySource || 'keine'} · geprüft am ${row.capacityCheckedAt || 'unbekannt'}${row.capacityConfidence === 'provisional' ? ' · Kapazität vorläufig' : ''}`
+          return <button type="button" key={row.team.id} title={title} className={`fan-team-row fan-arena-team-row${selectedTeamId === row.team.id ? ' selected' : ''}`} onClick={() => onSelect(selectedTeamId === row.team.id ? '' : row.team.id)} aria-pressed={selectedTeamId === row.team.id}>
+            <span className="fan-team-name"><i style={{ background: row.team.color || 'var(--accent)' }} />{row.team.short || row.team.name}</span>
+            <span className="fan-team-track"><i style={{ width: `${value == null ? 0 : (value / max) * 100}%`, background: row.team.color || 'var(--accent)' }} /></span>
+            <strong>{isUtilization ? fmtUtilization(value) : fmtAverage(value)}</strong>
+            <span className="fan-team-sample">{row.coverage == null ? 'n=0' : `${row.attendanceGames}/${row.completedHomeGames} · ${percent.format(row.coverage)}`}</span>
+            <span className="fan-arena-status">
+              {row.state === 'no-home-games-yet' && <span className="fan-status-badge">Noch keine Heimspiele{row.upcomingHomeGames ? ` · ${row.upcomingHomeGames} geplant` : ''}</span>}
+              {unresolved && <span className="fan-status-badge is-warning">Kapazität ungeklärt</span>}
+              {row.capacityConfidence === 'provisional' && <span className="fan-status-badge">Kapazität vorläufig</span>}
+              {sampleSize > 0 && <span className="fan-status-badge">{sampleSize < analysis.preliminarySampleSize ? 'Schnitt vorläufig' : 'Saisonwert'} · n={sampleSize}</span>}
+              {row.capacityConflicts.length > 0 && <span className="fan-status-badge is-conflict">Möglicher Daten- oder Kapazitätskonflikt</span>}
+            </span>
+          </button>
+        })}
+      </div>
+      <div className="fan-chart-caption">{isUtilization ? 'Ø der einzelnen Heimspiel-Auslastungen · Stichprobe und Datenabdeckung' : 'Ø Zuschauer pro Heimspiel · Stichprobe und Datenabdeckung'}</div>
+      <details className="fan-capacity-sources">
+        <summary>Kapazitätsquellen und Prüfdatum</summary>
+        <ul>{analysis.rows.map((row) => <li key={row.team.id}>
+          <strong>{row.team.name} · {row.arena || 'Arena nicht zugeordnet'}</strong>
+          <span>{row.capacityPeriods.length === 0 ? 'Kapazität ungeklärt' : row.capacityPeriods.map((period) => `${nf.format(period.capacity)} Plätze (${period.validFrom}–${period.validTo})`).join(' · ')}</span>
+          <span>Geprüft am {row.capacityCheckedAt || 'unbekannt'} · {row.capacityConfidence === 'unverified' ? 'ungeprüft' : 'vorläufig'}</span>
+          {row.capacityNote && <span>{row.capacityNote}</span>}
+          {row.capacitySource && <a href={row.capacitySource} target="_blank" rel="noreferrer">Quelle öffnen</a>}
+        </li>)}</ul>
+      </details>
     </div>
   )
 }
@@ -210,6 +245,22 @@ export default function FanAnalytics() {
     filters: { teamId, venuePerspective: teamId ? venuePerspective : 'all', from, to, weekday },
   }), [data?.games, data?.teams, derived?.standings, teamId, venuePerspective, from, to, weekday])
 
+  const arenaGames = useMemo(() => {
+    const scheduledGames = (data?.games || []).filter((game) => {
+      if (game.status !== 'scheduled' || weekdayForDate(game.date) == null) return false
+      if (from && game.date < from) return false
+      if (to && game.date > to) return false
+      if (weekday !== '' && weekdayForDate(game.date) !== Number(weekday)) return false
+      return true
+    })
+    return [...analytics.calendarGames, ...scheduledGames]
+  }, [data?.games, analytics.calendarGames, from, to, weekday])
+
+  const arenaUtilization = useMemo(() => buildArenaUtilization({
+    games: arenaGames,
+    teams: data?.teams || [],
+  }), [arenaGames, data?.teams])
+
   const teamById = useMemo(() => new Map((data?.teams || []).map((team) => [team.id, team])), [data?.teams])
   const selectedTeam = teamById.get(teamId)
   const perspectiveText = !selectedTeam
@@ -240,10 +291,19 @@ export default function FanAnalytics() {
         <div className="fan-perspective-note"><span className="fan-note-icon">i</span>{perspectiveText}</div>
       </section>
 
-      {!hasFinals ? <div className="empty fan-page-empty"><div className="title">Noch keine abgeschlossenen Spiele</div><div>Fan Analytics wird angezeigt, sobald Resultate vorliegen.</div></div> : analytics.finalGames.length === 0 ? <div className="empty fan-page-empty"><div className="title">Keine Spiele in dieser Auswahl</div><div>Ändere Zeitraum, Wochentag oder Teamfilter.</div></div> : analytics.observedGames.length === 0 ? <div className="empty fan-page-empty"><div className="title">Für diese Spiele fehlen Zuschauerzahlen</div><div>Es werden keine Werte geschätzt. Wähle einen anderen Zeitraum oder ein anderes Team.</div></div> : <>
+      {!hasFinals
+        ? <div className="empty fan-page-empty"><div className="title">Noch keine abgeschlossenen Spiele</div><div>Fan Analytics wird angezeigt, sobald Resultate vorliegen.</div></div>
+        : analytics.finalGames.length === 0
+          ? <div className="empty fan-page-empty"><div className="title">Keine Spiele in dieser Auswahl</div><div>Ändere Zeitraum, Wochentag oder Teamfilter.</div></div>
+          : analytics.observedGames.length === 0
+            ? <div className="empty fan-page-empty"><div className="title">Für diese Spiele fehlen Zuschauerzahlen</div><div>Es werden keine Werte geschätzt. Wähle einen anderen Zeitraum oder ein anderes Team.</div></div>
+            : null}
+
+      {analytics.observedGames.length > 0 && <>
         <section className="fan-stats" aria-label="Kennzahlen zur aktuellen Auswahl">
           <StatCard label="Zuschauer im Ausschnitt" value={fmtCount(analytics.totalAttendance)} detail={`${analytics.observedGames.length} Spiele mit echtem Wert`} accent />
           <StatCard label="Schnitt pro Spiel" value={fmtAverage(analytics.average)} detail={`Abdeckung ${analytics.coverage == null ? '–' : percent.format(analytics.coverage)} · ${analytics.missingAttendance} ohne Wert`} />
+          <StatCard label="Ø Stadionauslastung" value={fmtUtilization(arenaUtilization.averageUtilization)} detail={`n=${arenaUtilization.utilizationGames} Heimspiele · ${arenaUtilization.attendanceWithoutCapacity} ohne Kapazität · ${arenaUtilization.missingAttendanceGames} ohne Zuschauerwert${arenaUtilization.averageUtilization > 100 ? ' · möglicher Kapazitätskonflikt' : ''}`} />
           <StatCard label="Höchster Besuch" value={fmtCount(analytics.highest?.attendance)} detail={analytics.highest ? `${fmtDate(analytics.highest.date)} · ${teamById.get(analytics.highest.homeTeamId)?.short || 'Heim'}` : '–'} />
           <StatCard label="Niedrigster Besuch" value={fmtCount(analytics.lowest?.attendance)} detail={analytics.lowest ? `${fmtDate(analytics.lowest.date)} · ${teamById.get(analytics.lowest.homeTeamId)?.short || 'Heim'}` : '–'} />
         </section>
@@ -261,10 +321,6 @@ export default function FanAnalytics() {
         </section>
 
         <section className="fan-grid fan-grid-secondary">
-          <article className="card fan-card">
-            <CardHeader eyebrow="HEIMARENEN" title="Zuschauerschnitt nach Team" detail="Durchschnitt nur an Heimspielen des jeweiligen Clubs. Klick auf ein Team setzt den Teamfilter." right={<span className="fan-period-tag">{analytics.teamRows.reduce((sum, row) => sum + row.recorded, 0)} erfasste Teamspiele</span>} />
-            <TeamComparison rows={analytics.teamRows} selectedTeamId={teamId} onSelect={(id) => { setTeamId(id); setVenuePerspective('all') }} />
-          </article>
           <article className="card fan-card">
             <CardHeader eyebrow="SPIELPLAN" title="Wann kommen die Fans?" detail="Tages- und Anspielzeitmittel; n zeigt die Anzahl erfasster Partien." />
             <div className="fan-mini-grid">
@@ -293,6 +349,13 @@ export default function FanAnalytics() {
 
         {analytics.missingAttendance > 0 && <div className="fan-missing-banner"><strong>{analytics.missingAttendance} Spiel(e) ohne Zuschauerwert</strong><span>Diese Partien fehlen in Durchschnitt und Diagrammen. Es wird nichts geschätzt.</span></div>}
       </>}
+
+      {(data?.teams || []).length > 0 && <section className="fan-grid fan-grid-secondary">
+        <article className="card fan-card">
+          <CardHeader eyebrow="HEIMARENEN" title="Heimteam-Ranking" detail="Auslastung als Mittelwert der einzelnen Heimspiele. Stichprobe und Datenabdeckung bleiben sichtbar; Kapazitätsquelle und Prüfdatum stehen in den Details. Klick auf ein Team setzt den Teamfilter." right={<span className="fan-period-tag">{arenaUtilization.utilizationGames} Spiele auswertbar</span>} />
+          <TeamComparison analysis={arenaUtilization} selectedTeamId={teamId} onSelect={(id) => { setTeamId(id); setVenuePerspective('all') }} />
+        </article>
+      </section>}
       <div className="fan-footer">Quelle: game.attendance · offizielle Zuschauerangabe je Spiel · Schweizer Zahlenformat</div>
     </div>
   )
