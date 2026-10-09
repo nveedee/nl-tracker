@@ -329,7 +329,9 @@ function zurichTime(isoString) {
   }
 }
 
-function syncGames(db, apiGames, teamMap, log) {
+// Exportiert für Fixture-Tests (server/nlReconstruct.test.js) - reine Funktion,
+// mutiert nur das übergebene `db`-Objekt, kein Datei-/Netzwerkzugriff.
+export function syncGames(db, apiGames, teamMap, log) {
   let finalCount = 0, scheduledCount = 0, created = 0, updated = 0, matchedByDate = 0
   let skippedExhibition = 0, skippedNotNl = 0
 

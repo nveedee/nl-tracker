@@ -568,15 +568,24 @@ function computeGameUpdate(existing, parsed) {
 async function runDiscover({ write, log, maxSeq = 450, seasonEndYear }) {
   const db = readDb()
   const unresolved = db.games.filter((g) => !g.sihfGameId)
-  if (unresolved.length === 0) { log('Alle Spiele haben bereits eine sihfGameId.'); return { matched: 0, checked: 0 } }
+  if (unresolved.length === 0) { log('Alle Spiele haben bereits eine sihfGameId.'); return { matched: 0, checked: 0, applied: 0 } }
 
   log(`Suche SIHF-gameId für ${unresolved.length} Spiele (Präfix ${seasonEndYear}1105, bis Sequenz ${maxSeq})…`)
   let matched = 0, checked = 0, consecutive404 = 0
+  // Nur die in DIESEM Lauf neu gefundenen Zuordnungen sammeln (lokale id ->
+  // sihfGameId). Am Ende wird NICHT die minutenalte Voll-Kopie `db`
+  // zurückgeschrieben (das überschrieb zwischenzeitliche NL-/SIHF-Sync-Writes:
+  // Resultate/externalId/Finals/playerStats/predictions - siehe Incident-
+  // Analyse), sondern die aktuelle db NEU eingelesen und ausschliesslich diese
+  // IDs gemergt (siehe unten).
+  const newMappings = []
   for (let seq = 1; seq <= maxSeq; seq++) {
     const gameId = `${seasonEndYear}1105${String(seq).padStart(6, '0')}`
     let res
     try {
-      res = await fetchSihfGame(gameId, { log })
+      // Über module.exports aufgerufen, damit Tests fetchSihfGame gezielt
+      // überschreiben können (gleiches Muster wie server/liveSync.js).
+      res = await module.exports.fetchSihfGame(gameId, { log })
     } catch (e) {
       log(`  ✗ ${gameId}: ${e.message}`)
       continue
@@ -596,15 +605,41 @@ async function runDiscover({ write, log, maxSeq = 450, seasonEndYear }) {
     const sihfDate = (raw.startDateTime || '').slice(0, 10)
     const local = unresolved.find((g) => !g.sihfGameId && g.date === sihfDate && g.homeTeamId === homeTeamId && g.awayTeamId === awayTeamId)
     if (local) {
+      // `local.sihfGameId` nur in der Arbeitskopie setzen, um Doppel-
+      // zuordnungen INNERHALB dieses Laufs zu verhindern - geschrieben wird
+      // ausschliesslich der Merge unten.
       local.sihfGameId = gameId
+      newMappings.push({ id: local.id, sihfGameId: gameId })
       matched++
       log(`  ✓ ${gameId} -> ${local.id} (${sihfDate} ${homeTeamId} - ${awayTeamId})`)
     }
     await sleep(120) // sanft, respektiert Rate-Limit (240/min laut Header)
   }
-  if (write) { writeDb(db) } else { log('(--dry-run: Zuordnung NICHT gespeichert)') }
-  log(`Discovery fertig: ${matched}/${checked} geprüfte Spiele zugeordnet.`)
-  return { matched, checked }
+
+  // Sicherer Merge statt Voll-Write der veralteten Kopie: unmittelbar vor dem
+  // Schreiben die AKTUELLE db neu einlesen und NUR die neu gefundenen
+  // sihfGameId übernehmen. Alle übrigen Felder (status/homeGoals/awayGoals/
+  // decision/externalId/sihfPeriods/sihfShots/sihfTeamStats/playerStats sowie
+  // predictions und alles andere) bleiben exakt so, wie ein zwischenzeitlicher
+  // NL-/SIHF-Sync sie geschrieben hat. Bereits (ggf. anders) gesetzte IDs
+  // werden NICHT überschrieben; ohne tatsächliche Änderung wird gar nicht
+  // geschrieben.
+  let applied = 0
+  if (!write) {
+    log('(--dry-run: Zuordnung NICHT gespeichert)')
+  } else if (newMappings.length > 0) {
+    const current = readDb()
+    for (const m of newMappings) {
+      const g = current.games.find((x) => x.id === m.id)
+      if (!g) continue // Spiel existiert nicht mehr
+      if (g.sihfGameId) continue // inzwischen bereits (ggf. anders) gesetzt -> nicht überschreiben
+      g.sihfGameId = m.sihfGameId
+      applied++
+    }
+    if (applied > 0) writeDb(current)
+  }
+  log(`Discovery fertig: ${matched}/${checked} geprüft zugeordnet, ${applied} gemergt/geschrieben.`)
+  return { matched, checked, applied }
 }
 
 // ============================================================================
