@@ -127,6 +127,70 @@ export function periodTimeFromElapsed(elapsedMinutes) {
   return { period, periodTime: formatClock(periodMinutes) }
 }
 
+// ---------------------------------------------------------------------------
+// Live-ZEITPOSITION (reine Zeitlogik, KEINE Wahrscheinlichkeit) - bestimmt,
+// wo der "JETZT"-Marker auf der 0-60'-Regulationsachse steht.
+//
+// SIHF liefert als laufende Zeit nur ein grobes `status.percent` (0-100) sowie
+// den verbindlichen Drittel-Namen `status.name` ("1./2./3. Drittel", "Pause",
+// ...). Es gibt KEIN verifiziertes Sekunden-Countdown-Feld. Die vorherige
+// Logik leitete die X-Position allein aus `percent` ab - an einer Drittel-
+// grenze konnte die percent-Minute dadurch im falschen 20'-Fenster landen,
+// während der Name bereits das neue Drittel meldete (Marker/Uhr "veraltet").
+// ---------------------------------------------------------------------------
+
+// Drittel-Offset (0/20/40 Minuten) aus dem VERBINDLICHEN SIHF-Drittel-Namen.
+// null, wenn der Name kein reguläres Drittel nennt (z.B. "Pause", OT/SO).
+export function regulationPeriodOffsetMinutes(statusLabel) {
+  const m = /(\d)\s*\.?\s*Drittel/i.exec(statusLabel || '')
+  if (!m) return null
+  const n = Number(m[1])
+  if (!(n >= 1 && n <= 3)) return null
+  return (n - 1) * MINUTES_PER_PERIOD
+}
+
+// Drittelpause / Unterbrechung - die Spieluhr steht (keine Fortschreibung).
+export function isIntermissionStatus(statusLabel) {
+  return /pause|unterbrech|intermission/i.test(statusLabel || '')
+}
+
+// BESTÄTIGTE verstrichene Regulationszeit (Minuten) aus einem SIHF-Snapshot:
+// grobe percent-Schätzung, ABER in das vom verbindlichen Drittel-Namen
+// vorgegebene 20'-Fenster geklemmt. Dadurch liegt der Marker beim Drittel-
+// wechsel immer im richtigen Abschnitt (z.B. "3. Drittel" -> [40', 60']),
+// auch wenn `percent` noch nachhängt. Ohne Drittel-Name (Pause/unbekannt):
+// reine percent-Schätzung (kein erfundenes Fenster).
+export function regulationElapsedMinutes({ statusLabel, percent }) {
+  const pct = Number(percent)
+  const pctElapsed = Number.isFinite(pct)
+    ? Math.max(0, Math.min(REGULATION_MINUTES, (pct / 100) * REGULATION_MINUTES))
+    : 0
+  const offset = regulationPeriodOffsetMinutes(statusLabel)
+  if (offset == null) return pctElapsed
+  return Math.min(offset + MINUTES_PER_PERIOD, Math.max(offset, pctElapsed))
+}
+
+// Schreibt die angezeigte Spielzeit ZWISCHEN zwei SIHF-Snapshots per Wanduhr
+// fort (damit der Marker ~laufend nach rechts wandert), streng innerhalb des
+// aktuellen Drittels und monoton (nie rückwärts). Während einer Pause steht
+// die Uhr (keine Echtzeit-Fortschreibung). Reine Funktion - die React-Hook
+// (liveGameClient.js) hält nur Anker-Zeitpunkt und zuletzt gezeigten Wert.
+//   confirmedMin   = regulationElapsedMinutes() des letzten Snapshots
+//   anchorWallMs   = Date.now() beim Empfang dieses Snapshots
+//   nowMs          = aktuelle Wanduhr
+//   offsetMin      = Drittel-Offset (null -> kein Drittel-Fenster)
+//   intermission   = true -> Uhr steht
+//   prevDisplayedMin = zuletzt angezeigter Wert IM SELBEN Drittel (null bei
+//                      Drittelwechsel -> erlaubter Vorwärtssprung ins neue Drittel)
+export function advanceDisplayedElapsed({ confirmedMin, anchorWallMs, nowMs, offsetMin, intermission, prevDisplayedMin }) {
+  const periodEnd = (offsetMin != null ? offsetMin : REGULATION_MINUTES - MINUTES_PER_PERIOD) + MINUTES_PER_PERIOD
+  let displayed = intermission
+    ? confirmedMin
+    : Math.min(confirmedMin + Math.max(0, nowMs - anchorWallMs) / 60000, periodEnd)
+  if (prevDisplayedMin != null) displayed = Math.max(displayed, prevDisplayedMin) // monoton, keine Rücksprünge
+  return Math.max(0, Math.min(REGULATION_MINUTES, displayed))
+}
+
 // Kern der Engine: geschlossene Poisson-Doppelsumme für die VERBLEIBENDEN
 // Tore (kein Monte-Carlo, keine Zufallszahlen, deterministisch) - liefert
 // P(Heimsieg nach Regulationszeit) / P(Unentschieden nach 60') /

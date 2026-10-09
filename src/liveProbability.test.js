@@ -1,6 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { computeLiveWinProbability, buildLiveProbabilityTimeline, remainingFraction, elapsedMinutesFromPeriodClock, OT_SHARE_OF_TIES } from './liveProbability.js'
+import {
+  computeLiveWinProbability, buildLiveProbabilityTimeline, remainingFraction, elapsedMinutesFromPeriodClock, OT_SHARE_OF_TIES,
+  regulationPeriodOffsetMinutes, isIntermissionStatus, regulationElapsedMinutes, advanceDisplayedElapsed, periodTimeFromElapsed,
+} from './liveProbability.js'
 
 // Repräsentative Pre-Game-Werte (Grössenordnung wie CALIBRATION.leagueHomeGPG/
 // leagueAwayGPG in playoffSim.js für ein leicht heimfavorisiertes Spiel) -
@@ -216,4 +219,66 @@ test('buildLiveProbabilityTimeline: keine Tore / Spielbeginn -> trotzdem gültig
   assert.ok(hist.length >= 2)
   assert.equal(hist[0].eventType, 'START')
   for (const p of hist) assert.ok(Number.isFinite(p.homeWin) && Number.isFinite(p.awayWin))
+})
+
+// ---------------------------------------------------------------------------
+// Live-Zeitposition: Drittel-Offset, Pause, Drittel-geklemmte Spielzeit,
+// Wanduhr-Fortschreibung des "JETZT"-Markers.
+// ---------------------------------------------------------------------------
+test('regulationPeriodOffsetMinutes: Drittel-Name -> Offset 0/20/40, sonst null', () => {
+  assert.equal(regulationPeriodOffsetMinutes('1. Drittel'), 0)
+  assert.equal(regulationPeriodOffsetMinutes('2. Drittel'), 20)
+  assert.equal(regulationPeriodOffsetMinutes('3. Drittel'), 40)
+  assert.equal(regulationPeriodOffsetMinutes('Pause'), null)
+  assert.equal(regulationPeriodOffsetMinutes('Overtime'), null)
+  assert.equal(regulationPeriodOffsetMinutes(null), null)
+})
+
+test('isIntermissionStatus: erkennt Pause/Unterbrechung', () => {
+  assert.equal(isIntermissionStatus('Pause'), true)
+  assert.equal(isIntermissionStatus('1. Pause'), true)
+  assert.equal(isIntermissionStatus('3. Drittel'), false)
+})
+
+test('regulationElapsedMinutes: percent wird ins Drittel-Fenster des verbindlichen Namens geklemmt', () => {
+  // 1. Drittel ~05:00 (percent ~8.3)
+  assert.ok(Math.abs(regulationElapsedMinutes({ statusLabel: '1. Drittel', percent: 8.33 }) - 5) < 0.1)
+  // 2. Drittel ~25:00 (percent ~41.7)
+  assert.ok(Math.abs(regulationElapsedMinutes({ statusLabel: '2. Drittel', percent: 41.67 }) - 25) < 0.1)
+  // 3. Drittel ~50:00 (percent ~83.3)
+  assert.ok(Math.abs(regulationElapsedMinutes({ statusLabel: '3. Drittel', percent: 83.33 }) - 50) < 0.1)
+  // Drittelwechsel-Fall: Name sagt "3. Drittel", percent hängt noch bei 66 (=39.6') -> auf 40:00 geklemmt
+  assert.equal(regulationElapsedMinutes({ statusLabel: '3. Drittel', percent: 66 }), 40)
+  // percent zu hoch fürs genannte Drittel -> ans Drittelende geklemmt
+  assert.equal(regulationElapsedMinutes({ statusLabel: '2. Drittel', percent: 95 }), 40)
+})
+
+test('regulationElapsedMinutes + periodTimeFromElapsed: Marker-Zeit passt zum angezeigten Drittel', () => {
+  const elapsed = regulationElapsedMinutes({ statusLabel: '3. Drittel', percent: 83 }) // ~49.8'
+  const { period, periodTime } = periodTimeFromElapsed(elapsed)
+  assert.equal(period, 3)
+  assert.equal(periodTime, '09:48')
+})
+
+test('advanceDisplayedElapsed: läuft zwischen Snapshots per Wanduhr weiter, innerhalb des Drittels', () => {
+  const t0 = 1_000_000
+  // Anker 50:00 im 3. Drittel, 30s Wanduhr später -> ~50:30
+  const d = advanceDisplayedElapsed({ confirmedMin: 50, anchorWallMs: t0, nowMs: t0 + 30_000, offsetMin: 40, intermission: false, prevDisplayedMin: null })
+  assert.ok(Math.abs(d - 50.5) < 1e-6)
+})
+
+test('advanceDisplayedElapsed: Pause friert die Uhr ein (keine Echtzeit-Fortschreibung)', () => {
+  const t0 = 1_000_000
+  const d = advanceDisplayedElapsed({ confirmedMin: 40, anchorWallMs: t0, nowMs: t0 + 120_000, offsetMin: null, intermission: true, prevDisplayedMin: null })
+  assert.equal(d, 40)
+})
+
+test('advanceDisplayedElapsed: kein Rücksprung (monoton) und Deckel am Drittelende', () => {
+  const t0 = 1_000_000
+  // monoton: bereits 50.4 gezeigt, neuer Anker 50.0 -> bleibt >= 50.4
+  const mono = advanceDisplayedElapsed({ confirmedMin: 50, anchorWallMs: t0, nowMs: t0, offsetMin: 40, intermission: false, prevDisplayedMin: 50.4 })
+  assert.ok(mono >= 50.4)
+  // Deckel: 59:00 + 5 Wanduhrminuten -> nicht über 60:00 (Drittelende 3. Drittel)
+  const capped = advanceDisplayedElapsed({ confirmedMin: 59, anchorWallMs: t0, nowMs: t0 + 5 * 60_000, offsetMin: 40, intermission: false, prevDisplayedMin: null })
+  assert.ok(capped <= 60 + 1e-9)
 })

@@ -15,20 +15,23 @@
 // Trennung wie beim Pre-Game-Modell.
 // ---------------------------------------------------------------------------
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { computeLiveWinProbability, buildLiveProbabilityTimeline, REGULATION_MINUTES, formatClock, periodTimeFromElapsed } from './liveProbability.js'
+import {
+  computeLiveWinProbability, buildLiveProbabilityTimeline, REGULATION_MINUTES, MINUTES_PER_PERIOD, formatClock, periodTimeFromElapsed,
+  regulationElapsedMinutes, regulationPeriodOffsetMinutes, isIntermissionStatus, advanceDisplayedElapsed,
+} from './liveProbability.js'
 
 export const LIVE_CLIENT_POLL_MS = 20_000
+// Lokaler Zwischen-Tick: schreibt die angezeigte Spielzeit/den "JETZT"-Marker
+// zwischen zwei SIHF-Polls per Wanduhr fort, damit er ~laufend wandert statt
+// nur alle 20s zu springen (Anforderung: ~alle 30s aktualisieren). Kürzer als
+// LIVE_CLIENT_POLL_MS, löst aber KEINEN zusätzlichen Netzwerk-Request aus.
+export const LIVE_LOCAL_TICK_MS = 15_000
 
-// `percent` (0-100, SIHF-Rohfeld) als grobe Näherung der verstrichenen
-// Regulationszeit - siehe server/scripts/sync-sihf.cjs::parseLiveSnapshot()
-// Kommentar: kein verifiziertes Countdown-/Sekundenfeld gefunden. Für OT/SO
-// wird `percent` nicht mehr sinnvoll interpretierbar, dort übernimmt die
-// Phase (phase:'OT'|'SO') die Restzeit-Poisson-Berechnung ohnehin nicht mehr
-// (siehe liveProbability.js).
-function elapsedMinutesFromPercent(percent) {
-  if (!Number.isFinite(percent)) return 0
-  return Math.max(0, Math.min(REGULATION_MINUTES, (percent / 100) * REGULATION_MINUTES))
-}
+// Die SIHF-Spielzeit (grobes `status.percent`, verbindlicher Drittel-Name) wird
+// jetzt zentral in liveProbability.js aufgelöst (regulationElapsedMinutes/
+// advanceDisplayedElapsed) - Drittel-geklemmt, monoton, Pausen-fest. Für OT/SO
+// übernimmt weiterhin die per Wanduhr mitgezählte otElapsedMinutes nur die
+// X-Position (die Quote bleibt der eingefrorene Pre-Game-Split, siehe unten).
 
 function toMinute(mmss) {
   if (!mmss) return null
@@ -60,7 +63,7 @@ function buildEvents(liveState, homeTeamId) {
 // neue Wahrscheinlichkeitsannahme.
 const OT_DISPLAY_CAP_MINUTES = REGULATION_MINUTES + 5
 
-export function buildRealLiveMatch({ liveState, homeTeam, awayTeam, pregame, history, otElapsedMinutes }) {
+export function buildRealLiveMatch({ liveState, homeTeam, awayTeam, pregame, history, otElapsedMinutes, regElapsedMinutes }) {
   // Replay (server/liveReplay.js) kennt die exakte angefragte Spielzeit
   // (`replayElapsedSeconds`, direkt aus den absoluten SIHF-Torzeitstempeln
   // abgeleitet) - dort NIEMALS die grobe `percent`-Näherung verwenden, die
@@ -77,9 +80,18 @@ export function buildRealLiveMatch({ liveState, homeTeam, awayTeam, pregame, his
   // "Linie" aus einem einzigen Punkt ist im SVG nicht sichtbar (nur die
   // Torereignis-Marker), siehe LiveWinProbabilityPanel.jsx::buildMonotonePath
   // (n===1 -> reines "M x y" ohne Liniensegment).
+  // REG: bevorzugt der von useLiveGame() per Wanduhr fortgeschriebene,
+  // Drittel-geklemmte Wert (regElapsedMinutes). Fehlt er (z.B. Dashboard-
+  // Einzelabruf über LiveNowSection), wird die bestätigte, ebenfalls
+  // Drittel-geklemmte Zeit direkt aus dem Snapshot abgeleitet - nie mehr die
+  // ungeklemmte percent-Rohschätzung (siehe liveProbability.js::
+  // regulationElapsedMinutes - Marker lag an Drittelgrenzen sonst im falschen
+  // Abschnitt). Replay/OT/SO unverändert.
   const elapsedMinutes = liveState.replay
     ? Math.min(REGULATION_MINUTES, liveState.replayElapsedSeconds / 60)
-    : (liveState.phase === 'REG' ? elapsedMinutesFromPercent(liveState.percent) : (otElapsedMinutes ?? REGULATION_MINUTES))
+    : (liveState.phase === 'REG'
+      ? (regElapsedMinutes ?? regulationElapsedMinutes({ statusLabel: liveState.statusLabel, percent: liveState.percent }))
+      : (otElapsedMinutes ?? REGULATION_MINUTES))
   const prob = computeLiveWinProbability({
     expHomeFull: pregame.expHomeFull, expAwayFull: pregame.expAwayFull, pHomePreGame: pregame.pHomePreGame,
     homeGoals: liveState.homeGoals, awayGoals: liveState.awayGoals,
@@ -140,16 +152,24 @@ export function buildRealLiveMatch({ liveState, homeTeam, awayTeam, pregame, his
 export function useLiveGame({ gameId, homeTeam, awayTeam, pregame, enabled }) {
   const [liveMatch, setLiveMatch] = useState(null)
   const [ended, setEnded] = useState(false)
+  // Letzter empfangener Snapshot - der lokale Zwischen-Tick (rebuild) baut die
+  // Ansicht daraus neu auf, OHNE neu zu fetchen (nur die Zeitposition wandert).
+  const lastStateRef = useRef(null)
+  // REG-Zeitanker: bestätigte Spielzeit des letzten Snapshots + Wanduhr-
+  // Zeitpunkt des Empfangs, plus Drittel-Offset/Pause-Flag. advanceDisplayedElapsed()
+  // (liveProbability.js) schreibt daraus die angezeigte Spielzeit zwischen den
+  // Snapshots per Wanduhr fort - monoton, innerhalb des Drittels, Uhr steht in
+  // der Pause. `prevMin` trägt den zuletzt gezeigten Wert für die Monotonie.
+  const regAnchorRef = useRef(null)
   // Wanduhr-Zeitpunkt des ersten beobachteten OT/SO-Ticks (Date.now()) - NUR
   // dafür, dass die Chart-X-Position während OT/SO mit der echten
-  // verstrichenen Zeit weiterwandert (siehe otElapsedMinutes()/
-  // buildRealLiveMatch()-Kommentar). SIHF liefert dafür kein eigenes
-  // Zeitfeld (siehe elapsedMinutesFromPercent()-Kommentar) - Wanduhrzeit ist
-  // hier ein reales, gemessenes Signal (keine erfundene Wahrscheinlichkeit).
+  // verstrichenen Zeit weiterwandert (siehe buildRealLiveMatch()-Kommentar).
   const otStartRef = useRef(null)
 
   useEffect(() => {
     if (!enabled || !gameId || !pregame) {
+      lastStateRef.current = null
+      regAnchorRef.current = null
       otStartRef.current = null
       setLiveMatch(null)
       setEnded(false)
@@ -157,56 +177,93 @@ export function useLiveGame({ gameId, homeTeam, awayTeam, pregame, enabled }) {
     }
 
     let cancelled = false
-    let interval = null
+    let pollTimer = null
+    let tickTimer = null
 
-    async function tick() {
+    // Baut die Ansicht aus dem zuletzt empfangenen Snapshot neu auf und
+    // schreibt dabei NUR die Zeitposition (REG per Wanduhr innerhalb des
+    // Drittels, OT/SO per Wanduhr ab 60') fort - kein Fetch, keine geänderte
+    // Wahrscheinlichkeitsberechnung.
+    function rebuild() {
+      const liveState = lastStateRef.current
+      if (!liveState || cancelled) return
+      const now = Date.now()
+
+      let otElapsedMinutes = null
+      let regElapsedMinutes = null
+      if (liveState.phase === 'REG') {
+        const a = regAnchorRef.current
+        if (a) {
+          regElapsedMinutes = advanceDisplayedElapsed({
+            confirmedMin: a.confirmedMin, anchorWallMs: a.wallMs, nowMs: now,
+            offsetMin: a.offset, intermission: a.intermission, prevDisplayedMin: a.prevMin,
+          })
+          a.prevMin = regElapsedMinutes // Monotonie über die Zwischen-Ticks hinweg
+        }
+      } else {
+        if (otStartRef.current == null) otStartRef.current = now
+        otElapsedMinutes = Math.min(REGULATION_MINUTES + (now - otStartRef.current) / 60000, OT_DISPLAY_CAP_MINUTES)
+      }
+
+      // Vollständige Kurve (Spielbeginn -> jetzt) aus den echten Toren +
+      // Engine rekonstruieren (durchgehende Linie, siehe
+      // liveProbability.js::buildLiveProbabilityTimeline).
+      const goalsAbs = (liveState.goals || [])
+        .map((g) => ({ minute: toMinute(g.time), side: g.teamId === homeTeam.id ? 'home' : 'away' }))
+        .filter((g) => g.minute != null)
+      const elapsedForTimeline = liveState.phase === 'REG' ? (regElapsedMinutes ?? 0) : otElapsedMinutes
+      const history = buildLiveProbabilityTimeline({
+        expHomeFull: pregame.expHomeFull, expAwayFull: pregame.expAwayFull, pHomePreGame: pregame.pHomePreGame,
+        goals: goalsAbs, homeGoals: liveState.homeGoals, awayGoals: liveState.awayGoals,
+        elapsedMinutes: elapsedForTimeline, phase: liveState.phase,
+      })
+
+      setLiveMatch(buildRealLiveMatch({ liveState, homeTeam, awayTeam, pregame, history, otElapsedMinutes, regElapsedMinutes }))
+    }
+
+    async function poll() {
       let liveState
       try {
         const res = await fetch(`/api/games/${gameId}/live`)
         if (res.status === 404) {
           // Spiel final geworden (server/liveSync.js räumt den Cache bei
           // status:'final') oder nie live gewesen - Polling stoppen
-          // (Requirement 7: keine weitere Live-Wahrscheinlichkeit nach
-          // Spielende berechnen).
-          if (!cancelled) { setEnded(true); if (interval) clearInterval(interval) }
+          // (kein weiteres Fortschreiben der Zeit/Wahrscheinlichkeit).
+          if (!cancelled) { setEnded(true); if (pollTimer) clearInterval(pollTimer); if (tickTimer) clearInterval(tickTimer) }
           return
         }
-        if (!res.ok) return // vorübergehender Fehler (502 etc.) - nächster Tick versucht es erneut, bisheriger Stand bleibt sichtbar
+        if (!res.ok) return // vorübergehender Fehler (502 etc.) - nächster Poll versucht es erneut, bisheriger Stand bleibt sichtbar
         liveState = await res.json()
       } catch {
         return // Netzwerkfehler - wie oben, nichts zurücksetzen
       }
       if (cancelled) return
 
-      let otElapsedMinutes = null
+      lastStateRef.current = liveState
+      // Zeitanker mit der BESTÄTIGTEN Spielzeit synchronisieren (Drittel-
+      // geklemmt). Bei Drittelwechsel wird die Monotonie-Basis zurückgesetzt
+      // (erlaubter Vorwärtssprung ins neue Drittel), innerhalb desselben
+      // Drittels verhindert prevMin Rücksprünge.
       if (liveState.phase === 'REG') {
-        otStartRef.current = null // defensiv - passiert real nie (Spiel geht nie von OT zurück zu REG), hält den Ref aber sauber
-      } else {
-        if (otStartRef.current == null) otStartRef.current = Date.now()
-        otElapsedMinutes = Math.min(REGULATION_MINUTES + (Date.now() - otStartRef.current) / 60000, OT_DISPLAY_CAP_MINUTES)
+        const offset = regulationPeriodOffsetMinutes(liveState.statusLabel)
+        const intermission = isIntermissionStatus(liveState.statusLabel)
+        const confirmed = regulationElapsedMinutes({ statusLabel: liveState.statusLabel, percent: liveState.percent })
+        const prev = regAnchorRef.current
+        const prevMin = prev && prev.offset === offset ? prev.prevMin : null
+        regAnchorRef.current = { confirmedMin: confirmed, wallMs: Date.now(), offset, intermission, prevMin }
+        otStartRef.current = null
+      } else if (otStartRef.current == null) {
+        otStartRef.current = Date.now()
       }
-      const elapsedMinutes = liveState.phase === 'REG' ? elapsedMinutesFromPercent(liveState.percent) : otElapsedMinutes
-      // Vollständige Kurve (Spielbeginn -> jetzt) bei JEDEM Tick aus den echten
-      // Toren rekonstruieren (statt wie bisher nur einen Punkt pro Poll
-      // anzusammeln - das ergab bei einem bereits laufenden Spiel keine
-      // durchgehende Linie). Reine, getestete Engine-Funktion, dieselbe wie
-      // für Demo/Replay - keine erfundenen Zwischenpunkte (siehe
-      // liveProbability.js::buildLiveProbabilityTimeline).
-      const goalsAbs = (liveState.goals || [])
-        .map((g) => ({ minute: toMinute(g.time), side: g.teamId === homeTeam.id ? 'home' : 'away' }))
-        .filter((g) => g.minute != null)
-      const history = buildLiveProbabilityTimeline({
-        expHomeFull: pregame.expHomeFull, expAwayFull: pregame.expAwayFull, pHomePreGame: pregame.pHomePreGame,
-        goals: goalsAbs, homeGoals: liveState.homeGoals, awayGoals: liveState.awayGoals,
-        elapsedMinutes, phase: liveState.phase,
-      })
-
-      setLiveMatch(buildRealLiveMatch({ liveState, homeTeam, awayTeam, pregame, history, otElapsedMinutes }))
+      rebuild()
     }
 
-    tick()
-    interval = setInterval(tick, LIVE_CLIENT_POLL_MS)
-    return () => { cancelled = true; clearInterval(interval) }
+    poll()
+    pollTimer = setInterval(poll, LIVE_CLIENT_POLL_MS)
+    // Lokaler Zwischen-Tick: bewegt den "JETZT"-Marker auch zwischen den
+    // SIHF-Polls ~laufend nach rechts (Wanduhr-Fortschreibung), ohne zu fetchen.
+    tickTimer = setInterval(rebuild, LIVE_LOCAL_TICK_MS)
+    return () => { cancelled = true; if (pollTimer) clearInterval(pollTimer); if (tickTimer) clearInterval(tickTimer) }
   }, [gameId, homeTeam, awayTeam, pregame, enabled])
 
   return { liveMatch, ended }
